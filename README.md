@@ -1,0 +1,115 @@
+# Amtul Noor Library
+
+Library management app for Amtul Noor Library: members, monthly payments and seat allocation.
+
+## What it does
+
+- **Dashboard** — member counts, seat usage, money collected for the current month, pending payments and who has not paid yet.
+- **Members** — searchable, paginated list, add/edit a member, view one member with their full payment history, and mark a member as left.
+- **Payments** — every payment is its own row, so several payments in one month are kept and nothing is overwritten. Filter by month, member, mode or status. You can also generate the pending rows for a month in one go.
+- **Seats** — a visual map of the rooms. Assign a member to a free seat, release a seat, and add rooms or seats.
+
+Members are permanent records. Marking someone as left keeps their payment history, releases their seat and stores the leaving date.
+
+## Local development
+
+There is no need to install PostgreSQL or Docker. `npm run db:local` starts a PostgreSQL that ships inside `node_modules`, and stores its data in `.local-db/`.
+
+```bash
+npm install
+cp .env.example .env
+npm run db:local start      # leave this running in its own terminal
+```
+
+`db:local start` prints the connection string to use. Put that in `.env` as `DATABASE_URL`, then:
+
+```bash
+npm run db:deploy           # create the tables
+npm run import              # load ../Library.xlsx
+npm run check-data          # print a summary to verify the import
+npm run dev
+```
+
+Sign in at http://localhost:3000 with the `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` from `.env`.
+Two terminals are needed: one for `npm run db:local start`, one for `npm run dev`. If
+login is rejected, run `npm run check-login`, and if the pages show an error run
+`npm run smoke`.
+
+To stop the database use `npm run db:local stop` in another terminal. To stop only the
+dev server on Windows use `npm run stop-dev`, which leaves the database running.
+
+## When something is wrong
+
+| Symptom | Cause and fix |
+| --- | --- |
+| Login always says the details are wrong | The password hash was emptied. Next.js expands `$VAR` in `.env`, so each `$` must be written as `\$`. Run `npm run check-login`, then `npm run hash-password -- "your-password"` |
+| A page says "Cannot reach the database" | The database is not running. Start it with `npm run db:local start` |
+| `Another next dev server is already running` | A previous dev server is still up. On Windows run `npm run stop-dev` |
+| `port 54329 is already in use` | Something else holds the port, or the database is already running. `npm run db:local stop` then start it again |
+| A raw stack trace appears | Read the terminal running `npm run dev`; that is where the real cause is printed |
+
+## Importing the Excel register
+
+```bash
+npm run import                       # import ../Library.xlsx
+npm run import -- other.xlsx         # import a different file
+npx tsx prisma/import-excel.ts --force   # replace everything that is already there
+```
+
+`Sheet1` is the member register and is the only sheet that is read. Each month column
+holds a payment mode in one cell and an amount in the next, and each one becomes a
+separate `Payment` row. `Sheet2` and `Sheet3` are deliberately ignored.
+
+The import prints everything it could not decide for you:
+
+- **Seat conflicts** — two active members claim the same seat. The first one keeps it.
+- **Duplicate mobile numbers** — both members are kept, since they may really be two people.
+- **Notes** — missing joining dates, and payments that fall before a joining date.
+
+Room 1 is created with 22 seats. Amounts of `0` with a mode of `Offer` are recorded as a
+paid zero.
+
+## Useful scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run db:local start` / `stop` | The development PostgreSQL |
+| `npm run db:migrate` | Create and apply a migration after changing the schema |
+| `npm run db:deploy` | Apply existing migrations |
+| `npm run db:studio` | Browse the data |
+| `npm run import` | Import the Excel register |
+| `npm run check-data` | Summary and consistency check |
+| `npm run hash-password -- "secret"` | Print an `ADMIN_PASSWORD_HASH` line, ready to paste |
+| `npm run check-login` | Check that the login settings in `.env` are usable |
+| `npm run smoke` | Sign in for real and load every page, needs a running dev server |
+| `npm run dev-token` | Print a session cookie, for local smoke testing only |
+
+## Deploying
+
+Set these on the host:
+
+| Variable | Notes |
+| --- | --- |
+| `DATABASE_URL` | The production PostgreSQL connection string |
+| `AUTH_SECRET` | Long random string used to sign the session cookie |
+| `ADMIN_EMAIL` | Admin login |
+| `ADMIN_PASSWORD_HASH` | bcrypt hash, generate with `npm run hash-password` |
+
+Next.js expands `$VAR` inside `.env` values. A bcrypt hash is full of `$`, so it must
+be stored with each `$` written as `\$`, otherwise it is silently emptied and every
+login fails. `npm run hash-password` prints the line with the backslashes already
+added. Use `npm run check-login` if you are not sure.
+
+Then run `npm run build` and start it with `npm run start`. Apply migrations with
+`npm run db:deploy` as part of the release.
+
+## Notes
+
+- Admin accounts come from environment variables, not a database table, so there is only
+  ever one login.
+- Routes are protected in `src/proxy.ts` (Next.js 16 renamed `middleware` to `proxy`) and
+  again in the app layout.

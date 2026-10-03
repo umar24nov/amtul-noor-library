@@ -1,0 +1,148 @@
+import { z } from "zod";
+
+const emptyToUndefined = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+};
+
+const optionalText = (max: number) =>
+  z.preprocess(emptyToUndefined, z.string().max(max, `Must be ${max} characters or fewer`).optional());
+
+/**
+ * Indian mobile numbers: 10 digits starting with 6-9. Spaces, dashes and a
+ * leading +91 are tolerated and normalised away.
+ */
+export const mobileSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/[\s-]/g, "").replace(/^91(?=\d{10}$)/, ""))
+  .refine((value) => /^\d{10}$/.test(value), "Enter a 10 digit mobile number")
+  .refine((value) => /^[6-9]/.test(value), "Mobile number must start with 6, 7, 8 or 9");
+
+export const optionalMobileSchema = z.preprocess(
+  emptyToUndefined,
+  z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/[\s-]/g, "").replace(/^91(?=\d{10}$)/, ""))
+    .refine((value) => /^\d{10}$/.test(value), "Enter a 10 digit mobile number")
+    .refine((value) => /^[6-9]/.test(value), "Mobile number must start with 6, 7, 8 or 9")
+    .optional(),
+);
+
+export const dateInputSchema = z
+  .string()
+  .trim()
+  .min(1, "Date is required")
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date")
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Enter a valid date");
+
+export const monthKeySchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Enter a valid month");
+
+export const seatNumberSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((value) => /^\d{1,4}$/.test(value), "Enter a seat number")
+  .refine((value) => Number(value) > 0, "Seat number must be greater than 0");
+
+export const memberFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name is required")
+    .max(80, "Name must be 80 characters or fewer"),
+  mobile: mobileSchema,
+  guardianName: optionalText(80),
+  guardianMobile: optionalMobileSchema,
+  joiningDate: dateInputSchema,
+  remarks: optionalText(500),
+  seatId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+  payAmount: z.preprocess(emptyToUndefined, z.coerce.number().positive("Amount must be greater than 0").max(100000).optional()),
+  payMode: z.preprocess(emptyToUndefined, z.enum(["CASH", "ONLINE", "OFFER"]).optional()),
+  payMonth: z.preprocess(emptyToUndefined, monthKeySchema.optional()),
+  payDate: z.preprocess(emptyToUndefined, dateInputSchema.optional()),
+});
+
+export type MemberFormValues = z.input<typeof memberFormSchema>;
+export type MemberFormOutput = z.output<typeof memberFormSchema>;
+
+export const paymentFormSchema = z
+  .object({
+    memberId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive("Select a member")),
+    month: monthKeySchema,
+    amount: z.coerce
+      .number({ message: "Amount is required" })
+      .min(0, "Amount cannot be negative")
+      .max(100000, "Amount looks too large"),
+    paymentMode: z.enum(["CASH", "ONLINE", "OFFER"], { message: "Select a payment mode" }),
+    paymentDate: dateInputSchema,
+    status: z.enum(["PAID", "PENDING", "WAIVED", "NOT_APPLICABLE", "ON_HOLD"], {
+      message: "Select a status",
+    }),
+    remarks: optionalText(500),
+  })
+  // Only an offer or concession may be recorded as a paid zero.
+  .refine((value) => value.amount !== 0 || value.paymentMode === "OFFER", {
+    message: "Amount must be greater than 0",
+    path: ["amount"],
+  });
+
+export type PaymentFormValues = z.input<typeof paymentFormSchema>;
+export type PaymentFormOutput = z.output<typeof paymentFormSchema>;
+
+export const assignSeatSchema = z.object({
+  seatId: z.coerce.number().int().positive(),
+  memberId: z.coerce.number().int().positive("Select an active member"),
+});
+
+export const roomFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Room name is required")
+    .max(40, "Room name must be 40 characters or fewer"),
+});
+
+export const seatFormSchema = z.object({
+  roomId: z.coerce.number().int().positive(),
+  seatNumber: seatNumberSchema,
+});
+
+export const seatRangeFormSchema = z.object({
+  roomId: z.coerce.number().int().positive(),
+  from: seatNumberSchema,
+  to: seatNumberSchema,
+});
+
+export const markLeftSchema = z.object({
+  memberId: z.coerce.number().int().positive(),
+  leavingDate: dateInputSchema,
+});
+
+export const feeFormSchema = z.object({
+  fee: z.coerce
+    .number({ message: "Enter the monthly fee" })
+    .positive("Monthly fee must be greater than 0")
+    .max(100000, "Monthly fee looks too large"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+  next: z.string().optional(),
+});
+
+/** Flattens a Zod error into `{ field: message }` for form rendering. */
+export function fieldErrors(error: z.ZodError): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = issue.path.join(".") || "form";
+    if (!result[key]) result[key] = issue.message;
+  }
+  return result;
+}

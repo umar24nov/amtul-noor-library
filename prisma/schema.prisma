@@ -1,0 +1,115 @@
+// Amtul Noor Library - database schema
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SeatStatus {
+  AVAILABLE
+  OCCUPIED
+}
+
+enum MemberStatus {
+  ACTIVE
+  LEFT
+}
+
+enum PaymentMode {
+  CASH
+  ONLINE
+  OFFER
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  WAIVED
+  NOT_APPLICABLE
+  ON_HOLD
+}
+
+/// A physical room in the library (Room 1, Room 2, ...).
+model Room {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  seats     Seat[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A single study desk. Seats are never deleted implicitly; a seat keeps its
+/// identity so historic member -> seat links stay meaningful.
+model Seat {
+  id         Int        @id @default(autoincrement())
+  roomId     Int
+  seatNumber String
+  status     SeatStatus @default(AVAILABLE)
+  room       Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  occupants  Member[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([roomId, seatNumber])
+  @@index([status])
+}
+
+/// Permanent personal record of a person who joined the library.
+/// Rows are never deleted; a person who leaves is kept with status LEFT.
+model Member {
+  id             Int          @id @default(autoincrement())
+  memberId       String       @unique
+  name           String
+  mobile         String?
+  guardianName   String?
+  guardianMobile String?
+  joiningDate    DateTime
+  /// Current seat. Cleared when the member is marked Left.
+  seatId         Int?
+  status         MemberStatus @default(ACTIVE)
+  leavingDate    DateTime?
+  remarks        String?
+  seat           Seat?        @relation(fields: [seatId], references: [id], onDelete: SetNull)
+  payments       Payment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([name])
+  @@index([mobile])
+  @@index([status])
+  @@index([seatId])
+}
+
+/// One financial transaction for one member for one month.
+/// A member can have many rows; nothing is ever overwritten.
+model Payment {
+  id          Int           @id @default(autoincrement())
+  paymentId   String        @unique
+  memberId    Int
+  /// Calendar month in `YYYY-MM` form.
+  month       String
+  amount      Decimal       @db.Decimal(10, 2)
+  paymentMode PaymentMode
+  paymentDate DateTime
+  status      PaymentStatus @default(PAID)
+  remarks     String?
+  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([month])
+  @@index([status])
+  @@index([memberId, month])
+}
+
+/// Small key/value store for the handful of library-wide settings we need.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
