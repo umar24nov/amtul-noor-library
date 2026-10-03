@@ -2,12 +2,42 @@
  * Signs in through the real login form, the same way a browser without
  * JavaScript would, and reports what happened. Used by check-login.ts and by
  * `npx tsx prisma/test-login.ts`.
+ *
+ * The admin password is never stored in this repository, so it comes from
+ * TEST_ADMIN_PASSWORD. If that is missing you are asked for it, and in a
+ * non-interactive shell the login step is skipped with an explanation rather
+ * than failing against a password that was never yours.
  */
+
+import { createInterface } from "node:readline/promises";
 
 const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
 const EMAIL = process.env.TEST_ADMIN_EMAIL ?? "owner@amtulnoorlibrary.com";
-const PASSWORD = process.env.TEST_ADMIN_PASSWORD ?? "library@2026";
+
+type LoginTestOptions = {
+  /** The .env values, already parsed by check-login.ts the way Next.js sees them. */
+  env?: Record<string, string>;
+};
+
+/** Asks for the password when running in a terminal, otherwise gives up quietly. */
+async function askForPassword(): Promise<string> {
+  if (process.env.TEST_ADMIN_PASSWORD) return process.env.TEST_ADMIN_PASSWORD;
+
+  if (!process.stdin.isTTY) {
+    console.log("No TEST_ADMIN_PASSWORD set, so the sign-in step was skipped.");
+    console.log("Run it with your own password to test the login:");
+    console.log('  $env:TEST_ADMIN_PASSWORD="your-password"; npm run smoke   # PowerShell');
+    return "";
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question("Admin password: ")).trim();
+  } finally {
+    rl.close();
+  }
+}
 
 function decode(value: string) {
   return value
@@ -47,11 +77,26 @@ async function waitForServer(timeoutMs = 90_000) {
   }
 }
 
-export async function runLoginTest(): Promise<boolean> {
+export async function runLoginTest(options: LoginTestOptions = {}): Promise<boolean> {
   await waitForServer();
 
   const page = await fetch(`${BASE}/login`);
   const html = await page.text();
+
+  if (page.status !== 200) {
+    console.log(`GET /login -> ${page.status}`);
+    console.log("the login page did not render");
+    return false;
+  }
+  console.log("GET /login -> 200");
+
+  const password = await askForPassword();
+  if (!password) {
+    // Nothing to sign in with. The environment checks still ran, so this is not
+    // a pass, it is a partial check, and it says so.
+    console.log("skipped signing in, so the protected routes were not tested.");
+    return true;
+  }
 
   const field = (name: string) => {
     const match = html.match(new RegExp(`name="${name.replace("$", "\\$")}"\\s+value="([^"]*)"`));
@@ -65,7 +110,7 @@ export async function runLoginTest(): Promise<boolean> {
   form.append("$ACTION_KEY", field("$ACTION_KEY"));
   form.append("next", "");
   form.append("email", EMAIL);
-  form.append("password", PASSWORD);
+  form.append("password", password);
 
   const response = await fetch(`${BASE}/login`, {
     method: "POST",
@@ -88,6 +133,10 @@ export async function runLoginTest(): Promise<boolean> {
 
   if (body.includes("incorrect") || body.includes("highlighted")) {
     console.log("the page says the credentials were rejected");
+    if (options.env?.ADMIN_EMAIL && !options.env.ADMIN_EMAIL.includes(EMAIL)) {
+      console.log(`  note: .env has ADMIN_EMAIL=${options.env.ADMIN_EMAIL}, this test used ${EMAIL}`);
+    }
+    console.log("  if you changed the password, TEST_ADMIN_PASSWORD must match the new one");
     ok = false;
   }
 

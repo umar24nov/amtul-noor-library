@@ -2,7 +2,7 @@
  * Imports the existing Excel register (Library.xlsx) into the database.
  *
  * Usage:
- *   npm run import            # import ../Library.xlsx
+ *   npm run import            # find Library.xlsx in this folder or one level up
  *   npm run import -- file.xlsx
  *   npm run import -- file.xlsx --force   # wipe existing data first
  *
@@ -11,7 +11,7 @@
  * Those monthly columns become one Payment row each, so nothing is ever
  * overwritten and the history keeps growing.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import "dotenv/config";
 import * as XLSX from "xlsx";
@@ -208,13 +208,45 @@ function parsePayment(
   return { month, amount, paymentMode, status: "PAID", remarks: null };
 }
 
+/**
+ * Finds the register workbook. An explicit path or IMPORT_FILE always wins.
+ * Otherwise look in the project folder first, then one level up, which is where
+ * the register sits when this repo is checked out inside the library folder.
+ */
+function resolveRegister(explicit?: string): string {
+  if (explicit) {
+    const given = path.resolve(explicit);
+    if (!existsSync(given)) {
+      throw new Error(`No such file: ${given}`);
+    }
+    return given;
+  }
+
+  const candidates = [
+    path.join(process.cwd(), "Library.xlsx"),
+    path.join(process.cwd(), "..", "Library.xlsx"),
+  ];
+  const found = candidates.map((file) => path.resolve(file)).find((file) => existsSync(file));
+
+  if (!found) {
+    throw new Error(
+      [
+        "Could not find Library.xlsx.",
+        `Looked in:\n  ${candidates.map((file) => path.resolve(file)).join("\n  ")}`,
+        "Copy the register into the project folder, or pass it explicitly:",
+        "  npm run import -- path/to/Library.xlsx",
+      ].join("\n"),
+    );
+  }
+
+  return found;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const fileArg = args.find((arg) => !arg.startsWith("--"));
   const force = args.includes("--force");
-  const filePath = path.resolve(
-    fileArg ?? process.env.IMPORT_FILE ?? path.join(process.cwd(), "..", "Library.xlsx"),
-  );
+  const filePath = resolveRegister(fileArg ?? process.env.IMPORT_FILE);
 
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set. Copy .env.example to .env first.");

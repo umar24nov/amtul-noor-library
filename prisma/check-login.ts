@@ -30,9 +30,14 @@ function loadEnvLikeNext(file: string) {
     let value = line.slice(eq + 1).trim();
     const quote = value[0];
     if (quote === '"' || quote === "'") value = value.slice(1, -1);
-    // $VAR is expanded, and \$ is the escape that keeps a bcrypt hash intact.
-    value = value.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (whole) => values[whole.slice(1)] ?? "");
-    value = value.replaceAll("\\$", "$");
+    // Single left to right pass, so an escaped \$ is never mistaken for a $VAR
+    // expansion. Expanding first and unescaping afterwards deletes any bcrypt
+    // salt that happens to start with a letter, because \$2b$10$F2fA... looks
+    // exactly like the variable F2fA....
+    value = value.replace(
+      /\\\$|\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g,
+      (whole, name: string | undefined) => (name === undefined ? "$" : (values[name] ?? "")),
+    );
     values[key] = value;
   }
   return values;
@@ -63,9 +68,26 @@ async function main() {
     failed = true;
   }
 
+  // A bcrypt hash that lost its $ signs to $VAR expansion still has some length,
+  // so check the shape. This is the failure that silently breaks every login.
+  if (hash) {
+    const looksBcrypt = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(hash);
+    if (!looksBcrypt) {
+      console.error("\nADMIN_PASSWORD_HASH does not look like a bcrypt hash.");
+      if (!hash.startsWith("$2")) {
+        console.error("The $ signs are probably missing, because Next.js expanded $VAR inside .env.");
+        console.error('Store every $ as \\$ , or regenerate with: npm run hash-password -- "your-password"');
+      } else {
+        console.error("The hash looks damaged. Regenerate it with:");
+        console.error('  npm run hash-password -- "your-password"');
+      }
+      failed = true;
+    }
+  }
+
   if (live) {
     const { runLoginTest } = await import("./login-test");
-    if (!(await runLoginTest())) failed = true;
+    if (!(await runLoginTest({ env }))) failed = true;
   }
 
   console.log(failed ? "\nSomething is not set up right." : "\nEnvironment looks correct.");

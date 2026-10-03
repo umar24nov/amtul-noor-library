@@ -25,7 +25,7 @@ npm run db:local start      # leave this running in its own terminal
 
 ```bash
 npm run db:deploy           # create the tables
-npm run import              # load ../Library.xlsx
+npm run import              # load Library.xlsx
 npm run check-data          # print a summary to verify the import
 npm run dev
 ```
@@ -51,7 +51,7 @@ dev server on Windows use `npm run stop-dev`, which leaves the database running.
 ## Importing the Excel register
 
 ```bash
-npm run import                       # import ../Library.xlsx
+npm run import                       # import Library.xlsx from this folder or one level up
 npm run import -- other.xlsx         # import a different file
 npx tsx prisma/import-excel.ts --force   # replace everything that is already there
 ```
@@ -85,7 +85,7 @@ paid zero.
 | `npm run check-data` | Summary and consistency check |
 | `npm run hash-password -- "secret"` | Print an `ADMIN_PASSWORD_HASH` line, ready to paste |
 | `npm run check-login` | Check that the login settings in `.env` are usable |
-| `npm run smoke` | Sign in for real and load every page, needs a running dev server |
+| `npm run smoke` | Sign in for real and load every page, needs a running dev server. Asks for the admin password unless `TEST_ADMIN_PASSWORD` is set |
 | `npm run dev-token` | Print a session cookie, for local smoke testing only |
 
 ## Deploying

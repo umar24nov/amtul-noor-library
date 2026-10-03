@@ -3,7 +3,8 @@
  *
  *   npx tsx prisma/test-login.ts
  *
- * The dev server must already be running.
+ * The dev server must already be running. You are asked for the admin password
+ * unless TEST_ADMIN_PASSWORD is set.
  */
 import { runLoginTest } from "./login-test";
 
