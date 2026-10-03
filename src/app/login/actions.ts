@@ -3,6 +3,12 @@
 import { redirect } from "next/navigation";
 import { createSession, destroySession, verifyCredentials } from "@/lib/auth";
 import { errorState, type ActionState } from "@/lib/action-result";
+import {
+  checkLoginRateLimit,
+  clearLoginFailures,
+  getClientIp,
+  recordFailedLogin,
+} from "@/lib/login-rate-limit";
 import { fieldErrors, loginSchema } from "@/lib/validators";
 
 function safeNext(value: unknown): string {
@@ -26,11 +32,23 @@ export async function loginAction(
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
   }
 
+  const ip = await getClientIp();
+  const limit = await checkLoginRateLimit(parsed.data.email, ip);
+  if (limit.limited) {
+    return errorState(
+      `Too many failed attempts. Try again in ${limit.retryAfterMinutes} minute${
+        limit.retryAfterMinutes === 1 ? "" : "s"
+      }.`,
+    );
+  }
+
   const session = await verifyCredentials(parsed.data.email, parsed.data.password);
   if (!session) {
+    await recordFailedLogin(parsed.data.email, ip);
     return errorState("Email or password is incorrect.");
   }
 
+  await clearLoginFailures(parsed.data.email);
   await createSession(session);
   redirect(safeNext(parsed.data.next));
 }

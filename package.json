@@ -19,6 +19,7 @@
     "hash-password": "tsx prisma/hash-password.ts",
     "dev-token": "tsx prisma/dev-token.ts",
     "check-login": "tsx prisma/check-login.ts",
+    "clear-lockout": "tsx prisma/clear-login-attempts.ts",
     "smoke": "tsx prisma/check-login.ts --live",
     "stop-dev": "powershell -ExecutionPolicy Bypass -File scripts/stop-dev.ps1"
   },

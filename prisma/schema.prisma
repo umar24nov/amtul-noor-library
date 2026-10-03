@@ -113,3 +113,19 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+/// One row per rejected sign-in attempt. Lives in the database because serverless
+/// instances do not share memory, so an in-process counter would reset constantly.
+/// Rows are pruned once they fall outside the window being measured.
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  /// Lower-cased email that was submitted, so failures are counted per account.
+  email     String
+  /// Client address taken from x-forwarded-for / x-real-ip. Empty when unknown.
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@index([createdAt])
+}

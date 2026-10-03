@@ -87,6 +87,18 @@ paid zero.
 | `npm run check-login` | Check that the login settings in `.env` are usable |
 | `npm run smoke` | Sign in for real and load every page, needs a running dev server. Asks for the admin password unless `TEST_ADMIN_PASSWORD` is set |
 | `npm run dev-token` | Print a session cookie, for local smoke testing only |
+| `npm run clear-lockout` | Reset the login rate limiter after too many failed attempts |
+
+## Login security
+
+Five failed sign-ins for the same account or IP address within 15 minutes
+locks further attempts for the rest of that window, including attempts with the
+correct password. Failures are counted in the database, because serverless
+instances do not share memory and an in-process counter would reset on every
+request. A successful sign-in clears the counter, so a few typos are harmless.
+
+If the limiter ever locks you out of the deployed site, point `DATABASE_URL` at
+the production database and run `npm run clear-lockout`.
 
 ## Deploying
 
