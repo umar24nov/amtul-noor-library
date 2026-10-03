@@ -17,19 +17,39 @@ function getSecretKey(): Uint8Array {
 
 export type SessionPayload = { email: string };
 
+/**
+ * Next.js expands $VAR inside .env files, so a bcrypt hash stored there has to
+ * be written with every $ escaped as \$. Cloud hosts hand the value straight to
+ * process.env with no expansion, where the plain $2b$10$ form is correct.
+ * Accept either so the same value works locally and on the deployed host.
+ */
+function normaliseHash(hash: string): string {
+  return hash.replaceAll("\\$", "$").trim().replace(/^["']|["']$/g, "");
+}
+
 /** Compares the submitted credentials with the admin account in the environment. */
 export async function verifyCredentials(
   email: string,
   password: string,
 ): Promise<SessionPayload | null> {
   const adminEmail = process.env.ADMIN_EMAIL;
-  const adminHash = process.env.ADMIN_PASSWORD_HASH;
-  if (!adminEmail || !adminHash) return null;
+  const configuredHash = process.env.ADMIN_PASSWORD_HASH;
+  if (!adminEmail || !configuredHash) return null;
   if (email.toLowerCase() !== adminEmail.toLowerCase()) {
     // Still run a comparison so timing does not reveal whether the email exists.
     await bcrypt.compare(password, "$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidin");
     return null;
   }
+
+  const adminHash = normaliseHash(configuredHash);
+  if (!/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(adminHash)) {
+    // Almost always the $ signs being eaten by $VAR expansion.
+    console.error(
+      "ADMIN_PASSWORD_HASH is not a valid bcrypt hash. Generate one with: npm run hash-password -- \"your-password\"",
+    );
+    return null;
+  }
+
   const valid = await bcrypt.compare(password, adminHash);
   return valid ? { email: adminEmail } : null;
 }

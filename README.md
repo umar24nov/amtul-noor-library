@@ -90,22 +90,61 @@ paid zero.
 
 ## Deploying
 
-Set these on the host:
+The app needs two things: somewhere to run the Next.js server, and a real
+PostgreSQL database. The bundled database in `npm run db:local` is for local
+development only, it is a single process on your own machine.
 
 | Variable | Notes |
 | --- | --- |
-| `DATABASE_URL` | The production PostgreSQL connection string |
+| `DATABASE_URL` | The production PostgreSQL connection string, use the pooled one |
 | `AUTH_SECRET` | Long random string used to sign the session cookie |
 | `ADMIN_EMAIL` | Admin login |
 | `ADMIN_PASSWORD_HASH` | bcrypt hash, generate with `npm run hash-password` |
 
-Next.js expands `$VAR` inside `.env` values. A bcrypt hash is full of `$`, so it must
-be stored with each `$` written as `\$`, otherwise it is silently emptied and every
-login fails. `npm run hash-password` prints the line with the backslashes already
-added. Use `npm run check-login` if you are not sure.
+### Vercel and Neon, step by step
 
-Then run `npm run build` and start it with `npm run start`. Apply migrations with
-`npm run db:deploy` as part of the release.
+1. Create a free PostgreSQL database at [neon.tech](https://neon.tech) and copy
+   both connection strings it shows: the **pooled** one and the **direct** one.
+2. Import the repo into Vercel. The build command stays `npm run build`, and
+   `prisma generate` runs automatically on install.
+3. Add the four environment variables above in the Vercel dashboard. For
+   `DATABASE_URL` use the **pooled** string, because a serverless function opens
+   a new connection per request and would otherwise run out of connections.
+4. Run the migrations once against the **direct** string, from your machine:
+
+   ```bash
+   $env:DATABASE_URL="<the direct string>"; npm run db:deploy
+   ```
+
+5. Load the register once, the same way:
+
+   ```bash
+   npm run import
+   ```
+
+6. Deploy. Sign in with your admin email and password.
+
+### The one thing that catches people
+
+Next.js expands `$VAR` inside `.env` **files**, which is why the local `.env`
+needs every `$` in the bcrypt hash written as `\$`. Cloud hosts pass the value
+straight to the app with no expansion, so in the Vercel dashboard the plain form
+`$2b$10$...` is the right one. Use whichever your host gives you literally:
+`verifyCredentials` accepts the escaped, unescaped and quoted forms, and prints
+a clear message in the server log if the hash arrives mangled.
+
+If you run `vercel env pull` to work against the production settings locally,
+you get a `.env` file with the unescaped hash in it, which Next.js will then
+expand. Re-escape it with `npm run hash-password`, or set the hash through your
+own `.env` instead.
+
+### Other hosts
+
+Any host that runs Next.js works: the build is `npm run build` and the start is
+`npm run start`, with `npm run db:deploy` as the release step. Make sure
+`prisma generate` runs after `npm install` (it does, through `postinstall`), and
+that `DATABASE_URL` points at a pooler. Railway, Render and Fly.io all have a
+PostgreSQL option on the free tier.
 
 ## Notes
 
