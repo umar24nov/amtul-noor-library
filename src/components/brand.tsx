@@ -13,7 +13,10 @@ export function Brand({ compact = false, className }: { compact?: boolean; class
           {LIBRARY_NAME}
         </span>
         {!compact && (
-          <span className="block truncate text-xs leading-tight text-muted-foreground">
+          /* Wraps to a second line rather than being clipped: the sidebar is a fixed
+             240px and the motto does not fit on one, so `truncate` made it overflow
+             into the navigation below. */
+          <span className="block text-xs leading-snug text-balance text-muted-foreground">
             {LIBRARY_TAGLINE}
           </span>
         )}

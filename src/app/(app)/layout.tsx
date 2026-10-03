@@ -17,9 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-dvh bg-muted/30">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex xl:w-64">
-        {/* min-h + padding, so a longer motto grows the bar instead of spilling
-            over the navigation below it. */}
-        <div className="flex min-h-14 items-center border-b border-sidebar-border px-4 py-2">
+        {/* min-h + padding, and items-start, so the two-line motto grows the bar
+            instead of overflowing into the navigation below it. */}
+        <div className="flex min-h-14 items-start border-b border-sidebar-border px-4 py-3">
           <Brand />
         </div>
         <div className="flex-1 overflow-y-auto py-3">
