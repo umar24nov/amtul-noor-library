@@ -133,6 +133,16 @@ development only, it is a single process on your own machine.
    $env:DATABASE_URL="<the direct string>"; npm run db:deploy
    ```
 
+   To keep both strings in a gitignored `.env.neon` instead of retyping them,
+   run `powershell -ExecutionPolicy Bypass -File scripts/save-neon-urls.ps1`. It
+   asks for each string, checks you have not pasted the same one twice, and
+   writes `DATABASE_URL` (pooled) and `DIRECT_DATABASE_URL` to that file. To use
+   the direct one for a migration:
+
+   ```bash
+   $env:DATABASE_URL=(Get-Content .env.neon | Select-String '^DIRECT_DATABASE_URL=') -replace '^DIRECT_DATABASE_URL="','' -replace '"$',''; npm run db:deploy
+   ```
+
 5. Load the register once, the same way:
 
    ```bash
