@@ -5,7 +5,7 @@ Library management app for Amtul Noor Library: members, monthly payments and sea
 ## What it does
 
 - **Dashboard** — member counts, seat usage, money collected for the current month, pending payments and who has not paid yet.
-- **Members** — searchable, paginated list that can be ordered eight ways (active first, name A-Z or Z-A, seat number, oldest or newest joining date, member ID, recently updated). Add/edit a member, view one member with their full payment history, and mark a member as left.
+- **Members** — searchable, paginated list that can be ordered eight ways (active first, name A-Z or Z-A, seat number, oldest or newest joining date, member ID, recently updated), and narrowed by status and by room (including members who are not sitting in any seat). Add/edit a member, view one member with their full payment history, and mark a member as left.
 - **Payments** — every payment is its own row, so several payments in one month are kept and nothing is overwritten. Filter by month, member, mode or status. You can also generate the pending rows for a month in one go.
 - **Seats** — a visual map of the rooms. Assign a member to a free seat, release a seat, add rooms or seats, and rename a room without disturbing its seats or members.
 

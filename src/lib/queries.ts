@@ -5,7 +5,6 @@ import {
   monthKeyFromInputDate,
   monthSelectOptions,
   monthWindow,
-  normalizeSeatNumber,
   parseInputDate,
   selectableMonthKeys,
 } from "@/lib/format";
@@ -202,6 +201,8 @@ export type MemberListFilters = {
   status?: "ALL" | "ACTIVE" | "LEFT";
   page?: number;
   sort?: MemberSort;
+  /** A room id, or "NONE" for members who are not sitting anywhere. */
+  room?: number | "NONE";
 };
 
 /**
@@ -245,18 +246,33 @@ export async function listMembers({
   status = "ALL",
   page = 1,
   sort = DEFAULT_MEMBER_SORT,
+  room,
 }: MemberListFilters): Promise<MemberListResult> {
   const term = search?.trim();
+  // Raw digits, deliberately not normalizeSeatNumber: that pads to "01" for
+  // storage, but as a search fragment "1" should also find seat 10. An empty
+  // string is worse than useless here, because SQL `contains ''` matches every
+  // row and would make the whole OR always true.
+  const seatDigits = term ? term.replace(/\D/g, "") : "";
   const where = {
     ...(status === "ACTIVE" ? { status: "ACTIVE" as const } : {}),
     ...(status === "LEFT" ? { status: "LEFT" as const } : {}),
+    // A member sits in a room through their seat, so the room is a nested
+    // filter. Members with no seat are a real group too, hence the NONE case.
+    ...(room === "NONE"
+      ? { seatId: null }
+      : room !== undefined
+        ? { seat: { roomId: room } }
+        : {}),
     ...(term
       ? {
           OR: [
             { name: { contains: term, mode: "insensitive" as const } },
             { mobile: { contains: term } },
             { memberId: { contains: term.toUpperCase() } },
-            { seat: { seatNumber: { contains: normalizeSeatNumber(term) } } },
+            ...(seatDigits
+              ? [{ seat: { seatNumber: { contains: seatDigits } } }]
+              : []),
           ],
         }
       : {}),
@@ -410,8 +426,19 @@ export async function getRoomsWithSeats() {
   });
 }
 
-export const listOpenSeats = cache(async (excludeSeatId?: number) => {
-  return prisma.seat.findMany({
+/**
+ * Just the room names, for filter dropdowns. Deliberately does not pull in
+ * seats or occupants the way getRoomsWithSeats does, so a filter on a page
+ * that already lists members stays cheap.
+ */
+export const listRooms = cache(async () => {
+  return prisma.room.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+});
+
+export const listOpenSeats = cache(async (excludeSeatId?: number) => {  return prisma.seat.findMany({
     where: {
       status: "AVAILABLE",
       ...(excludeSeatId ? { id: { not: excludeSeatId } } : {}),

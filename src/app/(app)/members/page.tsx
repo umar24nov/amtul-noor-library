@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
-import { listMembers, listOpenSeats } from "@/lib/queries";
+import { listMembers, listOpenSeats, listRooms } from "@/lib/queries";
 import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
@@ -19,9 +19,27 @@ import {
 
 export const metadata: Metadata = { title: "Members" };
 
+/** Sentinel for members who are not sitting in any seat. */
+const NO_SEAT = "NONE";
+
+/**
+ * Turns the ?room= value into a filter. Anything that is not a live room id
+ * falls back to undefined, meaning "All rooms".
+ */
+function parseRoomFilter(
+  raw: string | undefined,
+  rooms: { id: number }[],
+): number | typeof NO_SEAT | undefined {
+  if (raw === NO_SEAT) return NO_SEAT;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return undefined;
+  return rooms.some((room) => room.id === id) ? id : undefined;
+}
+
 type SearchParams = Promise<{
   q?: string;
   status?: string;
+  room?: string;
   page?: string;
   sort?: string;
 }>;
@@ -36,8 +54,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   // hand-edited or stale link.
   const sort = isMemberSort(params.sort) ? params.sort : DEFAULT_MEMBER_SORT;
 
+  // Rooms come first: a room id in the URL is only trusted if it still points at
+  // a room that exists, so a stale link falls back to "All rooms" instead of
+  // showing an empty table next to a dropdown that says something else.
+  const rooms = await listRooms();
+  const room = parseRoomFilter(params.room, rooms);
+
   const [{ members, total, pageCount }, openSeats] = await Promise.all([
-    listMembers({ search, status, page, sort }),
+    listMembers({ search, status, page, sort, room }),
     listOpenSeats(),
   ]);
 
@@ -46,12 +70,20 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
   }));
 
+  const roomOptions = [
+    { value: "ALL", label: "All rooms" },
+    ...rooms.map((room) => ({ value: String(room.id), label: room.name })),
+    { value: NO_SEAT, label: "No seat" },
+  ];
+  const roomValue = room === NO_SEAT ? NO_SEAT : room !== undefined ? String(room) : "ALL";
+
   // Column headers reuse the current filters, so sorting never discards a
-  // search or status the user had set. The page number is deliberately left out
-  // so applying a sort starts again at the first page.
+  // search, status or room the user had set. The page number is deliberately
+  // left out so applying a sort starts again at the first page.
   const currentFilters = new URLSearchParams();
   if (search) currentFilters.set("q", search);
   if (status !== "ALL") currentFilters.set("status", status);
+  if (roomValue !== "ALL") currentFilters.set("room", roomValue);
   const sortBase = currentFilters.toString();
 
   return (
@@ -99,6 +131,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                 ]}
               />
             </FilterField>
+            <FilterField label="Room" className="sm:w-40">
+              <FilterSelect
+                name="room"
+                value={roomValue}
+                ariaLabel="Filter by room"
+                options={roomOptions}
+              />
+            </FilterField>
             <FilterField label="Sort by" className="sm:w-56">
               <FilterSelect
                 name="sort"
@@ -119,7 +159,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
             <p className="max-w-sm text-sm text-muted-foreground">
               {search
                 ? "No member matches that search. Try a different name, mobile number, member ID or seat number."
-                : "Add your first member to get started."}
+                : room !== undefined
+                  ? `No member is sitting in that room right now. Try "All rooms" or "No seat".`
+                  : "Add your first member to get started."}
             </p>
             <Button asChild variant="secondary" className="mt-2 h-10">
               <Link href="/members/new">Add Member</Link>
@@ -140,6 +182,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         searchParams={{
           q: search,
           status: status === "ALL" ? undefined : status,
+          room: roomValue === "ALL" ? undefined : roomValue,
           sort: sort === DEFAULT_MEMBER_SORT ? undefined : sort,
         }}
         page={page}
