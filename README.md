@@ -5,11 +5,16 @@ Library management app for Amtul Noor Library: members, monthly payments and sea
 ## What it does
 
 - **Dashboard** — member counts, seat usage, money collected for the current month, pending payments and who has not paid yet.
-- **Members** — searchable, paginated list, add/edit a member, view one member with their full payment history, and mark a member as left.
+- **Members** — searchable, paginated list that can be ordered eight ways (active first, name A-Z or Z-A, seat number, oldest or newest joining date, member ID, recently updated). Add/edit a member, view one member with their full payment history, and mark a member as left.
 - **Payments** — every payment is its own row, so several payments in one month are kept and nothing is overwritten. Filter by month, member, mode or status. You can also generate the pending rows for a month in one go.
-- **Seats** — a visual map of the rooms. Assign a member to a free seat, release a seat, and add rooms or seats.
+- **Seats** — a visual map of the rooms. Assign a member to a free seat, release a seat, add rooms or seats, and rename a room without disturbing its seats or members.
 
 Members are permanent records. Marking someone as left keeps their payment history, releases their seat and stores the leaving date.
+
+### Months are derived, not hardcoded
+
+Every month dropdown is built from the data: the oldest payment or joining date sets the floor, the newest payment or leaving date sets the ceiling, and both ends are padded (`MONTH_PAD_BACK` and `MONTH_PAD_FORWARD` in `src/lib/constants.ts`). With the padding in place the pickers currently run from `2024-06` to `2029-10`, so a future month can be recorded or viewed without editing any code, and the list keeps growing as history is added. `monthWindow()` caps the result at `MAX_MONTH_WINDOW` months so bad data cannot build an unbounded list, and the fallback used when a caller has no data-derived list comes from the same helper, so the two can never disagree.
+
 
 ## Local development
 

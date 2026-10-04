@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
-import { currentMonthKey, formatINR, monthOptions, todayInputValue } from "@/lib/format";
+import { currentMonthKey, formatINR, monthOptions, todayInputValue, type MonthOption } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
@@ -162,6 +162,7 @@ export function PaymentForm({
   members,
   defaults,
   defaultFee,
+  months,
   submitLabel = "Record payment",
   onSuccess,
 }: {
@@ -169,6 +170,8 @@ export function PaymentForm({
   members: MemberOption[];
   defaults?: PaymentFormDefaults;
   defaultFee: number;
+  /** Months offered by the picker, derived from the data. Falls back when absent. */
+  months?: MonthOption[];
   submitLabel?: string;
   onSuccess?: () => void;
 }) {
@@ -216,7 +219,7 @@ export function PaymentForm({
             defaultValue={defaults?.month ?? currentMonthKey()}
             className={cn(FIELD_CLASS, state.fieldErrors?.month && "border-destructive")}
           >
-            {monthOptions(24, 1).map((option) => (
+            {(months ?? monthOptions(24, 1)).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

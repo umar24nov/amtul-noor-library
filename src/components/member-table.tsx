@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Pencil, Eye } from "lucide-react";
+import { ArrowDown, ArrowUpDown, Pencil, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +29,7 @@ import { MemberStatusBadge } from "@/components/status-badges";
 import { formatDate, todayInputValue } from "@/lib/format";
 import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";
 import type { MemberWithSeat } from "@/lib/queries";
+import { DEFAULT_MEMBER_SORT, type MemberSort } from "@/lib/constants";
 
 export type EditableMember = {
   id: number;
@@ -176,10 +178,52 @@ function RowActions({
 export function MemberTable({
   members,
   seats,
+  sort,
+  sortBase = "",
 }: {
   members: EditableMember[];
   seats: SeatOption[];
+  /** Current sort, so the matching column header can show which way it points. */
+  sort?: MemberSort;
+  /** Current filter query without `sort`, so headers keep the active filters. */
+  sortBase?: string;
 }) {
+  const sortHref = (next: MemberSort) => {
+    const query = new URLSearchParams(sortBase);
+    if (next !== DEFAULT_MEMBER_SORT) query.set("sort", next);
+    const queryString = query.toString();
+    return queryString ? `/members?${queryString}` : "/members";
+  };
+
+  const heading = (key: MemberSort, label: string) => {
+    const active = sort === key;
+    const content = (
+      <span className="inline-flex items-center gap-1.5">
+        {label}
+        {active ? (
+          <ArrowDown className="size-3" aria-hidden="true" />
+        ) : (
+          <ArrowUpDown className="size-3 opacity-40" aria-hidden="true" />
+        )}
+        <span className="sr-only">
+          {active ? ", currently sorted" : ", activate to sort by this column"}
+        </span>
+      </span>
+    );
+
+    return (
+      <th key={key} className="px-3 py-2.5 font-medium" aria-sort={active ? "ascending" : "none"}>
+        <Link
+          href={sortHref(key)}
+          scroll={false}
+          className="inline-flex items-center gap-1.5 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {content}
+        </Link>
+      </th>
+    );
+  };
+
   return (
     <>
       {/* Desktop / tablet table */}
@@ -187,11 +231,11 @@ export function MemberTable({
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
-              <th className="px-3 py-2.5 font-medium">Member ID</th>
-              <th className="px-3 py-2.5 font-medium">Name</th>
+              {heading("member-id", "Member ID")}
+              {heading("name-asc", "Name")}
               <th className="px-3 py-2.5 font-medium">Mobile</th>
-              <th className="px-3 py-2.5 font-medium">Seat</th>
-              <th className="px-3 py-2.5 font-medium">Joining date</th>
+              {heading("seat", "Seat")}
+              {heading("oldest", "Joining date")}
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th className="px-3 py-2.5 text-right font-medium">Actions</th>
             </tr>

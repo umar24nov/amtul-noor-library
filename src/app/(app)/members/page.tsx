@@ -10,7 +10,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import { listMembers, listOpenSeats } from "@/lib/queries";
-import { PAGE_SIZE } from "@/lib/constants";
+import {
+  DEFAULT_MEMBER_SORT,
+  isMemberSort,
+  MEMBER_SORTS,
+  PAGE_SIZE,
+} from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Members" };
 
@@ -18,6 +23,7 @@ type SearchParams = Promise<{
   q?: string;
   status?: string;
   page?: string;
+  sort?: string;
 }>;
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
@@ -26,9 +32,12 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const status =
     params.status === "ACTIVE" || params.status === "LEFT" ? params.status : "ALL";
   const page = Math.max(1, Number(params.page ?? 1) || 1);
+  // An unknown value falls back to the default rather than erroring on a
+  // hand-edited or stale link.
+  const sort = isMemberSort(params.sort) ? params.sort : DEFAULT_MEMBER_SORT;
 
   const [{ members, total, pageCount }, openSeats] = await Promise.all([
-    listMembers({ search, status, page }),
+    listMembers({ search, status, page, sort }),
     listOpenSeats(),
   ]);
 
@@ -36,6 +45,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     id: seat.id,
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
   }));
+
+  // Column headers reuse the current filters, so sorting never discards a
+  // search or status the user had set. The page number is deliberately left out
+  // so applying a sort starts again at the first page.
+  const currentFilters = new URLSearchParams();
+  if (search) currentFilters.set("q", search);
+  if (status !== "ALL") currentFilters.set("status", status);
+  const sortBase = currentFilters.toString();
 
   return (
     <div className="grid gap-5">
@@ -82,6 +99,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                 ]}
               />
             </FilterField>
+            <FilterField label="Sort by" className="sm:w-56">
+              <FilterSelect
+                name="sort"
+                value={sort}
+                ariaLabel="Sort members by"
+                options={[...MEMBER_SORTS]}
+              />
+            </FilterField>
           </form>
         </CardContent>
       </Card>
@@ -102,12 +127,21 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           </CardContent>
         </Card>
       ) : (
-        <MemberTable members={members as EditableMember[]} seats={seats} />
+        <MemberTable
+          members={members as EditableMember[]}
+          seats={seats}
+          sort={sort}
+          sortBase={sortBase}
+        />
       )}
 
       <Pagination
         pathname="/members"
-        searchParams={{ q: search, status: status === "ALL" ? undefined : status }}
+        searchParams={{
+          q: search,
+          status: status === "ALL" ? undefined : status,
+          sort: sort === DEFAULT_MEMBER_SORT ? undefined : sort,
+        }}
         page={page}
         pageCount={pageCount}
         total={total}

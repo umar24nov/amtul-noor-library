@@ -14,7 +14,13 @@ import { FilterField, MonthFilter, SearchInput, selectClassName } from "@/compon
 import { PAGE_SIZE, paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import { currentMonthKey, formatDate, formatINR, formatMonth } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
-import { getPaymentStats, listActiveMembers, listPayments } from "@/lib/queries";
+import {
+  getPaymentStats,
+  listActiveMembers,
+  listPayments,
+  listSelectableMonthOptions,
+  listSelectableMonths,
+} from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
@@ -41,11 +47,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const status = (params.status as PaymentStatus | undefined) ?? ALL;
   const page = Math.max(1, Number(params.page ?? 1) || 1);
 
-  const [result, stats, fee, activeMembers] = await Promise.all([
+  const [result, stats, fee, activeMembers, months, monthOptions] = await Promise.all([
     listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status, page }),
     getPaymentStats(month),
     getMonthlyFee(),
     listActiveMembers(),
+    listSelectableMonths(),
+    listSelectableMonthOptions(),
   ]);
 
   const members = activeMembers.map((member) => ({
@@ -89,7 +97,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
             <PaymentsToolbar
               members={members}
               fee={fee}
-              month={currentMonthKey()}
+              month={month}
+              months={monthOptions}
             />
             <ExportButton
               href={exportHref}
@@ -144,7 +153,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <FilterField label="Month">
-                <MonthFilter value={month} />
+                <MonthFilter value={month} months={months} />
               </FilterField>
 
               <FilterField label="Member ID">
@@ -283,6 +292,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                             payment={{ ...payment, amount: String(payment.amount) }}
                             fee={fee}
                             members={members}
+                            months={monthOptions}
                             member={{
                               name: payment.member.name,
                               memberId: payment.member.memberId,
@@ -331,6 +341,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                         payment={{ ...payment, amount: String(payment.amount) }}
                         fee={fee}
                         members={members}
+                        months={monthOptions}
                         compact
                         member={{
                           name: payment.member.name,

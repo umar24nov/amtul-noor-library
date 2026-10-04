@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PaymentForm, type MemberOption } from "@/components/payment-form";
-import { toInputDate } from "@/lib/format";
+import { toInputDate, type MonthOption } from "@/lib/format";
 import { updatePaymentAction } from "@/app/(app)/payments/actions";
 import type { Payment } from "@/generated/prisma/client";
 
@@ -21,12 +21,15 @@ export function PaymentEditDialog({
   member,
   members,
   fee,
+  months,
   compact = false,
 }: {
   payment: Omit<Payment, "amount"> & { amount: string };
   member: { name: string; memberId: string; mobile: string | null; seatLabel: string | null };
   members: MemberOption[];
   fee: number;
+  /** Months offered when moving a payment to a different month. */
+  months?: MonthOption[];
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -49,6 +52,7 @@ export function PaymentEditDialog({
         <PaymentForm
           action={updatePaymentAction}
           members={members}
+          months={months}
           defaultFee={fee}
           submitLabel="Save changes"
           onSuccess={() => setOpen(false)}

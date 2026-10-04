@@ -13,17 +13,20 @@ import {
 } from "@/components/ui/dialog";
 import { PaymentForm, type MemberOption } from "@/components/payment-form";
 import { FeeForm } from "@/components/fee-form";
-import { formatINR, monthOptions } from "@/lib/format";
+import { formatINR, monthOptions, type MonthOption } from "@/lib/format";
 import { generatePendingAction, recordPaymentAction, updateFeeAction } from "@/app/(app)/payments/actions";
 
 export function PaymentsToolbar({
   members,
   fee,
   month,
+  months,
 }: {
   members: MemberOption[];
   fee: number;
   month: string;
+  /** Months offered by the pickers, derived from the data. */
+  months?: MonthOption[];
 }) {
   const [recordOpen, setRecordOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
@@ -49,6 +52,7 @@ export function PaymentsToolbar({
             action={recordPaymentAction}
             members={members}
             defaultFee={fee}
+            months={months}
             onSuccess={() => setRecordOpen(false)}
           />
         </DialogContent>
@@ -69,7 +73,11 @@ export function PaymentsToolbar({
               for the chosen month. Members who already paid are left alone.
             </DialogDescription>
           </DialogHeader>
-          <PendingGenerator month={month} onDone={() => setPendingOpen(false)} />
+          <PendingGenerator
+            month={month}
+            months={months}
+            onDone={() => setPendingOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
@@ -93,7 +101,15 @@ export function PaymentsToolbar({
   );
 }
 
-function PendingGenerator({ month, onDone }: { month: string; onDone: () => void }) {
+function PendingGenerator({
+  month,
+  months,
+  onDone,
+}: {
+  month: string;
+  months?: MonthOption[];
+  onDone: () => void;
+}) {
   const [selected, setSelected] = useState(month);
 
   return (
@@ -119,7 +135,7 @@ function PendingGenerator({ month, onDone }: { month: string; onDone: () => void
           onChange={(event) => setSelected(event.target.value)}
           className="h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          {monthOptions(24, 1).map((option) => (
+          {(months ?? monthOptions(24, 1)).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

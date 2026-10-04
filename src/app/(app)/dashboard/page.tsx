@@ -11,7 +11,7 @@ import { MonthFilter } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import { paymentStatusLabels } from "@/lib/constants";
 import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
-import { getDashboardData, type MemberScope } from "@/lib/queries";
+import { getDashboardData, listSelectableMonths, type MemberScope } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -34,7 +34,10 @@ export default async function DashboardPage({
   const scope = (params.scope ?? "ACTIVE") as MemberScope;
   const memberScope = scope in SCOPES ? scope : "ACTIVE";
 
-  const data = await getDashboardData(month, memberScope);
+  const [data, months] = await Promise.all([
+    getDashboardData(month, memberScope),
+    listSelectableMonths(),
+  ]);
 
   return (
     <div className="grid gap-5">
@@ -48,7 +51,7 @@ export default async function DashboardPage({
             aria-label="Dashboard filters"
           >
             {/* Both selects live in this one form, so changing either keeps the other. */}
-            <MonthFilter value={month} />
+            <MonthFilter value={month} months={months} />
             <FilterSelect
               name="scope"
               value={memberScope}

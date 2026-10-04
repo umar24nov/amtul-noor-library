@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { MemberForm } from "@/components/member-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { listOpenSeats } from "@/lib/queries";
+import { listOpenSeats, listSelectableMonthOptions } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
 import { formatINR } from "@/lib/format";
 import { createMemberAction } from "../actions";
@@ -13,7 +13,11 @@ import { createMemberAction } from "../actions";
 export const metadata: Metadata = { title: "Add Member" };
 
 export default async function NewMemberPage() {
-  const [openSeats, fee] = await Promise.all([listOpenSeats(), getMonthlyFee()]);
+  const [openSeats, fee, months] = await Promise.all([
+    listOpenSeats(),
+    getMonthlyFee(),
+    listSelectableMonthOptions(),
+  ]);
 
   const seats = openSeats.map((seat) => ({
     id: seat.id,
@@ -41,7 +45,12 @@ export default async function NewMemberPage() {
             Standard monthly fee is <span className="font-medium text-foreground">{formatINR(fee)}</span>.{" "}
             You can change the amount for this member below.
           </p>
-          <MemberForm action={createMemberAction} seats={seats} submitLabel="Save member" />
+          <MemberForm
+            action={createMemberAction}
+            seats={seats}
+            months={months}
+            submitLabel="Save member"
+          />
         </CardContent>
       </Card>
     </div>

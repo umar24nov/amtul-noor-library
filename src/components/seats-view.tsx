@@ -29,6 +29,7 @@ import {
   deleteRoomAction,
   deleteSeatAction,
   releaseSeatAction,
+  updateRoomAction,
 } from "@/app/(app)/seats/actions";
 import type { ActionState } from "@/lib/action-result";
 
@@ -138,8 +139,9 @@ function ManageSeatsDialog({ rooms }: { rooms: RoomData[] }) {
         <DialogHeader>
           <DialogTitle>Rooms and seats</DialogTitle>
           <DialogDescription>
-            Add or remove rooms and seats as the library changes. A seat can only be deleted while it
-            is free.
+            Add, rename or remove rooms and seats as the library changes. Renaming keeps every seat
+            and member where it is; deleting a room removes its seats. A seat can only be deleted
+            while it is free.
           </DialogDescription>
         </DialogHeader>
 
@@ -206,7 +208,46 @@ function ManageSeatsDialog({ rooms }: { rooms: RoomData[] }) {
 
           {rooms.length > 0 && (
             <section className="grid gap-2">
+              <Label>Rename a room</Label>
+              {rooms.map((room) => (
+                <details key={room.id} className="rounded-lg border border-border p-2">
+                  <summary className="cursor-pointer px-1 py-1 text-sm font-medium">
+                    {room.name} · {room.seats.length} seats
+                  </summary>
+                  <div className="mt-2">
+                    <ManageForm
+                      action={updateRoomAction}
+                      submitLabel="Save name"
+                      pendingLabel="Saving…"
+                      roomId={room.id}
+                      fields={
+                        <Input
+                          name="name"
+                          defaultValue={room.name}
+                          placeholder={room.name}
+                          className="h-11"
+                          required
+                          maxLength={40}
+                          aria-label={`New name for ${room.name}`}
+                        />
+                      }
+                    />
+                  </div>
+                </details>
+              ))}
+            </section>
+          )}
+
+          {rooms.length > 0 && (
+            <section className="grid gap-2">
               <Label>Remove a room</Label>
+              <p className="text-xs text-muted-foreground">
+                Deleting a room also deletes its{" "}
+                {rooms.reduce((sum, room) => sum + room.seats.length, 0)} seats. Any member still
+                holding one of those seats keeps their record but loses the seat, and a room with an
+                occupied seat cannot be deleted at all. Renaming above is the safe option if only the
+                name is wrong.
+              </p>
               {rooms.map((room) => (
                 <details key={room.id} className="rounded-lg border border-border p-2">
                   <summary className="cursor-pointer px-1 py-1 text-sm font-medium">
@@ -216,7 +257,7 @@ function ManageSeatsDialog({ rooms }: { rooms: RoomData[] }) {
                     <ConfirmDeleteRoomForm
                       action={deleteRoomAction}
                       roomId={room.id}
-                      message={`Delete ${room.name}`}
+                      message={`Delete ${room.name} and its ${room.seats.length} seats`}
                     />
                   </div>
                 </details>

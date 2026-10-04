@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MONTH_NAMES } from "@/lib/constants";
+import { monthWindow, selectableMonthKeys } from "@/lib/format";
 
 export function SearchInput({
   defaultValue,
@@ -73,17 +74,9 @@ export function MonthFilter({
 }) {
   const options =
     months ??
-    (() => {
-      const now = new Date();
-      const keys: string[] = [];
-      for (let i = 0; i < 24; i += 1) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        keys.push(
-          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
-        );
-      }
-      return keys;
-    })();
+    // Fallback for a caller that has no derived list, so the select is never
+    // empty. Same helper as the data-derived path, so both agree on the range.
+    selectableMonthKeys(monthWindow({}));
 
   return (
     <select

@@ -75,4 +75,40 @@ export const NAV_ITEMS = [
   { href: "/seats", label: "Seats" },
 ] as const;
 
+/**
+ * How far the selectable month window reaches either side of the data. The
+ * forward padding is what lets a month be recorded or viewed before it arrives,
+ * and the backward padding keeps older months reachable after archiving.
+ */
+export const MONTH_PAD_BACK = 12;
+/**
+ * Three years ahead. This is deliberately generous: fees are collected in
+ * advance, so the picker must reach well past next month, and it must keep
+ * working as the current month moves on without anyone editing this file.
+ */
+export const MONTH_PAD_FORWARD = 36;
+
+/** Upper bound on the size of a month list, so bad data cannot build a huge one. */
+export const MAX_MONTH_WINDOW = 360;
+
+/** Ways the member list can be ordered. The first entry is the default. */
+export const MEMBER_SORTS = [
+  { value: "status-name", label: "Active first, then name A-Z" },
+  { value: "name-asc", label: "Name (A-Z)" },
+  { value: "name-desc", label: "Name (Z-A)" },
+  { value: "seat", label: "Seat number" },
+  { value: "newest", label: "Newest members first" },
+  { value: "oldest", label: "Oldest members first" },
+  { value: "member-id", label: "Member ID" },
+  { value: "recently-updated", label: "Recently updated" },
+] as const;
+
+export type MemberSort = (typeof MEMBER_SORTS)[number]["value"];
+
+export const DEFAULT_MEMBER_SORT: MemberSort = "status-name";
+
+export function isMemberSort(value: string | undefined): value is MemberSort {
+  return MEMBER_SORTS.some((option) => option.value === value);
+}
+
 export const PAGE_SIZE = 12;

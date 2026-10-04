@@ -108,6 +108,12 @@ export const roomFormSchema = z.object({
     .max(40, "Room name must be 40 characters or fewer"),
 });
 
+/** Editing a room is the name plus which room it is, so a stale tab cannot
+ *  rename the wrong one. */
+export const roomEditSchema = roomFormSchema.extend({
+  roomId: z.coerce.number().int().positive("Room not found"),
+});
+
 export const seatFormSchema = z.object({
   roomId: z.coerce.number().int().positive(),
   seatNumber: seatNumberSchema,

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import {
   assignSeatSchema,
   fieldErrors,
+  roomEditSchema,
   roomFormSchema,
   seatFormSchema,
   seatRangeFormSchema,
@@ -128,6 +129,45 @@ export async function addRoomAction(
     await prisma.room.create({ data: { name: parsed.data.name } });
     revalidateSeats();
     return successState(`${parsed.data.name} created.`);
+  } catch (error) {
+    return errorState(
+      error instanceof Error && error.message.includes("Unique constraint")
+        ? "A room with that name already exists."
+        : prismaErrorMessage(error),
+    );
+  }
+}
+
+/**
+ * Renames a room. Seats and members are untouched, so this is the safe way to
+ * correct a name that was entered wrongly.
+ */
+export async function updateRoomAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const parsed = roomEditSchema.safeParse({
+    roomId: formData.get("roomId"),
+    name: formData.get("name"),
+  });
+  if (!parsed.success) {
+    return errorState("Please check the room name.", fieldErrors(parsed.error));
+  }
+
+  const existing = await prisma.room.findUnique({ where: { id: parsed.data.roomId } });
+  if (!existing) return errorState("That room no longer exists.");
+
+  if (existing.name === parsed.data.name) {
+    return successState(`${parsed.data.name} is already the name of this room.`);
+  }
+
+  try {
+    await prisma.room.update({
+      where: { id: parsed.data.roomId },
+      data: { name: parsed.data.name },
+    });
+    revalidateSeats();
+    return successState(`Room renamed to ${parsed.data.name}.`);
   } catch (error) {
     return errorState(
       error instanceof Error && error.message.includes("Unique constraint")

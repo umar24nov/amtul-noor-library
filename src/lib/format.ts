@@ -1,4 +1,10 @@
-import { MONTH_NAMES, SEAT_PAD } from "@/lib/constants";
+import {
+  MAX_MONTH_WINDOW,
+  MONTH_NAMES,
+  MONTH_PAD_BACK,
+  MONTH_PAD_FORWARD,
+  SEAT_PAD,
+} from "@/lib/constants";
 
 /** Formats a number as Indian Rupees, e.g. 700 -> "₹700", 1250.5 -> "₹1,250.50". */
 export function formatINR(
@@ -114,16 +120,83 @@ export function monthKeyRange(from: string, to: string): string[] {
   return keys;
 }
 
+export type MonthOption = { value: string; label: string };
+
 /** Month options for selects, e.g. `2026-10` -> "October 2026". */
-export function monthOptions(back = 18, forward = 1): { value: string; label: string }[] {
+export function monthOptions(back = 18, forward = 1): MonthOption[] {
   const now = new Date();
-  const options: { value: string; label: string }[] = [];
+  const options: MonthOption[] = [];
   for (let i = -forward; i <= back; i += 1) {
     const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     options.push({ value: key, label: `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}` });
   }
   return options.reverse();
+}
+
+/** Moves a `YYYY-MM` key forwards or backwards by whole months. */
+export function shiftMonthKey(month: string, delta: number): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, monthNumber - 1 + delta, 1));
+  if (Number.isNaN(shifted.getTime())) return month;
+  return toMonthKey(shifted);
+}
+
+/** Orders `YYYY-MM` keys oldest first. Ignores anything that is not a month key. */
+function sortMonthKeys(keys: string[]): string[] {
+  return keys.filter((key) => /^\d{4}-(0[1-9]|1[0-2])$/.test(key)).sort();
+}
+
+export type MonthWindow = {
+  /** Oldest month in the window. */
+  from: string;
+  /** Newest month in the window. */
+  to: string;
+};
+
+/**
+ * Widest month window covering the data plus padding on both sides.
+ *
+ * The padding matters: without months ahead of the last payment the app could
+ * never record or view a future month, and months behind the first payment would
+ * disappear as soon as old rows were archived.
+ */
+export function monthWindow({
+  earliest,
+  latest,
+  now = currentMonthKey(),
+  padBack = MONTH_PAD_BACK,
+  padForward = MONTH_PAD_FORWARD,
+}: {
+  earliest?: string | null;
+  latest?: string | null;
+  now?: string;
+  padBack?: number;
+  padForward?: number;
+}): MonthWindow {
+  const known = sortMonthKeys([earliest ?? "", latest ?? "", now]);
+  const start = shiftMonthKey(known[0] ?? now, -padBack);
+  const end = shiftMonthKey(known[known.length - 1] ?? now, padForward);
+
+  // Never build an unbounded list if bad data ever lands in the database. If the
+  // window is wider than the cap, keep the months around the current month
+  // instead, so today is always selectable even in that case.
+  const range = monthKeyRange(start, end);
+  if (range.length <= MAX_MONTH_WINDOW) return { from: start, to: end };
+
+  const cappedStart = shiftMonthKey(now, -Math.floor(MAX_MONTH_WINDOW / 2));
+  const capped = monthKeyRange(cappedStart, shiftMonthKey(cappedStart, MAX_MONTH_WINDOW - 1));
+  return { from: capped[0], to: capped[capped.length - 1] };
+}
+
+/** Months covering the data, newest first, ready for a select. */
+export function selectableMonthKeys(window: MonthWindow): string[] {
+  return monthKeyRange(window.from, window.to).reverse();
+}
+
+/** Turns month keys into `{value,label}` options, newest first. */
+export function monthSelectOptions(months: string[]): MonthOption[] {
+  return months.map((key) => ({ value: key, label: formatMonth(key) }));
 }
 
 /** Mobile numbers are shown as plain 10 digit strings. */

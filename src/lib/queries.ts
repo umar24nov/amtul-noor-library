@@ -1,10 +1,18 @@
 import "server-only";
 import { cache } from "react";
-import { currentMonthKey, monthKeyFromInputDate, normalizeSeatNumber, parseInputDate } from "@/lib/format";
+import {
+  currentMonthKey,
+  monthKeyFromInputDate,
+  monthSelectOptions,
+  monthWindow,
+  normalizeSeatNumber,
+  parseInputDate,
+  selectableMonthKeys,
+} from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee } from "@/lib/settings";
-import { PAGE_SIZE } from "@/lib/constants";
+import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
 import type {
   Member,
   Payment,
@@ -193,7 +201,37 @@ export type MemberListFilters = {
   search?: string;
   status?: "ALL" | "ACTIVE" | "LEFT";
   page?: number;
+  sort?: MemberSort;
 };
+
+/**
+ * Translates a sort key into a Prisma orderBy. Every option ends with a unique
+ * tiebreaker so pagination cannot show the same member twice or skip one when
+ * two rows share the same name, seat or date.
+ */
+function memberOrderBy(sort: MemberSort) {
+  const byName = { name: "asc" } as const;
+  const byId = { id: "asc" } as const;
+
+  switch (sort) {
+    case "name-asc":
+      return [byName, byId];
+    case "name-desc":
+      return [{ name: "desc" as const }, byId];
+    case "seat":
+      return [{ seat: { seatNumber: "asc" as const } }, byName, byId];
+    case "newest":
+      return [{ joiningDate: "desc" as const }, byId];
+    case "oldest":
+      return [{ joiningDate: "asc" as const }, byId];
+    case "member-id":
+      return [{ memberId: "asc" as const }, byId];
+    case "recently-updated":
+      return [{ updatedAt: "desc" as const }, byId];
+    default:
+      return [{ status: "asc" as const }, byName, byId];
+  }
+}
 
 export type MemberListResult = {
   members: MemberWithSeat[];
@@ -206,6 +244,7 @@ export async function listMembers({
   search,
   status = "ALL",
   page = 1,
+  sort = DEFAULT_MEMBER_SORT,
 }: MemberListFilters): Promise<MemberListResult> {
   const term = search?.trim();
   const where = {
@@ -228,7 +267,7 @@ export async function listMembers({
     prisma.member.findMany({
       where,
       include: { seat: { include: { room: true } } },
-      orderBy: [{ status: "asc" }, { name: "asc" }],
+      orderBy: memberOrderBy(sort),
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
@@ -383,3 +422,36 @@ export const listOpenSeats = cache(async (excludeSeatId?: number) => {
 });
 
 export const getDashboardMonth = () => currentMonthKey();
+
+/**
+ * Every month the app should let someone pick, newest first.
+ *
+ * Derived from the data rather than a fixed window, so it keeps up as the
+ * library grows: the first payment or joining date sets the floor, the latest
+ * payment or leaving date sets the ceiling, and both ends are padded so there is
+ * always room either side of today.
+ */
+export const listSelectableMonths = cache(async (): Promise<string[]> => {
+  const [paymentMonths, joiningDates, leavingDates] = await Promise.all([
+    prisma.payment.aggregate({ _min: { month: true }, _max: { month: true } }),
+    prisma.member.aggregate({ _min: { joiningDate: true }, _max: { joiningDate: true } }),
+    prisma.member.aggregate({ _min: { leavingDate: true }, _max: { leavingDate: true } }),
+  ]);
+
+  const earliest = [
+    paymentMonths._min.month,
+    joiningDates._min.joiningDate ? monthKeyFromInputDate(joiningDates._min.joiningDate.toISOString()) : null,
+  ].filter((value): value is string => Boolean(value)).sort()[0];
+
+  const latest = [
+    paymentMonths._max.month,
+    leavingDates._max.leavingDate ? monthKeyFromInputDate(leavingDates._max.leavingDate.toISOString()) : null,
+  ].filter((value): value is string => Boolean(value)).sort().at(-1);
+
+  return selectableMonthKeys(monthWindow({ earliest, latest }));
+});
+
+/** The selectable months as select options, for the payment and member forms. */
+export const listSelectableMonthOptions = cache(async () =>
+  monthSelectOptions(await listSelectableMonths()),
+);

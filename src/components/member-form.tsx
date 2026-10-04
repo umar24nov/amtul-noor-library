@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
-import { currentMonthKey, monthOptions, todayInputValue } from "@/lib/format";
+import { currentMonthKey, monthOptions, todayInputValue, type MonthOption } from "@/lib/format";
 
 export type SeatOption = {
   id: number;
@@ -43,12 +43,15 @@ export function MemberForm({
   action,
   defaults,
   seats,
+  months,
   showPayment = true,
   submitLabel = "Save member",
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: MemberFormDefaults;
   seats: SeatOption[];
+  /** Months offered by the picker, derived from the data. Falls back when absent. */
+  months?: MonthOption[];
   showPayment?: boolean;
   submitLabel?: string;
 }) {
@@ -228,7 +231,7 @@ export function MemberForm({
                   defaultValue={currentMonthKey()}
                   className="h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
-                  {monthOptions(18, 1).map((option) => (
+                  {(months ?? monthOptions(18, 1)).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
