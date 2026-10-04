@@ -112,3 +112,19 @@ export function isMemberSort(value: string | undefined): value is MemberSort {
 }
 
 export const PAGE_SIZE = 12;
+
+/**
+ * Classes for a table header cell that stays put while a long list is scrolled.
+ *
+ * Two details matter here. The background has to be opaque (`bg-muted`, not
+ * `bg-muted/50`) or the rows show through it as they pass underneath. And the
+ * offset is `top-14` on small screens because the app has a 56px top bar there,
+ * which would otherwise sit on top of the header; from `lg` up there is no top
+ * bar, so the header can park at `top-0`.
+ *
+ * For this to work at all, no ancestor may set `overflow-hidden` or
+ * `overflow-auto`: either one makes that box a scroll container and the header
+ * sticks to it instead of to the viewport, so it appears not to work at all.
+ */
+export const STICKY_HEADER_CELL =
+  "sticky top-14 z-10 rounded-t-xl border-b border-border bg-muted px-3 py-2.5 text-left font-medium first:rounded-tl-xl last:rounded-tr-xl lg:top-0";

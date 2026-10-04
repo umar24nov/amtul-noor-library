@@ -238,7 +238,6 @@ export type MemberListResult = {
   members: MemberWithSeat[];
   total: number;
   page: number;
-  pageCount: number;
 };
 
 export async function listMembers({
@@ -289,8 +288,7 @@ export async function listMembers({
     }),
   ]);
 
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  return { members, total, page, pageCount: total === 0 ? 1 : pageCount };
+  return { members, total, page };
 }
 
 export const getMemberDetail = cache(async (id: number) => {
@@ -317,7 +315,8 @@ export type PaymentListResult = {
   payments: (Payment & { member: MemberWithSeat })[];
   total: number;
   page: number;
-  pageCount: number;
+  /** Sum of every matching payment, not just the ones loaded on screen. */
+  totalAmount: number;
 };
 
 export async function listPayments({
@@ -347,7 +346,7 @@ export async function listPayments({
       : {}),
   };
 
-  const [total, payments] = await Promise.all([
+  const [total, payments, amounts] = await Promise.all([
     prisma.payment.count({ where }),
     prisma.payment.findMany({
       where,
@@ -356,13 +355,16 @@ export async function listPayments({
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
+    // The list grows by scrolling now, so the headline figure has to describe
+    // every matching payment rather than whichever rows happen to be loaded.
+    prisma.payment.aggregate({ where, _sum: { amount: true } }),
   ]);
 
   return {
     payments,
     total,
     page,
-    pageCount: total === 0 ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    totalAmount: toNumber(amounts._sum.amount),
   };
 }
 

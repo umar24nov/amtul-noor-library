@@ -11,6 +11,17 @@ Library management app for Amtul Noor Library: members, monthly payments and sea
 
 Members are permanent records. Marking someone as left keeps their payment history, releases their seat and stores the leaving date.
 
+### Lists scroll, they do not page
+
+The members and payments lists have no Next/Previous buttons. The column headers stay pinned to the top of the screen while you scroll, and reaching the bottom fetches the next batch and appends it, so a long list reads as one continuous table. `LoadMoreFooter` runs an `IntersectionObserver` on a sentinel and starts the next fetch before the sentinel is actually visible; the Load more button is there as a keyboard and no-observer fallback.
+
+Two things make the pinned header work, and both are easy to break by accident:
+
+- **No clipping ancestor.** `position: sticky` follows the viewport only while no ancestor sets `overflow-hidden`, `overflow-auto` or `overflow-scroll`. Any one of those turns that box into a scroll container and the header sticks to it instead, which looks exactly like the feature not working. This is why the table wrappers carry a plain `rounded-xl border` and no `overflow-hidden`, and why the payments results `Card` passes `overflow-visible` to undo the `overflow-hidden` on `Card` itself.
+- **An opaque background.** The header cells use solid `bg-muted`, not `bg-muted/50`, so rows do not show through them as they pass underneath. Below the `lg` breakpoint the app has a 56px top bar, so the header parks at `top-14` there and `top-0` from `lg` up. Both live in `STICKY_HEADER_CELL` in `src/lib/constants.ts`.
+
+Changing any filter re-renders the page, and the table is keyed on the filter values, so a fresh list starts from the first batch rather than appending rows that no longer match. Because the visible rows are only a prefix of the result set, the payments headline count and total come from a `COUNT` and a `SUM` over the same filters, so they describe the whole month rather than whatever has been scrolled into view.
+
 ### Months are derived, not hardcoded
 
 Every month dropdown is built from the data: the oldest payment or joining date sets the floor, the newest payment or leaving date sets the ceiling, and both ends are padded (`MONTH_PAD_BACK` and `MONTH_PAD_FORWARD` in `src/lib/constants.ts`). With the padding in place the pickers currently run from `2024-06` to `2029-10`, so a future month can be recorded or viewed without editing any code, and the list keeps growing as history is added. `monthWindow()` caps the result at `MAX_MONTH_WINDOW` months so bad data cannot build an unbounded list, and the fallback used when a caller has no data-derived list comes from the same helper, so the two can never disagree.

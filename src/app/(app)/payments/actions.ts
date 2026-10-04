@@ -8,12 +8,40 @@ import { PAYMENT_ID_PREFIX } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, setMonthlyFee } from "@/lib/settings";
 import { feeFormSchema, fieldErrors, monthKeySchema, paymentFormSchema } from "@/lib/validators";
+import { listPayments } from "@/lib/queries";
+import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
   revalidatePath("/members");
   revalidatePath("/payments");
   revalidatePath("/seats");
+}
+
+/**
+ * Returns the next batch of rows for the scrolling payments list.
+ *
+ * Read-only, and it reuses the same query as the page so a batch that arrives
+ * by scrolling cannot disagree with what a full page load would have shown.
+ */
+export async function loadMorePaymentsAction(filters: {
+  month?: string;
+  memberId?: string;
+  q?: string;
+  mode?: string;
+  status?: string;
+  page?: number;
+}) {
+  const result = await listPayments({
+    month: filters.month,
+    memberId: filters.memberId,
+    memberSearch: filters.q,
+    mode: filters.mode as PaymentMode | "ALL" | undefined,
+    status: filters.status as PaymentStatus | "ALL" | undefined,
+    page: filters.page ?? 2,
+  });
+
+  return { payments: result.payments, total: result.total };
 }
 
 function bumpPaymentId(paymentId: string, offset: number): string {

@@ -7,12 +7,44 @@ import { parseInputDate } from "@/lib/format";
 import { nextMemberId, nextPaymentId } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
+import { listMembers } from "@/lib/queries";
+import { DEFAULT_MEMBER_SORT, isMemberSort } from "@/lib/constants";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
   revalidatePath("/members");
   revalidatePath("/payments");
   revalidatePath("/seats");
+}
+
+/**
+ * Returns the next batch of rows for the scrolling members list.
+ *
+ * Read-only, and it goes through the same listMembers query as the page so a
+ * batch that arrives by scrolling cannot disagree with a full page load.
+ */
+export async function loadMoreMembersAction(filters: {
+  q?: string;
+  status?: string;
+  room?: string;
+  sort?: string;
+  page?: number;
+}) {
+  const roomId = Number(filters.room);
+  const result = await listMembers({
+    search: filters.q,
+    status: filters.status === "ACTIVE" || filters.status === "LEFT" ? filters.status : "ALL",
+    room:
+      filters.room === "NONE"
+        ? "NONE"
+        : Number.isInteger(roomId) && roomId > 0
+          ? roomId
+          : undefined,
+    sort: isMemberSort(filters.sort) ? filters.sort : DEFAULT_MEMBER_SORT,
+    page: filters.page ?? 2,
+  });
+
+  return { members: result.members, total: result.total };
 }
 
 function readSeatId(formData: FormData): string | undefined {

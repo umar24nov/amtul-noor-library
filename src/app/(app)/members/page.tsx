@@ -4,7 +4,6 @@ import { UserPlus, Search } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ExportButton } from "@/components/export-button";
 import { MemberTable, type EditableMember } from "@/components/member-table";
-import { Pagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
@@ -14,7 +13,6 @@ import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
   MEMBER_SORTS,
-  PAGE_SIZE,
 } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Members" };
@@ -40,7 +38,6 @@ type SearchParams = Promise<{
   q?: string;
   status?: string;
   room?: string;
-  page?: string;
   sort?: string;
 }>;
 
@@ -49,7 +46,6 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const search = params.q ?? "";
   const status =
     params.status === "ACTIVE" || params.status === "LEFT" ? params.status : "ALL";
-  const page = Math.max(1, Number(params.page ?? 1) || 1);
   // An unknown value falls back to the default rather than erroring on a
   // hand-edited or stale link.
   const sort = isMemberSort(params.sort) ? params.sort : DEFAULT_MEMBER_SORT;
@@ -60,8 +56,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const rooms = await listRooms();
   const room = parseRoomFilter(params.room, rooms);
 
-  const [{ members, total, pageCount }, openSeats] = await Promise.all([
-    listMembers({ search, status, page, sort, room }),
+  // The list grows by scrolling, so this is always the first batch.
+  const [{ members, total }, openSeats] = await Promise.all([
+    listMembers({ search, status, sort, room }),
     listOpenSeats(),
   ]);
 
@@ -169,28 +166,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           </CardContent>
         </Card>
       ) : (
+        // Keyed on the filters so that changing one starts a fresh list instead
+        // of appending to rows that no longer match.
         <MemberTable
+          key={`${search}|${status}|${roomValue}|${sort}`}
           members={members as EditableMember[]}
           seats={seats}
           sort={sort}
           sortBase={sortBase}
+          total={total}
+          query={{ q: search, status, room: roomValue, sort }}
         />
       )}
-
-      <Pagination
-        pathname="/members"
-        searchParams={{
-          q: search,
-          status: status === "ALL" ? undefined : status,
-          room: roomValue === "ALL" ? undefined : roomValue,
-          sort: sort === DEFAULT_MEMBER_SORT ? undefined : sort,
-        }}
-        page={page}
-        pageCount={pageCount}
-        total={total}
-        pageSize={PAGE_SIZE}
-        unit="members"
-      />
     </div>
   );
 }

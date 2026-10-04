@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUpDown, Pencil, Eye } from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { LoadMoreFooter } from "@/components/load-more-footer";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +29,9 @@ import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
 import { MemberStatusBadge } from "@/components/status-badges";
 import { formatDate, todayInputValue } from "@/lib/format";
-import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";
+import { markMemberLeftAction, updateMemberAction, loadMoreMembersAction } from "@/app/(app)/members/actions";
 import type { MemberWithSeat } from "@/lib/queries";
-import { DEFAULT_MEMBER_SORT, type MemberSort } from "@/lib/constants";
+import { DEFAULT_MEMBER_SORT, STICKY_HEADER_CELL, type MemberSort } from "@/lib/constants";
 
 export type EditableMember = {
   id: number;
@@ -42,6 +44,14 @@ export type EditableMember = {
   remarks: string | null;
   seatId: number | null;
   status: MemberWithSeat["status"];
+};
+
+/** The active filters, sent back to the server when the next batch is needed. */
+export type MemberListQuery = {
+  q?: string;
+  status?: string;
+  room?: string;
+  sort?: string;
 };
 
 function seatText(member: MemberWithSeat): string {
@@ -180,6 +190,8 @@ export function MemberTable({
   seats,
   sort,
   sortBase = "",
+  total: totalCount,
+  query,
 }: {
   members: EditableMember[];
   seats: SeatOption[];
@@ -187,11 +199,42 @@ export function MemberTable({
   sort?: MemberSort;
   /** Current filter query without `sort`, so headers keep the active filters. */
   sortBase?: string;
+  /** How many members match the filters in total, for the scrolling footer. */
+  total: number;
+  /** Filters to replay when loading the next batch. */
+  query: MemberListQuery;
 }) {
+  // The list grows by scrolling rather than paging. The page hands over the
+  // first batch and remounts this component (via a key) whenever a filter
+  // changes, so these start from a clean slate every time.
+  const [rows, setRows] = useState(members);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(totalCount);
+  const [loading, setLoading] = useState(false);
+  const hasMore = rows.length < total;
+
+  const loadMore = useCallback(async () => {
+    if (loading || rows.length >= total) return;
+    setLoading(true);
+    try {
+      const next = await loadMoreMembersAction({ ...query, page: page + 1 });
+      setRows((current) => {
+        // A row can arrive twice if a filter changed while a batch was in
+        // flight; the id keeps the list free of duplicates.
+        const seen = new Set(current.map((row) => row.id));
+        return [...current, ...next.members.filter((row) => !seen.has(row.id))];
+      });
+      setTotal(next.total);
+      setPage((current) => current + 1);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, page, query, rows.length, total]);
+
   const sortHref = (next: MemberSort) => {
-    const query = new URLSearchParams(sortBase);
-    if (next !== DEFAULT_MEMBER_SORT) query.set("sort", next);
-    const queryString = query.toString();
+    const params = new URLSearchParams(sortBase);
+    if (next !== DEFAULT_MEMBER_SORT) params.set("sort", next);
+    const queryString = params.toString();
     return queryString ? `/members?${queryString}` : "/members";
   };
 
@@ -212,7 +255,7 @@ export function MemberTable({
     );
 
     return (
-      <th key={key} className="px-3 py-2.5 font-medium" aria-sort={active ? "ascending" : "none"}>
+      <th key={key} className={STICKY_HEADER_CELL} aria-sort={active ? "ascending" : "none"}>
         <Link
           href={sortHref(key)}
           scroll={false}
@@ -227,21 +270,24 @@ export function MemberTable({
   return (
     <>
       {/* Desktop / tablet table */}
-      <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+      {/* No overflow-hidden here: it would turn this box into a scroll
+          container and the sticky header would stop following the viewport. */}
+      <div className="hidden rounded-xl border border-border bg-card md:block">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
+          <thead className="text-left text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
               {heading("member-id", "Member ID")}
               {heading("name-asc", "Name")}
-              <th className="px-3 py-2.5 font-medium">Mobile</th>
+              <th className={STICKY_HEADER_CELL}>Mobile</th>
               {heading("seat", "Seat")}
               {heading("oldest", "Joining date")}
-              <th className="px-3 py-2.5 font-medium">Status</th>
-              <th className="px-3 py-2.5 text-right font-medium">Actions</th>
+              <th className={STICKY_HEADER_CELL}>Status</th>
+              <th className={cn(STICKY_HEADER_CELL, "text-right")}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {members.map((member) => (
+            {rows.map((member) => (
+
               <tr key={member.id} className="hover:bg-muted/30">
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                   {member.memberId}
@@ -266,7 +312,7 @@ export function MemberTable({
 
       {/* Mobile cards */}
       <div className="grid gap-2.5 md:hidden">
-        {members.map((member) => (
+        {rows.map((member) => (
           <div key={member.id} className="rounded-xl border border-border bg-card p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -310,6 +356,15 @@ export function MemberTable({
           </div>
         ))}
       </div>
+
+      <LoadMoreFooter
+        loaded={rows.length}
+        total={total}
+        unit="members"
+        hasMore={hasMore}
+        loading={loading}
+        onLoadMore={loadMore}
+      />
     </>
   );
 }

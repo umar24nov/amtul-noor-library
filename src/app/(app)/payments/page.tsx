@@ -4,16 +4,13 @@ import { History, ReceiptIndianRupee, TriangleAlert, Wallet } from "lucide-react
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
-import { Pagination } from "@/components/pagination";
 import { PaymentsToolbar } from "@/components/payments-toolbar";
-import { PaymentEditDialog } from "@/components/payment-edit-dialog";
-import { PaymentStatusBadge } from "@/components/status-badges";
+import { PaymentsTable } from "@/components/payments-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterField, MonthFilter, SearchInput, selectClassName } from "@/components/filters";
-import { PAGE_SIZE, paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
-import { currentMonthKey, formatDate, formatINR, formatMonth } from "@/lib/format";
-import { toNumber } from "@/lib/ids";
+import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
+import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
 import {
   getPaymentStats,
   listActiveMembers,
@@ -32,7 +29,6 @@ type SearchParams = Promise<{
   q?: string;
   mode?: string;
   status?: string;
-  page?: string;
 }>;
 
 const ALL = "ALL";
@@ -45,10 +41,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const search = params.q ?? "";
   const mode = (params.mode as PaymentMode | undefined) ?? ALL;
   const status = (params.status as PaymentStatus | undefined) ?? ALL;
-  const page = Math.max(1, Number(params.page ?? 1) || 1);
 
   const [result, stats, fee, activeMembers, months, monthOptions] = await Promise.all([
-    listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status, page }),
+    listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
     getPaymentStats(month),
     getMonthlyFee(),
     listActiveMembers(),
@@ -62,22 +57,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     memberId: member.memberId,
     mobile: member.mobile,
     seatLabel: member.seat
-      ? `${member.seat.room.name} · Seat ${member.seat.seatNumber}`
+      ? `${member.seat.room.name} Â· Seat ${member.seat.seatNumber}`
       : null,
   }));
-
-  const filterParams: Record<string, string | undefined> = {
-    month,
-    memberId: memberFilter,
-    q: search || undefined,
-    mode: mode !== ALL ? mode : undefined,
-    status: status !== ALL ? status : undefined,
-  };
-
-  const listTotal = result.payments.reduce(
-    (total, payment) => total + toNumber(payment.amount),
-    0,
-  );
 
   // Export mirrors the filters above, so the spreadsheet matches what is on screen.
   const exportQuery = new URLSearchParams();
@@ -223,13 +205,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         </CardContent>
       </Card>
 
-      <Card>
+      {/* overflow-visible so the sticky table header can follow the viewport;
+          the Card's own overflow-hidden would trap it. */}
+      <Card className="overflow-visible">
         <CardHeader>
           <CardTitle className="text-sm">
             {formatMonth(month)} · {result.total} {result.total === 1 ? "record" : "records"}
             {result.total > 0 && (
               <span className="ml-2 font-normal text-muted-foreground">
-                totalling {formatINR(listTotal)}
+                totalling {formatINR(result.totalAmount)}
               </span>
             )}
           </CardTitle>
@@ -240,138 +224,26 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               No payment records match these filters.
             </p>
           ) : (
-            <>
-              <div className="hidden overflow-hidden rounded-lg border border-border md:block">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Payment ID</th>
-                      <th className="px-3 py-2 font-medium">Member</th>
-                      <th className="px-3 py-2 font-medium">Month</th>
-                      <th className="px-3 py-2 text-right font-medium">Amount</th>
-                      <th className="px-3 py-2 font-medium">Mode</th>
-                      <th className="px-3 py-2 font-medium">Date</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 text-right font-medium">Edit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {result.payments.map((payment) => (
-                      <tr key={payment.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
-                          {payment.paymentId}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Link
-                            href={`/members/${payment.member.id}`}
-                            className="font-medium underline-offset-2 hover:underline"
-                          >
-                            {payment.member.name}
-                          </Link>
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {payment.member.memberId}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          {formatMonth(payment.month)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-medium tabular-nums">
-                          {formatINR(payment.amount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {paymentModeLabels[payment.paymentMode]}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
-                          {formatDate(payment.paymentDate)}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <PaymentStatusBadge status={payment.status} />
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <PaymentEditDialog
-                            payment={{ ...payment, amount: String(payment.amount) }}
-                            fee={fee}
-                            members={members}
-                            months={monthOptions}
-                            member={{
-                              name: payment.member.name,
-                              memberId: payment.member.memberId,
-                              mobile: payment.member.mobile,
-                              seatLabel: payment.member.seat
-                                ? `${payment.member.seat.room.name} · Seat ${payment.member.seat.seatNumber}`
-                                : null,
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <ul className="grid gap-2 md:hidden">
-                {result.payments.map((payment) => (
-                  <li key={payment.id} className="rounded-lg border border-border p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/members/${payment.member.id}`}
-                          className="block truncate font-medium underline-offset-2 hover:underline"
-                        >
-                          {payment.member.name}
-                        </Link>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {payment.paymentId} · {payment.member.memberId}
-                        </p>
-                      </div>
-                      <PaymentStatusBadge status={payment.status} />
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-base font-semibold tabular-nums">
-                          {formatINR(payment.amount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatMonth(payment.month)} · {paymentModeLabels[payment.paymentMode]} ·{" "}
-                          {formatDate(payment.paymentDate)}
-                        </p>
-                      </div>
-                      <PaymentEditDialog
-                        payment={{ ...payment, amount: String(payment.amount) }}
-                        fee={fee}
-                        members={members}
-                        months={monthOptions}
-                        compact
-                        member={{
-                          name: payment.member.name,
-                          memberId: payment.member.memberId,
-                          mobile: payment.member.mobile,
-                          seatLabel: null,
-                        }}
-                      />
-                    </div>
-
-                    {payment.remarks && (
-                      <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </>
+            // Keyed on the filters so changing one starts a fresh list instead
+            // of appending rows that no longer match.
+            <PaymentsTable
+              key={`${month}|${memberFilter ?? ""}|${search}|${mode}|${status}`}
+              payments={result.payments}
+              members={members}
+              fee={fee}
+              months={monthOptions}
+              total={result.total}
+              query={{
+                month,
+                memberId: memberFilter,
+                q: search,
+                mode,
+                status,
+              }}
+            />
           )}
         </CardContent>
       </Card>
-
-      <Pagination
-        pathname="/payments"
-        searchParams={filterParams}
-        page={page}
-        pageCount={result.pageCount}
-        total={result.total}
-        pageSize={PAGE_SIZE}
-        unit="payment records"
-      />
     </div>
   );
 }

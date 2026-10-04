@@ -52,6 +52,9 @@ next-env.d.ts
 .db.log
 .dev-server.log
 .local-db-start.log
+.local-db.log
+.local-db-err.log
+.dev-server-err.log
 
 # agent tooling installed by `npx prisma init` (regenerated on demand)
 .agents/
