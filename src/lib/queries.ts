@@ -515,3 +515,47 @@ export const listSelectableMonths = cache(
 export const listSelectableMonthOptions = cache(async () =>
   monthSelectOptions(await listSelectableMonths()),
 );
+/**
+ * Seat occupancy for the public landing page.
+ *
+ * Deliberately narrower than `getRoomsWithSeats`: this reads seat numbers and
+ * status and nothing else, because it is served to anyone who opens the site.
+ * No member name, mobile, guardian or payment is joined in, so there is nothing
+ * here to leak and no reason to be careful about who is asking.
+ *
+ * Not cached across requests. The landing page advertises this as live, and it
+ * is one indexed count over a table the size of a single room, so a short
+ * cache would only make the numbers wrong.
+ */
+export const listPublicOccupancy = cache(async () => {
+  const rooms = await prisma.room.findMany({
+    select: {
+      id: true,
+      name: true,
+      seats: {
+        select: { id: true, seatNumber: true, status: true },
+        orderBy: { seatNumber: "asc" },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return rooms.map((room) => {
+    const total = room.seats.length;
+    const occupied = room.seats.filter((seat) => seat.status === "OCCUPIED").length;
+    return {
+      id: room.id,
+      name: room.name,
+      total,
+      occupied,
+      open: total - occupied,
+      seats: room.seats.map((seat) => ({
+        id: seat.id,
+        seatNumber: seat.seatNumber,
+        occupied: seat.status === "OCCUPIED",
+      })),
+    };
+  });
+});
+
+export type PublicRoomOccupancy = Awaited<ReturnType<typeof listPublicOccupancy>>[number];

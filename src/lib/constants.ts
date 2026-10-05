@@ -21,6 +21,53 @@ export const LIBRARY_ADDRESS =
  */
 export const LIBRARY_MAPS_URL = "https://maps.app.goo.gl/rsakEZxavT21S8C16";
 
+/**
+ * The library's WhatsApp number, without the country code, as it is written on
+ * a visiting card.
+ */
+export const LIBRARY_WHATSAPP = "8273306126";
+
+/**
+ * Tap to open a chat with that number. `wa.me` needs the number in
+ * international form with no `+`, `0` or spaces, so the country code goes on
+ * here rather than at every call site.
+ */
+export const LIBRARY_WHATSAPP_URL = `https://wa.me/91${LIBRARY_WHATSAPP}`;
+
+/** When the reading room is open. Shown to the public, so it is a real answer. */
+export const LIBRARY_HOURS = "7:00 AM – 12:00 PM";
+export const LIBRARY_HOURS_DAYS = "Open every day";
+
+/**
+ * Membership fees, in rupees per month.
+ *
+ * `locker` is not a separate plan so much as the same seat with storage, and
+ * only one room has lockers, so it is priced as an addition to the base fee
+ * rather than as its own tier.
+ */
+export const LIBRARY_FEES = {
+  /** A seat, to read and study at. */
+  seat: 700,
+  /** The same seat in the room that has lockers, so books can stay overnight. */
+  seatWithLocker: 800,
+} as const;
+
+/**
+ * Pay three months up front and the fourth is free.
+ *
+ * Worth stating plainly on the page, because a member who is told "one month
+ * free" and then billed four months is right to be annoyed.
+ */
+export const LIBRARY_PREPAID_OFFER = {
+  paidMonths: 3,
+  freeMonths: 1,
+  totalMonths: 4,
+} as const;
+
+/** What the prepaid offer costs, worked out rather than written by hand. */
+export const LIBRARY_PREPAID_PRICE =
+  LIBRARY_FEES.seat * LIBRARY_PREPAID_OFFER.paidMonths;
+
 export const MEMBER_ID_PREFIX = "ATN";
 export const PAYMENT_ID_PREFIX = "PAY";
 

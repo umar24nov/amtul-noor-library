@@ -105,12 +105,54 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
   if (landingBody.includes("Sign in to manage the library")) {
     console.log("WARNING: / rendered the login page, so the proxy is still redirecting it");
   }
-  if (!landingBody.includes("Owner login")) {
-    console.log("the landing page has no owner login link");
+  // Exactly one way in, and it is labelled plainly. The word "owner" is
+  // deliberately absent: the page is public, and a login button is not a
+  // reason to tell a stranger that this is a single-owner business.
+  const loginLinks = [...landingBody.matchAll(/href="\/login"/g)].length;
+  console.log(`login links on / -> ${loginLinks}`);
+  if (loginLinks !== 1) {
+    console.log(`expected exactly one login link on the landing page, found ${loginLinks}`);
     return false;
+  }
+  if (!/href="\/login"[^>]*>Login</.test(landingBody)) {
+    console.log("the login link is not labelled 'Login'");
+    return false;
+  }
+  if (landingBody.includes("Owner login")) {
+    console.log("WARNING: an 'Owner login' label is still on the landing page");
   }
   if (landingBody.includes("Knowledge and Focus")) {
     console.log("WARNING: an old tagline is still on the landing page");
+  }
+
+  // Placeholder details from an early draft of the page. None of these are
+  // true of the library, so none of them should ever reach the public page.
+  for (const fiction of [
+    "Central Academic Enclave",
+    "+91 98765 43210",
+    "300 Mbps",
+    "dB (Quiet Zone)",
+    "14 Seats Open",
+    "50 Desks",
+  ]) {
+    if (landingBody.includes(fiction)) {
+      console.log(`WARNING: placeholder text is still on the landing page: "${fiction}"`);
+      return false;
+    }
+  }
+
+  // The published prices and the one number that reaches people by tapping.
+  if (!landingBody.includes("700") || !landingBody.includes("800")) {
+    console.log("the published fees are missing from the landing page");
+    return false;
+  }
+  if (!landingBody.includes("wa.me/918273306126")) {
+    console.log("the WhatsApp link on the landing page is missing or wrong");
+    return false;
+  }
+  if (landingBody.includes("7:00 AM – 12:00 PM") === false) {
+    console.log("the opening hours on the landing page are missing");
+    return false;
   }
 
   const password = await askForPassword();

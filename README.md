@@ -56,6 +56,16 @@ Every control in it is a real submit button carrying `name="month"`. That matter
 
 ## The landing page
 
+The page carries the library's public facts, and every one of them has to be true. An early draft of the design came with placeholder numbers already filled in — 50 desks, "36 occupied", 300 Mbps, ₹850, two dummy phone numbers, an address that was not the library's address. None of that was kept. Instead:
+
+- **Prices, hours, the WhatsApp number and the address** live in `src/lib/constants.ts` (`LIBRARY_FEES`, `LIBRARY_PREPAID_OFFER`, `LIBRARY_HOURS`, `LIBRARY_WHATSAPP_URL`, `LIBRARY_ADDRESS`). Change them there, not in the markup.
+- **Seat occupancy is read from the database**, not written into the page, so the numbers cannot drift away from the room. `listPublicOccupancy()` in `src/lib/queries.ts` selects seat numbers and status and nothing else — no member name, mobile, guardian or payment — because it is served to anyone who opens the site. If the database is unreachable the page drops the numbers rather than failing.
+- **The mockup's booking form was not built.** It submitted nowhere and claimed to alert the desk on WhatsApp. The WhatsApp link does that job honestly, and needs no server, no storage and no spam to clean up.
+
+`npm run smoke` asserts the page is public and that the placeholder strings are absent, so invented details cannot quietly come back.
+
+Login appears once, top right, and is labelled plainly. It is not called "Owner login": the page is public, and a login button is no reason to tell a stranger that this is a single-owner business.
+
 `/` is public and everything behind `/login` is not. That single decision is split across two places, and forgetting either one silently breaks the other:
 
 - `src/proxy.ts` returns `NextResponse.next()` for `/` when there is no session, instead of redirecting to `/login`. Every other path still redirects, with `?next=` set so the visitor lands back where they were headed.
