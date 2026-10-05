@@ -342,12 +342,12 @@ function Gallery() {
 const AMENITIES = [
   {
     icon: VolumeOff,
-    title: "Kept quiet",
+    title: "Peace and quiet",
     body: "It is a study room, so calls and group conversation do not happen here. What you get is an hour or three of not being interrupted.",
   },
   {
     icon: Armchair,
-    title: "Seats made for sitting in",
+    title: "Proper seating",
     body: "Proper chairs and a desk to work at, lit so that reading and screen work are both comfortable.",
   },
   {
