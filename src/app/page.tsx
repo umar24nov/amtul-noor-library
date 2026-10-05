@@ -12,6 +12,7 @@ import {
   Lock,
   MapPin,
   MessageCircle,
+  Phone,
   VolumeOff,
   Wifi,
 } from "lucide-react";
@@ -25,6 +26,10 @@ import {
   LIBRARY_HOURS_DAYS,
   LIBRARY_MAPS_URL,
   LIBRARY_NAME,
+  LIBRARY_PHONE,
+  LIBRARY_PHONE_ALT,
+  LIBRARY_PHONE_ALT_URL,
+  LIBRARY_PHONE_URL,
   LIBRARY_PREPAID_OFFER,
   LIBRARY_PREPAID_PRICE,
   LIBRARY_TAGLINE,
@@ -317,7 +322,7 @@ function Gallery() {
           The reading room as it is.
         </p>
 
-        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
           {GALLERY_PHOTOS.map((photo) => (
             <li
               key={photo.src}
@@ -328,8 +333,8 @@ function Gallery() {
                 alt={photo.alt}
                 width={photo.width}
                 height={photo.height}
-                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
+                sizes="(min-width: 640px) 50vw, 100vw"
+                className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
               />
             </li>
           ))}
@@ -566,6 +571,26 @@ function Visit() {
                 <dt className="font-medium">When</dt>
                 <dd className="text-muted-foreground">
                   {LIBRARY_HOURS} · {LIBRARY_HOURS_DAYS}
+                </dd>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <div>
+                <dt className="font-medium">Call</dt>
+                <dd className="flex flex-wrap gap-x-3 gap-y-1">
+                  <a
+                    href={LIBRARY_PHONE_URL}
+                    className="text-foreground underline underline-offset-4"
+                  >
+                    {LIBRARY_PHONE}
+                  </a>
+                  <a
+                    href={LIBRARY_PHONE_ALT_URL}
+                    className="text-foreground underline underline-offset-4"
+                  >
+                    {LIBRARY_PHONE_ALT}
+                  </a>
                 </dd>
               </div>
             </div>

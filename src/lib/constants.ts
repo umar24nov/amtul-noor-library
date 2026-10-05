@@ -22,17 +22,28 @@ export const LIBRARY_ADDRESS =
 export const LIBRARY_MAPS_URL = "https://maps.app.goo.gl/rsakEZxavT21S8C16";
 
 /**
- * The library's WhatsApp number, without the country code, as it is written on
- * a visiting card.
+ * The library's main number. Every WhatsApp link, call button and mention of a
+ * number on the public site uses this one.
  */
-export const LIBRARY_WHATSAPP = "8273306126";
+export const LIBRARY_PHONE = "8273306126";
 
 /**
- * Tap to open a chat with that number. `wa.me` needs the number in
+ * A second number, listed so anyone who cannot get through on the main line
+ * still has one. Not a WhatsApp link: only the main number is answered there,
+ * so offering a chat that goes nowhere would be worse than showing no button.
+ */
+export const LIBRARY_PHONE_ALT = "9389632856";
+
+/**
+ * Tap to open a chat with the main number. `wa.me` needs the number in
  * international form with no `+`, `0` or spaces, so the country code goes on
  * here rather than at every call site.
  */
-export const LIBRARY_WHATSAPP_URL = `https://wa.me/91${LIBRARY_WHATSAPP}`;
+export const LIBRARY_WHATSAPP_URL = `https://wa.me/91${LIBRARY_PHONE}`;
+
+/** `tel:` link, which wants the number in international form too. */
+export const LIBRARY_PHONE_URL = `tel:+91${LIBRARY_PHONE}`;
+export const LIBRARY_PHONE_ALT_URL = `tel:+91${LIBRARY_PHONE_ALT}`;
 
 /** When the reading room is open. Shown to the public, so it is a real answer. */
 export const LIBRARY_HOURS = "7:00 AM – 12:00 PM";

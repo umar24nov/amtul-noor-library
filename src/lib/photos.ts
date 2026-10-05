@@ -7,6 +7,11 @@
  * `public/images`, which lets `next/image` reserve the right box before the
  * file loads and so the page does not jump as the pictures arrive.
  *
+ * Three photographs, all the same 4:3 shape, which means the grid crops
+ * nothing and the page does not change mood as you scroll. They were supplied
+ * as PNGs and converted to progressive JPEG at quality 82, taking the total
+ * from 5.1 MB to 397 KB with no visible loss at these dimensions.
+ *
  * `alt` is deliberately generic. Replace it with a description of what each
  * photograph actually shows, which also makes the page usable with a screen
  * reader and survive being posted somewhere images are blocked.
@@ -23,21 +28,9 @@ export type LibraryPhoto = {
 const ALT = "Amtul Noor Library";
 
 export const LIBRARY_PHOTOS: LibraryPhoto[] = [
-  { src: "library-01.jpg", width: 1024, height: 1378, hero: false, alt: ALT },
-  { src: "library-02.jpg", width: 1084, height: 1079, hero: true, alt: ALT },
-  { src: "library-03.jpg", width: 1024, height: 1024, hero: false, alt: ALT },
-  { src: "library-04.jpg", width: 1600, height: 814, hero: false, alt: ALT },
-  { src: "library-05.jpg", width: 868, height: 1156, hero: false, alt: ALT },
-  { src: "library-06.jpg", width: 868, height: 1156, hero: false, alt: ALT },
-  { src: "library-07.jpg", width: 868, height: 1156, hero: false, alt: ALT },
-  { src: "library-08.jpg", width: 1200, height: 1600, hero: false, alt: ALT },
-  { src: "library-09.jpg", width: 960, height: 1280, hero: false, alt: ALT },
-  { src: "library-10.jpg", width: 960, height: 1280, hero: false, alt: ALT },
-  { src: "library-11.jpg", width: 960, height: 1280, hero: false, alt: ALT },
-  { src: "library-12.jpg", width: 960, height: 1280, hero: false, alt: ALT },
-  { src: "library-13.jpg", width: 868, height: 1156, hero: false, alt: ALT },
-  { src: "library-14.jpg", width: 1280, height: 960, hero: false, alt: ALT },
-  { src: "library-15.jpg", width: 868, height: 1156, hero: false, alt: ALT },
+  { src: "hero.jpg", width: 1448, height: 1086, hero: true, alt: ALT },
+  { src: "gallery-1.jpg", width: 1448, height: 1086, hero: false, alt: ALT },
+  { src: "gallery-2.jpg", width: 1195, height: 896, hero: false, alt: ALT },
 ];
 
 export const HERO_PHOTO =

@@ -150,8 +150,26 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
     console.log("the WhatsApp link on the landing page is missing or wrong");
     return false;
   }
+  // Only the main number is answered on WhatsApp, so it must be the only one
+  // behind a wa.me link. The second number is still published, as a tel: link.
+  if (!landingBody.includes("tel:+919389632856")) {
+    console.log("the second phone number is missing from the landing page");
+    return false;
+  }
+  if (landingBody.includes("wa.me/919389632856")) {
+    console.log("WARNING: a WhatsApp link points at the second number, which is not answered there");
+    return false;
+  }
   if (landingBody.includes("7:00 AM – 12:00 PM") === false) {
     console.log("the opening hours on the landing page are missing");
+    return false;
+  }
+  // Exactly three photographs: one hero and two in the gallery.
+  const galleryImages = [...landingBody.matchAll(/\/images\/[a-z0-9-]+\.jpg/g)].map((m) => m[0]);
+  const distinct = new Set(galleryImages);
+  console.log(`landing page images -> ${[...distinct].join(", ")}`);
+  if (distinct.size !== 3) {
+    console.log(`expected three photographs on the landing page, found ${distinct.size}`);
     return false;
   }
 
