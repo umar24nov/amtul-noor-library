@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Armchair, CircleCheckBig, ReceiptIndianRupee, TriangleAlert, UserPlus, Users, UserRoundCheck } from "lucide-react";
+import { Armchair, CalendarClock, CircleCheckBig, ReceiptIndianRupee, TriangleAlert, UserPlus, Users, UserRoundCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
@@ -8,12 +8,20 @@ import { PaymentStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthStepper } from "@/components/month-stepper";
+import { DueDayDialog } from "@/components/due-day-dialog";
 import { FilterSelect } from "@/components/filter-select";
 import {
   MONTH_FILTER_PAD_FORWARD,
   paymentStatusLabels,
 } from "@/lib/constants";
-import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
+import {
+  currentMonthKey,
+  daysUntil,
+  formatDate,
+  formatDayCount,
+  formatINR,
+  formatMonth,
+} from "@/lib/format";
 import {
   getDashboardData,
   listRooms,
@@ -68,6 +76,26 @@ export default async function DashboardPage({
     listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
   ]);
 
+  // A due date is only actionable for a month that has not finished. On an
+  // earlier month the day has already passed, so it reads as history rather
+  // than as an overdue warning that would sit there permanently.
+  const dueInDays = daysUntil(data.feeDueDate);
+  let dueHint: string;
+  let dueTone: "default" | "warning" | "muted";
+  if (month < currentMonthKey()) {
+    dueHint = `Was due ${formatDayCount(dueInDays)} ago`;
+    dueTone = "muted";
+  } else if (dueInDays > 0) {
+    dueHint = `Due in ${formatDayCount(dueInDays)}`;
+    dueTone = "default";
+  } else if (dueInDays === 0) {
+    dueHint = "Due today";
+    dueTone = "warning";
+  } else {
+    dueHint = `Overdue by ${formatDayCount(dueInDays)}`;
+    dueTone = "warning";
+  }
+
   return (
     <div className="grid gap-5">
       <PageHeader
@@ -110,6 +138,7 @@ export default async function DashboardPage({
                 Add Member
               </Link>
             </Button>
+            <DueDayDialog dueDay={data.feeDueDay} />
           </div>
         }
       />
@@ -144,6 +173,13 @@ export default async function DashboardPage({
           icon={Armchair}
           tone="warning"
           href={seatsHref}
+        />
+        <StatCard
+          label={`${formatMonth(month)} Fee Due`}
+          value={formatDate(data.feeDueDate)}
+          hint={dueHint}
+          icon={CalendarClock}
+          tone={dueTone}
         />
         <StatCard
           label={`${formatMonth(month)} Collection`}

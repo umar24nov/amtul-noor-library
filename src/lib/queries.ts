@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import {
   currentMonthKey,
+  monthDueDate,
   monthKeyFromInputDate,
   monthSelectOptions,
   monthWindow,
@@ -15,7 +16,7 @@ import {
   seatRoomWhere,
   type RoomFilter,
 } from "@/lib/room-filter";
-import { getMonthlyFee } from "@/lib/settings";
+import { getMonthlyFee, getMonthlyFeeDueDay } from "@/lib/settings";
 import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
 import type {
   Member,
@@ -153,6 +154,9 @@ function buildSummaryRow(
 export type DashboardData = {
   month: string;
   fee: number;
+  /** Day of the month the fee falls due, and the date it falls on. */
+  feeDueDay: number;
+  feeDueDate: Date;
   totalMembers: number;
   activeMembers: number;
   totalSeats: number;
@@ -171,21 +175,23 @@ export const getDashboardData = cache(
     room?: RoomFilter,
   ): Promise<DashboardData> => {
     const roomWhere = memberRoomWhere(room);
-    const [totalMembers, activeMembers, seatCounts, fee, monthSummary] = await Promise.all([
-      prisma.member.count({ where: roomWhere }),
-      prisma.member.count({ where: { ...roomWhere, status: "ACTIVE" } }),
-      prisma.seat.groupBy({
-        by: ["status"],
-        where: seatRoomWhere(room),
-        _count: { _all: true },
-      }),
-      getMonthlyFee(),
-      // Totals come from everyone who was a member that month, so the scope
-      // filter below never changes the collection figures. The room filter is
-      // different: picking a room means "show me this room", so it narrows
-      // every figure, otherwise the cards would contradict the selection.
-      getMonthSummary(month, "ALL", room),
-    ]);
+    const [totalMembers, activeMembers, seatCounts, fee, feeDueDay, monthSummary] =
+      await Promise.all([
+        prisma.member.count({ where: roomWhere }),
+        prisma.member.count({ where: { ...roomWhere, status: "ACTIVE" } }),
+        prisma.seat.groupBy({
+          by: ["status"],
+          where: seatRoomWhere(room),
+          _count: { _all: true },
+        }),
+        getMonthlyFee(),
+        getMonthlyFeeDueDay(),
+        // Totals come from everyone who was a member that month, so the scope
+        // filter below never changes the collection figures. The room filter is
+        // different: picking a room means "show me this room", so it narrows
+        // every figure, otherwise the cards would contradict the selection.
+        getMonthSummary(month, "ALL", room),
+      ]);
 
     const totalSeats = seatCounts.reduce((total, group) => total + group._count._all, 0);
     const occupiedSeats =
@@ -199,6 +205,8 @@ export const getDashboardData = cache(
     return {
       month,
       fee,
+      feeDueDay,
+      feeDueDate: monthDueDate(month, feeDueDay),
       totalMembers,
       activeMembers,
       totalSeats,

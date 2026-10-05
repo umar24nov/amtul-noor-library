@@ -73,6 +73,59 @@ export function parseInputDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+/**
+ * The date a month's fee falls due, given a day of the month.
+ *
+ * The day is clamped to the length of the month. Without that, a due day of 31
+ * would roll forward into March for February and the dashboard would show the
+ * wrong month for anyone who sets the 29th, 30th or 31st.
+ */
+export function monthDueDate(month: string, day: number): Date {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!match) return new Date();
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  // Day 0 of the next month is the last day of this one.
+  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const clamped = Math.min(Math.max(Math.round(day), 1), daysInMonth);
+  return new Date(Date.UTC(year, monthIndex, clamped));
+}
+
+/**
+ * Whole days from today until a UTC-midnight date. Negative once it has passed.
+ *
+ * Today is taken from the local clock but compared in UTC, matching how dates
+ * are stored and formatted everywhere else, so the count cannot be off by one
+ * because of a timezone offset.
+ */
+export function daysUntil(date: Date): number {
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return Math.round((target - today) / 86_400_000);
+}
+
+/** "1 day" / "3 days", for the due date hint. */
+export function formatDayCount(days: number): string {
+  return `${Math.abs(days)} ${Math.abs(days) === 1 ? "day" : "days"}`;
+}
+
+/** "1st", "2nd", "3rd", "4th" ... "21st". Used for the due day. */
+export function ordinalDay(day: number): string {
+  // The teens are the exception: 11th, 12th and 13th, not 11st.
+  if (day % 100 >= 11 && day % 100 <= 13) return `${day}th`;
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
+}
+
 /** Formats a Date as `YYYY-MM-DD` for an <input type="date">. */
 export function toInputDate(value: Date | null | undefined): string {
   if (!value) return "";

@@ -50,6 +50,17 @@ Every control in it is a real submit button carrying `name="month"`. That matter
 `src/lib/room-filter.ts` owns the `?room=` filter so every page reads it the same way, including the fallback when a room id in the URL no longer points at a real room. On the dashboard the room narrows **everything** — headcount, seats, collection and pending totals — because picking a room means "show me this room", and cards showing all-rooms figures next to a room dropdown would contradict the choice. The scope dropdown is different: it only filters the table, so the collection figures stay whole. The dashboard has no "No seat" option, since a room of members without seats has no seats to count.
 
 
+### The fee is due on one day every month
+
+The dashboard has a **Fee Due** card showing the date the selected month's fee falls due, plus how long that is: `Due in 5 days`, `Due today`, `Overdue by 3 days`, or `Was due 12 days ago` once you are looking at a month that has finished. A past month reads as history rather than as a permanent overdue warning, because the number it would show could never change.
+
+The day is set once, from the **Due day** button on the dashboard, and applies to every month. It is a `Setting` row like the fee itself (`monthlyFeeDueDay`, default the 10th), read through `getMonthlyFeeDueDay()` in `src/lib/settings.ts`.
+
+Two details worth knowing before changing it:
+
+- The day is **clamped to the length of the month**, so a due day of 31 shows the 28th or 29th in February rather than rolling forward into March and quietly reporting the wrong month. `monthDueDate()` in `src/lib/format.ts` does this.
+- The card is only informational. It does **not** change when a payment counts as pending: that still comes from `deriveMonthStatus` and the payment records, so adding a due day never retroactively marks anyone overdue.
+
 ## Local development
 
 There is no need to install PostgreSQL or Docker. `npm run db:local` starts a PostgreSQL that ships inside `node_modules`, and stores its data in `.local-db/`.

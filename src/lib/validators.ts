@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_FEE_DUE_DAY, MIN_FEE_DUE_DAY } from "@/lib/constants";
 
 const emptyToUndefined = (value: unknown) => {
   if (typeof value !== "string") return value;
@@ -135,6 +136,14 @@ export const feeFormSchema = z.object({
     .number({ message: "Enter the monthly fee" })
     .positive("Monthly fee must be greater than 0")
     .max(100000, "Monthly fee looks too large"),
+});
+
+export const dueDayFormSchema = z.object({
+  dueDay: z.coerce
+    .number({ message: "Enter the day of the month" })
+    .int("Use a whole day of the month")
+    .min(MIN_FEE_DUE_DAY, `The day must be ${MIN_FEE_DUE_DAY} or more`)
+    .max(MAX_FEE_DUE_DAY, `The day must be ${MAX_FEE_DUE_DAY} or less`),
 });
 
 export const loginSchema = z.object({
