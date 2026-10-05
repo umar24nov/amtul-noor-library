@@ -10,29 +10,17 @@ import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import { listMembers, listOpenSeats, listRooms } from "@/lib/queries";
 import {
+  parseRoomFilter,
+  roomFilterOptions,
+  roomFilterValue,
+} from "@/lib/room-filter";
+import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
   MEMBER_SORTS,
 } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Members" };
-
-/** Sentinel for members who are not sitting in any seat. */
-const NO_SEAT = "NONE";
-
-/**
- * Turns the ?room= value into a filter. Anything that is not a live room id
- * falls back to undefined, meaning "All rooms".
- */
-function parseRoomFilter(
-  raw: string | undefined,
-  rooms: { id: number }[],
-): number | typeof NO_SEAT | undefined {
-  if (raw === NO_SEAT) return NO_SEAT;
-  const id = Number(raw);
-  if (!Number.isInteger(id) || id <= 0) return undefined;
-  return rooms.some((room) => room.id === id) ? id : undefined;
-}
 
 type SearchParams = Promise<{
   q?: string;
@@ -67,12 +55,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
   }));
 
-  const roomOptions = [
-    { value: "ALL", label: "All rooms" },
-    ...rooms.map((room) => ({ value: String(room.id), label: room.name })),
-    { value: NO_SEAT, label: "No seat" },
-  ];
-  const roomValue = room === NO_SEAT ? NO_SEAT : room !== undefined ? String(room) : "ALL";
+  const roomOptions = roomFilterOptions(rooms);
+  const roomValue = roomFilterValue(room);
 
   // Column headers reuse the current filters, so sorting never discards a
   // search, status or room the user had set. The page number is deliberately

@@ -7,11 +7,24 @@ import { ExportButton } from "@/components/export-button";
 import { PaymentStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MonthFilter } from "@/components/filters";
+import { MonthStepper } from "@/components/month-stepper";
 import { FilterSelect } from "@/components/filter-select";
-import { paymentStatusLabels } from "@/lib/constants";
+import {
+  MONTH_FILTER_PAD_FORWARD,
+  paymentStatusLabels,
+} from "@/lib/constants";
 import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
-import { getDashboardData, listSelectableMonths, type MemberScope } from "@/lib/queries";
+import {
+  getDashboardData,
+  listRooms,
+  listSelectableMonths,
+  type MemberScope,
+} from "@/lib/queries";
+import {
+  parseRoomFilter,
+  roomFilterOptions,
+  roomFilterValue,
+} from "@/lib/room-filter";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -24,7 +37,7 @@ const SCOPES = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; scope?: string }>;
+  searchParams: Promise<{ month?: string; scope?: string; room?: string }>;
 }) {
   const params = await searchParams;
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "")
@@ -34,29 +47,52 @@ export default async function DashboardPage({
   const scope = (params.scope ?? "ACTIVE") as MemberScope;
   const memberScope = scope in SCOPES ? scope : "ACTIVE";
 
+  // Rooms come first, so a room id in the URL is only trusted while it still
+  // points at a room that exists.
+  const rooms = await listRooms();
+  // No "No seat" option here: picking a room means "show me this room", and a
+  // dashboard built out of members who have no seat has no seats to count.
+  const room = parseRoomFilter(params.room, rooms, { allowNoSeat: false });
+  const roomValue = roomFilterValue(room);
+  const roomName = rooms.find((item) => item.id === room)?.name;
+
+  // The stat cards link through to pages that accept the same room, so a choice
+  // made here is not lost on the next screen.
+  const membersHref = room === undefined ? "/members" : `/members?room=${roomValue}`;
+  const activeMembersHref =
+    room === undefined ? "/members?status=ACTIVE" : `/members?status=ACTIVE&room=${roomValue}`;
+  const seatsHref = room === undefined ? "/seats" : `/seats?room=${roomValue}`;
+
   const [data, months] = await Promise.all([
-    getDashboardData(month, memberScope),
-    listSelectableMonths(),
+    getDashboardData(month, memberScope, room),
+    listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
   ]);
 
   return (
     <div className="grid gap-5">
       <PageHeader
         title="Dashboard"
-        description={`Library status for ${formatMonth(month)}.`}
+        description={`Library status for ${formatMonth(month)}${roomName ? ` · ${roomName}` : ""}.`}
         actions={
           <form
             method="get"
-            className="grid w-full gap-2 sm:w-auto sm:grid-cols-2"
+            className="grid w-full gap-2 sm:w-auto sm:grid-cols-3"
             aria-label="Dashboard filters"
           >
-            {/* Both selects live in this one form, so changing either keeps the other. */}
-            <MonthFilter value={month} months={months} />
+            {/* All three controls live in this one form, so changing any of them
+                keeps the other two. */}
+            <MonthStepper value={month} months={months} />
             <FilterSelect
               name="scope"
               value={memberScope}
               ariaLabel="Which members to list"
               options={Object.entries(SCOPES).map(([value, label]) => ({ value, label }))}
+            />
+            <FilterSelect
+              name="room"
+              value={roomValue}
+              ariaLabel="Filter by room"
+              options={roomFilterOptions(rooms, { allowNoSeat: false })}
             />
           </form>
         }
@@ -82,9 +118,9 @@ export default async function DashboardPage({
         <StatCard
           label="Total Members"
           value={data.totalMembers}
-          hint="Everyone on record"
+          hint={roomName ? `Sitting in ${roomName}` : "Everyone on record"}
           icon={Users}
-          href="/members"
+          href={membersHref}
         />
         <StatCard
           label="Active Members"
@@ -92,14 +128,14 @@ export default async function DashboardPage({
           hint={`${data.totalMembers - data.activeMembers} have left`}
           icon={UserRoundCheck}
           tone="success"
-          href="/members?status=ACTIVE"
+          href={activeMembersHref}
         />
         <StatCard
           label="Available Seats"
           value={data.availableSeats}
           hint={`Out of ${data.totalSeats} total`}
           icon={Armchair}
-          href="/seats"
+          href={seatsHref}
         />
         <StatCard
           label="Occupied Seats"
@@ -107,7 +143,7 @@ export default async function DashboardPage({
           hint={`${data.totalSeats - data.occupiedSeats} free right now`}
           icon={Armchair}
           tone="warning"
-          href="/seats"
+          href={seatsHref}
         />
         <StatCard
           label={`${formatMonth(month)} Collection`}
@@ -135,7 +171,8 @@ export default async function DashboardPage({
             {formatMonth(month)} fee status
             <span className="ml-2 font-normal text-muted-foreground">
               {data.summary.length} {data.summary.length === 1 ? "member" : "members"} ·{" "}
-              {SCOPES[memberScope].toLowerCase()} · fee {formatINR(data.fee)}
+              {roomName ?? "all rooms"} · {SCOPES[memberScope].toLowerCase()} · fee{" "}
+              {formatINR(data.fee)}
             </span>
           </CardTitle>
         </CardHeader>
@@ -145,8 +182,8 @@ export default async function DashboardPage({
               <CircleCheckBig className="size-6 text-success" />
               <p className="font-medium">
                 {memberScope === "ACTIVE"
-                  ? `No active members for ${formatMonth(month)}`
-                  : `No members for ${formatMonth(month)}`}
+                  ? `No active members for ${formatMonth(month)}${roomName ? ` in ${roomName}` : ""}`
+                  : `No members for ${formatMonth(month)}${roomName ? ` in ${roomName}` : ""}`}
               </p>
               <p className="text-sm text-muted-foreground">
                 {memberScope === "ACTIVE"

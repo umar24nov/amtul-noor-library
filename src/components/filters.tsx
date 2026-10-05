@@ -2,8 +2,6 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MONTH_NAMES } from "@/lib/constants";
-import { monthWindow, selectableMonthKeys } from "@/lib/format";
 
 export function SearchInput({
   defaultValue,
@@ -50,53 +48,6 @@ export function SearchInput({
         </Button>
       ) : null}
     </form>
-  );
-}
-
-export type MonthFilterProps = {
-  value: string;
-  months?: string[];
-};
-
-/** Month picker rendered as a native select so it works well on phones. */
-export function MonthFilter({
-  value,
-  months,
-  className,
-  name = "month",
-  label = "Month",
-}: {
-  value: string;
-  months?: string[];
-  className?: string;
-  name?: string;
-  label?: string;
-}) {
-  const options =
-    months ??
-    // Fallback for a caller that has no derived list, so the select is never
-    // empty. Same helper as the data-derived path, so both agree on the range.
-    selectableMonthKeys(monthWindow({}));
-
-  return (
-    <select
-      name={name}
-      defaultValue={value}
-      aria-label={label}
-      className={cn(
-        "h-11 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-        className,
-      )}
-    >
-      {options.map((key) => {
-        const [year, month] = key.split("-").map(Number);
-        return (
-          <option key={key} value={key}>
-            {MONTH_NAMES[month - 1]} {year}
-          </option>
-        );
-      })}
-    </select>
   );
 }
 

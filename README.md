@@ -24,7 +24,30 @@ Changing any filter re-renders the page, and the table is keyed on the filter va
 
 ### Months are derived, not hardcoded
 
-Every month dropdown is built from the data: the oldest payment or joining date sets the floor, the newest payment or leaving date sets the ceiling, and both ends are padded (`MONTH_PAD_BACK` and `MONTH_PAD_FORWARD` in `src/lib/constants.ts`). With the padding in place the pickers currently run from `2024-06` to `2029-10`, so a future month can be recorded or viewed without editing any code, and the list keeps growing as history is added. `monthWindow()` caps the result at `MAX_MONTH_WINDOW` months so bad data cannot build an unbounded list, and the fallback used when a caller has no data-derived list comes from the same helper, so the two can never disagree.
+Every month picker is built from the data: the oldest payment or joining date sets the floor, the newest payment or leaving date sets the ceiling, and both ends are padded (`MONTH_PAD_BACK` and `MONTH_PAD_FORWARD` in `src/lib/constants.ts`). `monthWindow()` caps the result at `MAX_MONTH_WINDOW` months so bad data cannot build an unbounded list, and the fallback used when a caller has no data-derived list comes from the same helper, so the two can never disagree.
+
+There is no list to maintain by hand. Recording a payment in a new month extends the range on its own, because the range is read from the data rather than stored.
+
+### Two month ranges, on purpose
+
+Browsing and recording want opposite things, so they are padded differently:
+
+| | Padding ahead | Why |
+| --- | --- | --- |
+| Filters (dashboard, payments) | `MONTH_FILTER_PAD_FORWARD` (3) | A filter is for looking at months that have records. A long tail of empty future months only makes it harder to use. |
+| Forms that record a payment | `MONTH_PAD_FORWARD` (36) | A fee for next month has to be enterable before that month arrives. |
+
+Both come from the same `listSelectableMonths`, which takes the padding as an argument. Keep them separate when adding a month picker: a form that writes should be given `listSelectableMonthOptions()`, which keeps the full padding.
+
+### The month filter is a stepper, not a dropdown
+
+The filters show `‹ October 2026 ›`. The arrows step one month at a time, and tapping the name opens a year strip above a twelve-month grid, so any month is two taps away no matter how long the range grows. Months outside the range are disabled rather than hidden, which is what shows you where the edges are.
+
+Every control in it is a real submit button carrying `name="month"`. That matters for two reasons: the surrounding GET form submits its other fields at the same time, so switching month never resets the room or scope next to it, and the arrows still work with scripting unavailable. Only the grid needs JavaScript, and it closes on outside click or `Escape`.
+
+### Rooms filter more than the members list
+
+`src/lib/room-filter.ts` owns the `?room=` filter so every page reads it the same way, including the fallback when a room id in the URL no longer points at a real room. On the dashboard the room narrows **everything** — headcount, seats, collection and pending totals — because picking a room means "show me this room", and cards showing all-rooms figures next to a room dropdown would contradict the choice. The scope dropdown is different: it only filters the table, so the collection figures stay whole. The dashboard has no "No seat" option, since a room of members without seats has no seats to count.
 
 
 ## Local development

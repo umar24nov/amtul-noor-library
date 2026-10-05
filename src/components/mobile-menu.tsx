@@ -11,9 +11,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Brand } from "@/components/brand";
+import { MobileNav } from "@/components/app-nav";
 import { LIBRARY_TAGLINE } from "@/lib/constants";
 
-export function MobileMenu({ children }: { children: React.ReactNode }) {
+export function MobileMenu() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,7 +36,12 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
           <Brand compact />
           <p className="text-xs text-muted-foreground">{LIBRARY_TAGLINE}</p>
         </SheetHeader>
-        <div className="p-3">{children}</div>
+        <div className="p-3">
+          {/* Choosing a destination dismisses the menu. Without this the sheet
+              stays open over the page you just asked for, because the route
+              change does not close a Radix dialog on its own. */}
+          <MobileNav onNavigate={() => setOpen(false)} />
+        </div>
       </SheetContent>
     </Sheet>
   );

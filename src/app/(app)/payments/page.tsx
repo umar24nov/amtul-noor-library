@@ -8,8 +8,13 @@ import { PaymentsToolbar } from "@/components/payments-toolbar";
 import { PaymentsTable } from "@/components/payments-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilterField, MonthFilter, SearchInput, selectClassName } from "@/components/filters";
-import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
+import { FilterField, SearchInput, selectClassName } from "@/components/filters";
+import { MonthStepper } from "@/components/month-stepper";
+import {
+  MONTH_FILTER_PAD_FORWARD,
+  paymentModeLabels,
+  paymentStatusLabels,
+} from "@/lib/constants";
 import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
 import {
   getPaymentStats,
@@ -47,7 +52,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     getPaymentStats(month),
     getMonthlyFee(),
     listActiveMembers(),
-    listSelectableMonths(),
+    listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
     listSelectableMonthOptions(),
   ]);
 
@@ -135,7 +140,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <FilterField label="Month">
-                <MonthFilter value={month} months={months} />
+                <MonthStepper value={month} months={months} />
               </FilterField>
 
               <FilterField label="Member ID">

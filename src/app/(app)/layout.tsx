@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
 import { DatabaseUnavailable } from "@/components/database-unavailable";
-import { DesktopNav, MobileNav } from "@/components/app-nav";
+import { DesktopNav } from "@/components/app-nav";
 import { MobileMenu } from "@/components/mobile-menu";
 import { LogoutButton } from "@/components/logout-button";
 import { getSession } from "@/lib/auth";
@@ -34,9 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 xl:pl-64">
         {/* Mobile / tablet top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-          <MobileMenu>
-            <MobileNav />
-          </MobileMenu>
+          <MobileMenu />
           <Brand compact />
           <div className="ml-auto">
             <LogoutButton compact />

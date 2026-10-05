@@ -88,6 +88,20 @@ export const MONTH_PAD_BACK = 12;
  */
 export const MONTH_PAD_FORWARD = 36;
 
+/**
+ * Forward padding for the month *filters* on the dashboard and payments pages,
+ * as opposed to the pickers that record a payment.
+ *
+ * The two want different things. A filter is for looking at months that have
+ * records, and a long tail of empty future months only makes it harder to use.
+ * Recording is the opposite: a fee for next month has to be enterable before
+ * that month arrives, so the forms keep the full `MONTH_PAD_FORWARD`.
+ *
+ * Recording a payment for a month beyond this still extends the filters, because
+ * the range is derived from the data rather than stored.
+ */
+export const MONTH_FILTER_PAD_FORWARD = 3;
+
 /** Upper bound on the size of a month list, so bad data cannot build a huge one. */
 export const MAX_MONTH_WINDOW = 360;
 
