@@ -4,6 +4,7 @@ Library management app for Amtul Noor Library: members, monthly payments and sea
 
 ## What it does
 
+- **Landing page** — the public face of the library at `/`. Reachable without signing in, built from the photographs in `public/images`, with the address, a map, and an owner login in the header.
 - **Dashboard** — member counts, seat usage, money collected for the current month, pending payments and who has not paid yet.
 - **Members** — searchable, paginated list that can be ordered eight ways (active first, name A-Z or Z-A, seat number, oldest or newest joining date, member ID, recently updated), and narrowed by status and by room (including members who are not sitting in any seat). Add/edit a member, view one member with their full payment history, and mark a member as left.
 - **Payments** — every payment is its own row, so several payments in one month are kept and nothing is overwritten. Filter by month, member, mode or status. You can also generate the pending rows for a month in one go.
@@ -34,10 +35,13 @@ Browsing and recording want opposite things, so they are padded differently:
 
 | | Padding ahead | Why |
 | --- | --- | --- |
-| Filters (dashboard, payments) | `MONTH_FILTER_PAD_FORWARD` (3) | A filter is for looking at months that have records. A long tail of empty future months only makes it harder to use. |
+| Filters (dashboard, payments) | `MONTH_FILTER_PAD_FORWARD` (3) | A filter is for looking at months that have records, so it adds only a few months ahead of the data. |
 | Forms that record a payment | `MONTH_PAD_FORWARD` (36) | A fee for next month has to be enterable before that month arrives. |
+| Every picker | `MONTH_PICKER_THROUGH` (`2030-12`) | A floor, not padding. Fees are collected in advance, so the years on offer must not depend on how far the data happens to reach, otherwise browsing stops a year or so past the last payment. |
 
-Both come from the same `listSelectableMonths`, which takes the padding as an argument. Keep them separate when adding a month picker: a form that writes should be given `listSelectableMonthOptions()`, which keeps the full padding.
+Both padding values come from the same `listSelectableMonths`, which takes the padding as an argument, and `monthWindow` then applies the `MONTH_PICKER_THROUGH` floor on top. Keep the two paddings separate when adding a month picker: a form that writes should be given `listSelectableMonthOptions()`, which keeps the full padding.
+
+`MONTH_PICKER_THROUGH` is deliberately a floor rather than a ceiling. A payment recorded past it extends the range as before, so the pickers keep working once 2030 is behind us and nothing has to be edited on New Year's Day.
 
 ### The month filter is a stepper, not a dropdown
 
@@ -49,6 +53,20 @@ Every control in it is a real submit button carrying `name="month"`. That matter
 
 `src/lib/room-filter.ts` owns the `?room=` filter so every page reads it the same way, including the fallback when a room id in the URL no longer points at a real room. On the dashboard the room narrows **everything** — headcount, seats, collection and pending totals — because picking a room means "show me this room", and cards showing all-rooms figures next to a room dropdown would contradict the choice. The scope dropdown is different: it only filters the table, so the collection figures stay whole. The dashboard has no "No seat" option, since a room of members without seats has no seats to count.
 
+
+## The landing page
+
+`/` is public and everything behind `/login` is not. That single decision is split across two places, and forgetting either one silently breaks the other:
+
+- `src/proxy.ts` returns `NextResponse.next()` for `/` when there is no session, instead of redirecting to `/login`. Every other path still redirects, with `?next=` set so the visitor lands back where they were headed.
+- `src/app/page.tsx` calls `getSession()` itself and redirects to `/dashboard` when a session *is* present. The proxy cannot do this, because by the time it runs it has already let `/` through, and an owner who is already signed in should not have to click through a page they have no use for.
+
+The page itself holds no library facts that are not already in `src/lib/constants.ts` (`LIBRARY_NAME`, `LIBRARY_TAGLINE`, `LIBRARY_ADDRESS`, `LIBRARY_MAPS_URL`) or `src/lib/photos.ts`. Keep it that way: the address and the short link exist in one place each, so a correction is one edit rather than a hunt through markup.
+
+Two details that are easy to get wrong:
+
+- **The map has two different URLs on purpose.** The `iframe` uses `maps.google.com/maps?q=<address>&output=embed`, because the Embed API would otherwise need an API key. The link *around* that iframe is `LIBRARY_MAPS_URL`, the owner's short link, so a tap lands on the exact pin instead of on a search for the street name.
+- **Photo dimensions are stored, not guessed.** Each entry in `src/lib/photos.ts` carries the real pixel size of its file, which lets `next/image` reserve the correct box before the file arrives. Add a photo by copying it into `public/images/` and giving it its true `width`/`height`, or the page will jump as images load. The `alt` text is currently a placeholder; describe what each photograph actually shows.
 
 ## Local development
 

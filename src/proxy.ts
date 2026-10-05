@@ -32,8 +32,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn) {
+    // The landing page is the public face of the library, so it is the one page
+    // a signed out visitor is allowed to see. Everything else needs a session.
+    if (pathname === "/") return NextResponse.next();
+
     const loginUrl = new URL("/login", request.url);
-    if (pathname !== "/") loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", pathname);
     const response = NextResponse.redirect(loginUrl);
     if (!token) response.cookies.delete(SESSION_COOKIE);
     return response;

@@ -90,6 +90,29 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
   }
   console.log("GET /login -> 200");
 
+  // The landing page is public, so a signed out visitor must be able to read it.
+  // This catches someone removing the one `pathname === "/"` exception from
+  // src/proxy.ts, which otherwise fails silently by bouncing every visitor to
+  // the login page.
+  const landing = await fetch(`${BASE}/`, { redirect: "manual" });
+  const landingBody = await landing.text();
+  console.log(`GET / (signed out) -> ${landing.status}`);
+
+  if (landing.status !== 200) {
+    console.log("the landing page is not public, a signed out visitor cannot see it");
+    return false;
+  }
+  if (landingBody.includes("Sign in to manage the library")) {
+    console.log("WARNING: / rendered the login page, so the proxy is still redirecting it");
+  }
+  if (!landingBody.includes("Owner login")) {
+    console.log("the landing page has no owner login link");
+    return false;
+  }
+  if (landingBody.includes("Knowledge and Focus")) {
+    console.log("WARNING: an old tagline is still on the landing page");
+  }
+
   const password = await askForPassword();
   if (!password) {
     // Nothing to sign in with. The environment checks still ran, so this is not
@@ -184,6 +207,20 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
       });
       console.log(`GET ${route} -> ${response.status}`);
       if (response.status !== 200) ok = false;
+    }
+
+    // Signed in, the landing page should get out of the way. This one is done
+    // by the page itself rather than the proxy, because the proxy has already
+    // let `/` through by the time it knows a session exists.
+    const signedInLanding = await fetch(`${BASE}/`, {
+      headers: { cookie },
+      redirect: "manual",
+    });
+    const target = signedInLanding.headers.get("location") ?? "";
+    console.log(`GET / (signed in) -> ${signedInLanding.status} ${target}`);
+    if (signedInLanding.status !== 307 && !target.startsWith("/dashboard")) {
+      console.log("a signed in visitor was not sent to the dashboard from /");
+      ok = false;
     }
   }
 

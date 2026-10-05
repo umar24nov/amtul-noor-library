@@ -3,6 +3,7 @@ import {
   MONTH_NAMES,
   MONTH_PAD_BACK,
   MONTH_PAD_FORWARD,
+  MONTH_PICKER_THROUGH,
   SEAT_PAD,
 } from "@/lib/constants";
 
@@ -142,9 +143,12 @@ export function shiftMonthKey(month: string, delta: number): string {
   return toMonthKey(shifted);
 }
 
+/** Matches a `YYYY-MM` month key with a real month number. */
+const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 /** Orders `YYYY-MM` keys oldest first. Ignores anything that is not a month key. */
 function sortMonthKeys(keys: string[]): string[] {
-  return keys.filter((key) => /^\d{4}-(0[1-9]|1[0-2])$/.test(key)).sort();
+  return keys.filter((key) => MONTH_KEY_PATTERN.test(key)).sort();
 }
 
 export type MonthWindow = {
@@ -160,6 +164,11 @@ export type MonthWindow = {
  * The padding matters: without months ahead of the last payment the app could
  * never record or view a future month, and months behind the first payment would
  * disappear as soon as old rows were archived.
+ *
+ * `through` is a floor rather than more padding, so the years on offer do not
+ * depend on how far the data happens to reach. It is compared as a string
+ * because `YYYY-MM` sorts in calendar order, and an unusable value is ignored
+ * instead of being allowed to produce an unselectable window.
  */
 export function monthWindow({
   earliest,
@@ -167,16 +176,20 @@ export function monthWindow({
   now = currentMonthKey(),
   padBack = MONTH_PAD_BACK,
   padForward = MONTH_PAD_FORWARD,
+  through = MONTH_PICKER_THROUGH,
 }: {
   earliest?: string | null;
   latest?: string | null;
   now?: string;
   padBack?: number;
   padForward?: number;
+  through?: string | null;
 }): MonthWindow {
   const known = sortMonthKeys([earliest ?? "", latest ?? "", now]);
   const start = shiftMonthKey(known[0] ?? now, -padBack);
-  const end = shiftMonthKey(known[known.length - 1] ?? now, padForward);
+  const paddedEnd = shiftMonthKey(known[known.length - 1] ?? now, padForward);
+  const floor = through && MONTH_KEY_PATTERN.test(through) ? through : "";
+  const end = floor > paddedEnd ? floor : paddedEnd;
 
   // Never build an unbounded list if bad data ever lands in the database. If the
   // window is wider than the cap, keep the months around the current month

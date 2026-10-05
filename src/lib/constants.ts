@@ -7,6 +7,20 @@ import type {
 
 export const LIBRARY_NAME = "Amtul Noor Library";
 export const LIBRARY_TAGLINE = "Your Gateway to Knowledge and Success";
+
+/** Where the library is, as written on the sign outside it. */
+export const LIBRARY_ADDRESS =
+  "Rampur Chungi, Eidgah Enclave, Farukh Colony, Purani Tehsil, Roorkee, Uttarakhand 247667";
+
+/**
+ * The owner's own Google Maps short link.
+ *
+ * This is what the landing page links to when someone taps the map. A short
+ * link is preferred over a plain search URL because it lands on the exact pin
+ * rather than on a search for the street name.
+ */
+export const LIBRARY_MAPS_URL = "https://maps.app.goo.gl/rsakEZxavT21S8C16";
+
 export const MEMBER_ID_PREFIX = "ATN";
 export const PAYMENT_ID_PREFIX = "PAY";
 
@@ -93,14 +107,30 @@ export const MONTH_PAD_FORWARD = 36;
  * as opposed to the pickers that record a payment.
  *
  * The two want different things. A filter is for looking at months that have
- * records, and a long tail of empty future months only makes it harder to use.
- * Recording is the opposite: a fee for next month has to be enterable before
- * that month arrives, so the forms keep the full `MONTH_PAD_FORWARD`.
+ * records, so it adds only a few months ahead of the data, while recording is
+ * the opposite: a fee for next month has to be enterable before that month
+ * arrives, so the forms keep the full `MONTH_PAD_FORWARD`.
  *
- * Recording a payment for a month beyond this still extends the filters, because
- * the range is derived from the data rather than stored.
+ * Neither is what stops the filters running out of years, though. That is
+ * `MONTH_PICKER_THROUGH` below, which every picker honours. Recording a payment
+ * beyond that still extends the range, because the window is derived from the
+ * data rather than stored.
  */
 export const MONTH_FILTER_PAD_FORWARD = 3;
+
+/**
+ * The last month the month pickers offer, whatever the data says.
+ *
+ * Fees are collected in advance, so looking at a month that has no records yet is
+ * ordinary rather than a mistake. Without a floor like this the year strip only
+ * ever reached a year or so past the last payment, which is not far enough to
+ * check a coming year's fees. The stepper makes a long range cheap to move
+ * through: the years are buttons, so a longer range costs nothing to browse.
+ *
+ * This is a floor, not a ceiling. A payment recorded past it extends the range,
+ * so the pickers keep working once 2030 is behind us.
+ */
+export const MONTH_PICKER_THROUGH = "2030-12";
 
 /** Upper bound on the size of a month list, so bad data cannot build a huge one. */
 export const MAX_MONTH_WINDOW = 360;
