@@ -13,20 +13,7 @@ export const PAYMENT_ID_PREFIX = "PAY";
 /** Seat numbers are always stored zero padded to two digits, e.g. "03". */
 export const SEAT_PAD = 2;
 
-/** Standard monthly membership fee, stored as a string in the Setting table. */
 export const DEFAULT_MONTHLY_FEE = "700";
-
-/**
- * Day of the month the fee falls due, as a `DD` string.
- *
- * A string for the same reason as the fee: `Setting.value` is TEXT. The library
- * sets this once and every month is then due on the same day.
- */
-export const DEFAULT_MONTHLY_FEE_DUE_DAY = "10";
-
-/** A due day is a day of the month, so 1 to 31 whatever the month length. */
-export const MIN_FEE_DUE_DAY = 1;
-export const MAX_FEE_DUE_DAY = 31;
 
 export const MONTH_NAMES = [
   "January",
