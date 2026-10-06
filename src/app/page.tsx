@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Armchair,
@@ -16,6 +15,7 @@ import {
   MessageCircle,
   Phone,
   Plug,
+  Snowflake,
   Sparkles,
   VolumeOff,
   Wifi,
@@ -24,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
 import { LandingHeader } from "@/components/landing-header";
-import { getSession } from "@/lib/auth";
 import {
   LIBRARY_ADDRESS,
   LIBRARY_FEES,
@@ -63,12 +62,10 @@ const NAV = [
  * The public face of the library.
  *
  * Reachable without signing in, which is why the proxy lets `/` through.
- * Anyone already signed in is sent straight to the dashboard, so the owner
- * never has to click through a page they have no use for.
+ * Signed-in members can return here too, because the name in the dashboard
+ * links back to this page.
  */
 export default async function LandingPage() {
-  if (await getSession()) redirect("/dashboard");
-
   // Occupancy is advertised as live, so it is read fresh. A database that is
   // briefly unreachable must not take the whole page down with it, so this
   // falls back to no numbers rather than to an error.
@@ -155,7 +152,7 @@ function Hero({
           </p>
 
           <h1 className="font-heading mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            A quiet room to read, study and get on with it.
+            A quiet place to read, study and get on with it.
           </h1>
 
           <p className="mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
@@ -343,6 +340,11 @@ const AMENITIES: {
     icon: VolumeOff,
     title: "Quiet Environment",
     body: "Calls and group conversation do not happen here. What you get is an hour or three of not being interrupted.",
+  },
+  {
+    icon: Snowflake,
+    title: "Fully Air Conditioned",
+    body: "The whole reading room is fully air conditioned, so it stays comfortable even in the hottest months.",
   },
   {
     icon: DoorOpen,
@@ -647,21 +649,87 @@ function Visit() {
 }
 
 function SiteFooter() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="border-t border-border px-4 py-8 sm:px-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-        <Brand />
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="underline-offset-4 hover:underline">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+    <footer className="border-t border-border bg-muted/40 px-4 py-10 sm:px-6 sm:py-12">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <Brand />
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            A quiet place to read, study and get on with it. A small reading room
+            in Roorkee with a seat that is yours while you are a member, and one
+            fixed monthly fee.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild size="sm">
+              <a href={LIBRARY_WHATSAPP_URL} target="_blank" rel="noreferrer">
+                <MessageCircle className="size-4" aria-hidden="true" />
+                Ask about a seat
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="#plans">
+                See fees
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-heading text-sm font-semibold">Explore</h3>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {NAV.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className="underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-heading text-sm font-semibold">Contact &amp; visiting</h3>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>{LIBRARY_ADDRESS}</span>
+            </li>
+            <li className="flex gap-2">
+              <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>
+                {LIBRARY_HOURS} · {LIBRARY_HOURS_DAYS.toLowerCase()}
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <Phone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span className="flex flex-col gap-1">
+                <a
+                  href={LIBRARY_PHONE_URL}
+                  className="text-foreground underline underline-offset-4"
+                >
+                  {LIBRARY_PHONE}
+                </a>
+                <a
+                  href={LIBRARY_PHONE_ALT_URL}
+                  className="text-foreground underline underline-offset-4"
+                >
+                  {LIBRARY_PHONE_ALT}
+                </a>
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
-      <p className="mx-auto mt-6 w-full max-w-6xl text-xs text-muted-foreground">
-        {LIBRARY_ADDRESS} · {LIBRARY_HOURS}, {LIBRARY_HOURS_DAYS.toLowerCase()}
-      </p>
+
+      <div className="mx-auto mt-10 w-full max-w-6xl border-t border-border pt-5 text-xs text-muted-foreground">
+        &copy; {year} {LIBRARY_NAME} · {LIBRARY_ADDRESS}
+      </div>
     </footer>
   );
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { DatabaseUnavailable } from "@/components/database-unavailable";
 import { DesktopNav } from "@/components/app-nav";
@@ -20,7 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* min-h + padding, and items-start, so the two-line motto grows the bar
             instead of overflowing into the navigation below it. */}
         <div className="flex min-h-14 items-start border-b border-sidebar-border px-4 py-3">
-          <Brand />
+          <Link
+            href="/"
+            className="rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Brand />
+          </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
           <DesktopNav />
@@ -35,7 +41,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Mobile / tablet top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
           <MobileMenu />
-          <Brand compact />
+          <Link
+            href="/"
+            className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Brand compact />
+          </Link>
           <div className="ml-auto">
             <LogoutButton compact />
           </div>

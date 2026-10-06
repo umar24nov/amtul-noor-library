@@ -269,17 +269,15 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
       if (response.status !== 200) ok = false;
     }
 
-    // Signed in, the landing page should get out of the way. This one is done
-    // by the page itself rather than the proxy, because the proxy has already
-    // let `/` through by the time it knows a session exists.
+    // Signed in, the landing page stays available: the library name in the
+    // dashboard links back to it, so it must render rather than bounce away.
     const signedInLanding = await fetch(`${BASE}/`, {
       headers: { cookie },
       redirect: "manual",
     });
-    const target = signedInLanding.headers.get("location") ?? "";
-    console.log(`GET / (signed in) -> ${signedInLanding.status} ${target}`);
-    if (signedInLanding.status !== 307 && !target.startsWith("/dashboard")) {
-      console.log("a signed in visitor was not sent to the dashboard from /");
+    console.log(`GET / (signed in) -> ${signedInLanding.status}`);
+    if (signedInLanding.status !== 200) {
+      console.log("a signed in visitor could not see the landing page from /");
       ok = false;
     }
   }
