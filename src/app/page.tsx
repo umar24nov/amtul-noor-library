@@ -386,6 +386,12 @@ const REVIEWS: { quote: string; name: string; when: string }[] = [
     name: "Abdul Quddus Ansari",
     when: "6 months ago",
   },
+  {
+    quote:
+      "Amtul Noor Library is an excellent resource for competitive exam aspirants. With a serene atmosphere, it\u2019s perfect for focused learning. The library boasts clean washrooms, no disturbance from surroundings ensuring a comfortable experience. Professional management provides a safe and caring environment.",
+    name: "Shah Jahan",
+    when: "10 months ago",
+  },
 ];
 
 function Amenities() {
