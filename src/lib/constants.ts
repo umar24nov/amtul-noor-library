@@ -45,6 +45,10 @@ export const LIBRARY_WHATSAPP_URL = `https://wa.me/91${LIBRARY_PHONE}`;
 export const LIBRARY_PHONE_URL = `tel:+91${LIBRARY_PHONE}`;
 export const LIBRARY_PHONE_ALT_URL = `tel:+91${LIBRARY_PHONE_ALT}`;
 
+/** The library's email address, for people who prefer writing to calling. */
+export const LIBRARY_EMAIL = "amtulnoorlibrary@gmail.com";
+export const LIBRARY_EMAIL_URL = `mailto:${LIBRARY_EMAIL}`;
+
 /** When the reading room is open. Shown to the public, so it is a real answer. */
 export const LIBRARY_HOURS = "7:00 AM – 12:00 PM";
 export const LIBRARY_HOURS_DAYS = "Open every day";

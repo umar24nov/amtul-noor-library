@@ -105,17 +105,18 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
   if (landingBody.includes("Sign in to manage the library")) {
     console.log("WARNING: / rendered the login page, so the proxy is still redirecting it");
   }
-  // Exactly one way in, and it is labelled plainly. The word "owner" is
-  // deliberately absent: the page is public, and a login button is not a
-  // reason to tell a stranger that this is a single-owner business.
+  // Two ways in, in plain words: the Login button in the header and the Sign in
+  // link in the footer. Both are labelled for what they are — the page is
+  // public, and neither is a reason to tell a stranger that this is a
+  // single-owner business.
   const loginLinks = [...landingBody.matchAll(/href="\/login"/g)].length;
   console.log(`login links on / -> ${loginLinks}`);
-  if (loginLinks !== 1) {
-    console.log(`expected exactly one login link on the landing page, found ${loginLinks}`);
+  if (loginLinks !== 2) {
+    console.log(`expected two login links (header + footer) on the landing page, found ${loginLinks}`);
     return false;
   }
   if (!/href="\/login"[^>]*>Login</.test(landingBody)) {
-    console.log("the login link is not labelled 'Login'");
+    console.log("the header login link is not labelled 'Login'");
     return false;
   }
   if (landingBody.includes("Owner login")) {
