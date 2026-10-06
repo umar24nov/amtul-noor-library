@@ -568,21 +568,6 @@ function Reviews() {
               </p>
             </li>
           ))}
-          <li
-            className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 p-5 text-center ${
-              REVIEWS.length === 0 ? "sm:col-span-2 lg:col-span-3" : ""
-            }`}
-          >
-            <p className="text-sm font-medium">Read every review on Google</p>
-            <a
-              href={LIBRARY_MAPS_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              Open our Google listing
-            </a>
-          </li>
         </ul>
       </div>
     </section>
