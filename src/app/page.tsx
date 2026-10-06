@@ -52,6 +52,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "#seats", label: "Seats" },
   { href: "#amenities", label: "Amenities" },
+  { href: "#reviews", label: "Reviews" },
   { href: "#plans", label: "Fees" },
   { href: "#visit", label: "Visit" },
 ];
@@ -714,7 +715,6 @@ function SiteFooter() {
   const productLinks = [
     { href: "#amenities", label: "Features" },
     { href: "#plans", label: "Pricing" },
-    { href: "#reviews", label: "Reviews" },
     { href: "#faq", label: "FAQ" },
     { href: "/login", label: "Sign in" },
   ];
