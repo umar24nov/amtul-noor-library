@@ -170,7 +170,7 @@ function Hero({
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11 px-5">
               <Link href="#plans">
-                See fees
+                See membership plans
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -353,9 +353,39 @@ const AMENITIES: {
 
 /**
  * The five best reviews members have left on Google, shown word for word.
- * Filled in from the owner's Google listing.
+ * The wording comes straight from the owner's Google listing.
  */
-const REVIEWS: { quote: string; name: string }[] = [];
+const REVIEWS: { quote: string; name: string; when: string }[] = [
+  {
+    quote:
+      "A very peaceful and well-maintained library with a great collection of books. The environment is quiet and perfect for studying, reading, and research. The staff is helpful and friendly, and the facilities are clean and organized. Highly recommended for students and book lovers looking for a comfortable place to learn and explore new ideas.",
+    name: "Mish Gaur",
+    when: "3 months ago",
+  },
+  {
+    quote:
+      "It was a peaceful experience, the staff is friendly, helpful, and professional. The atmosphere is quiet, comfortable, and perfect for focused learning.",
+    name: "A.K.",
+    when: "3 months ago",
+  },
+  {
+    quote:
+      "A peaceful and calm study environment, fully equipped with modern facilities and high-speed internet",
+    name: "Mohammad Mohatram",
+    when: "10 months ago",
+  },
+  {
+    quote:
+      "It's been a really good Library, ambience is very good and environment is so good and no unnecessary noise around here. Would really want everyone to come and see once.",
+    name: "Mohd Saif",
+    when: "a week ago",
+  },
+  {
+    quote: "Great initiative",
+    name: "Abdul Quddus Ansari",
+    when: "6 months ago",
+  },
+];
 
 function Amenities() {
   return (
@@ -400,7 +430,7 @@ function Fees() {
           </p>
         </div>
 
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PriceCard
             name="A seat"
             price={LIBRARY_FEES.seat}
@@ -418,36 +448,26 @@ function Fees() {
             unit="per month"
             points={[
               "Everything in the plain seat",
-              `A personal locker, so books stay overnight`,
+              "A personal locker, so books stay overnight",
               "Only available in the room that has lockers",
               "Tell us on WhatsApp which room you want",
             ]}
             highlighted
           />
+          <PriceCard
+            name={`Pay ${LIBRARY_PREPAID_OFFER.paidMonths}, get ${LIBRARY_PREPAID_OFFER.totalMonths}`}
+            price={LIBRARY_PREPAID_PRICE}
+            unit={`/ ${LIBRARY_PREPAID_OFFER.totalMonths} months`}
+            points={[
+              `${LIBRARY_PREPAID_OFFER.paidMonths} months paid up front and the fourth is free`,
+              `Works out at ${formatINR(
+                LIBRARY_PREPAID_PRICE / LIBRARY_PREPAID_OFFER.totalMonths,
+              )} a month, on the plain seat`,
+              "Your seat is booked across all four months",
+              "The equivalent of a month free every four",
+            ]}
+          />
         </ul>
-
-        <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <h3 className="font-heading font-semibold">
-                Pay for {LIBRARY_PREPAID_OFFER.paidMonths} months, get{" "}
-                {LIBRARY_PREPAID_OFFER.totalMonths}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Pay for three months in one go and the fourth is free, so it works out
-                at {formatINR(LIBRARY_PREPAID_PRICE / LIBRARY_PREPAID_OFFER.totalMonths)} a
-                month for the plain seat.
-              </p>
-            </div>
-            <p className="shrink-0 font-heading text-2xl font-semibold">
-              {formatINR(LIBRARY_PREPAID_PRICE)}
-              <span className="text-sm font-normal text-muted-foreground">
-                {" "}
-                / {LIBRARY_PREPAID_OFFER.totalMonths} months
-              </span>
-            </p>
-          </div>
-        </div>
 
         <p className="text-sm text-muted-foreground">
           To join, message us on{" "}
@@ -492,7 +512,7 @@ function PriceCard({
         <span className="font-heading text-3xl font-semibold">{formatINR(price)}</span>
         <span className="text-sm text-muted-foreground">{unit}</span>
       </p>
-      <ul className="mt-5 space-y-2.5 border-t border-border pt-5 text-sm text-muted-foreground">
+      <ul className="mt-5 flex-1 space-y-2.5 border-t border-border pt-5 text-sm text-muted-foreground">
         {points.map((point) => (
           <li key={point} className="flex gap-2">
             <span aria-hidden="true" className="text-foreground">
@@ -541,6 +561,9 @@ function Reviews() {
               </p>
               <p className="mt-4 border-t border-border pt-3 text-sm font-medium">
                 {review.name}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Google review · {review.when}
               </p>
             </li>
           ))}
