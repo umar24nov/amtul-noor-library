@@ -5,18 +5,13 @@ import {
   ArrowRight,
   Armchair,
   BookOpen,
-  CalendarDays,
   Clock,
-  DoorOpen,
-  Droplets,
   Lock,
   MapPin,
-  Maximize2,
   MessageCircle,
   Phone,
   Plug,
   Snowflake,
-  Sparkles,
   VolumeOff,
   Wifi,
   type LucideIcon,
@@ -319,12 +314,11 @@ const AMENITIES: {
   icon: LucideIcon;
   title: string;
   body: string;
-  wide?: boolean;
 }[] = [
   {
     icon: Wifi,
     title: "High-Speed Wi-Fi",
-    body: "Reliable high-speed internet for lectures, research, and online preparation. And both the girls' and the boys' rooms get it.",
+    body: "Reliable high-speed internet for lectures, research, and online preparation.",
   },
   {
     icon: Lock,
@@ -347,35 +341,9 @@ const AMENITIES: {
     body: "The whole reading room is fully air conditioned, so it stays comfortable even in the hottest months.",
   },
   {
-    icon: DoorOpen,
-    title: "Separate Study Rooms",
-    body: "Dedicated study spaces for girls and boys, so everyone can study at ease.",
-  },
-  {
     icon: Plug,
     title: "Charging Points",
     body: "A socket for your own plug at the place you sit, rather than one socket the whole room has to queue for.",
-  },
-  {
-    icon: Droplets,
-    title: "Drinking Water",
-    body: "Clean drinking water and washrooms on site, so a break does not mean leaving.",
-  },
-  {
-    icon: Sparkles,
-    title: "Clean & Hygienic",
-    body: "A well-maintained and clean environment for your daily study routine.",
-  },
-  {
-    icon: Maximize2,
-    title: "Spacious Study Area",
-    body: "Plenty of room to study and prepare without feeling crowded.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Open All Days",
-    body: `Study any day of the week, ${LIBRARY_HOURS}.`,
-    wide: true,
   },
 ];
 
@@ -394,7 +362,7 @@ function Amenities() {
           {AMENITIES.map((amenity) => (
             <li
               key={amenity.title}
-              className={`rounded-xl border border-border bg-card p-5 ${amenity.wide ? "lg:col-span-3" : ""}`}
+              className="rounded-xl border border-border bg-card p-5"
             >
               <amenity.icon className="size-5 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-heading mt-3 font-semibold">{amenity.title}</h3>
