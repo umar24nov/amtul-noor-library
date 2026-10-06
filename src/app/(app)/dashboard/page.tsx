@@ -13,7 +13,7 @@ import {
   MONTH_FILTER_PAD_FORWARD,
   paymentStatusLabels,
 } from "@/lib/constants";
-import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
+import { currentMonthKey, formatDate, formatINR, formatMonth } from "@/lib/format";
 import {
   getDashboardData,
   listRooms,
@@ -171,7 +171,7 @@ export default async function DashboardPage({
             {formatMonth(month)} fee status
             <span className="ml-2 font-normal text-muted-foreground">
               {data.summary.length} {data.summary.length === 1 ? "member" : "members"} ·{" "}
-              {roomName ?? "all rooms"} · {SCOPES[memberScope].toLowerCase()} · fee{" "}
+              {roomName ?? "all rooms"} · {SCOPES[memberScope].toLowerCase()} · standard fee{" "}
               {formatINR(data.fee)}
             </span>
           </CardTitle>
@@ -204,6 +204,7 @@ export default async function DashboardPage({
                   <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
                     <tr>
                       <th className="px-3 py-2 font-medium">Member</th>
+                      <th className="px-3 py-2 font-medium">Joined</th>
                       <th className="px-3 py-2 text-right font-medium">Seat</th>
                       <th className="px-3 py-2 text-right font-medium">Fee</th>
                       <th className="px-3 py-2 text-right font-medium">Collected</th>
@@ -229,11 +230,14 @@ export default async function DashboardPage({
                             )}
                           </p>
                         </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                          {formatDate(row.joiningDate)}
+                        </td>
                         <td className="px-3 py-2.5 text-right tabular-nums">
                           {row.seatNumber ?? "—"}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
-                          {formatINR(data.fee)}
+                          {formatINR(row.fee)}
                         </td>
                         <td className="px-3 py-2.5 text-right font-medium tabular-nums">
                           {formatINR(row.collected)}
@@ -275,6 +279,9 @@ export default async function DashboardPage({
                           {row.memberId} ·{" "}
                           {row.seatNumber ? `Seat ${row.seatNumber}` : "No seat"}
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          Joined {formatDate(row.joiningDate)}
+                        </p>
                       </div>
                       <PaymentStatusBadge status={row.status} />
                     </div>
@@ -282,7 +289,7 @@ export default async function DashboardPage({
                     <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <dt className="text-[0.7rem] text-muted-foreground">Fee</dt>
-                        <dd className="tabular-nums">{formatINR(data.fee)}</dd>
+                        <dd className="tabular-nums">{formatINR(row.fee)}</dd>
                       </div>
                       <div>
                         <dt className="text-[0.7rem] text-muted-foreground">Paid</dt>

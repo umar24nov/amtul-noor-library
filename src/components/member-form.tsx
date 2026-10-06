@@ -44,6 +44,7 @@ export function MemberForm({
   defaults,
   seats,
   months,
+  defaultFee,
   showPayment = true,
   submitLabel = "Save member",
 }: {
@@ -52,6 +53,8 @@ export function MemberForm({
   seats: SeatOption[];
   /** Months offered by the picker, derived from the data. Falls back when absent. */
   months?: MonthOption[];
+  /** The fee this member pays this month; used to pre-fill the fee and first payment. */
+  defaultFee?: number;
   showPayment?: boolean;
   submitLabel?: string;
 }) {
@@ -192,6 +195,29 @@ export function MemberForm({
         </div>
 
         <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-monthlyFee`}>
+            Monthly fee (₹) <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id={`${id}-monthlyFee`}
+            name="monthlyFee"
+            type="number"
+            inputMode="numeric"
+            min="1"
+            step="1"
+            defaultValue={defaultFee?.toString() ?? ""}
+            required
+            aria-invalid={Boolean(state.fieldErrors?.monthlyFee)}
+            className="h-11"
+          />
+          <p className="text-xs text-muted-foreground">
+            What this member pays each month. Change it if this member&apos;s fee
+            differs from the standard.
+          </p>
+          <FieldError message={state.fieldErrors?.monthlyFee} />
+        </div>
+
+        <div className="grid gap-1.5">
           <Label htmlFor={`${id}-remarks`}>Remarks</Label>
           <Textarea
             id={`${id}-remarks`}
@@ -261,6 +287,7 @@ export function MemberForm({
                   inputMode="decimal"
                   min="0"
                   step="1"
+                  defaultValue={defaultFee?.toString() ?? ""}
                   placeholder="e.g. 700"
                   aria-invalid={Boolean(state.fieldErrors?.payAmount)}
                   className="h-11"

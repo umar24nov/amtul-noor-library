@@ -7,6 +7,7 @@ import { parseInputDate } from "@/lib/format";
 import { nextMemberId, nextPaymentId } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
+import { memberFeeKey } from "@/lib/settings";
 import { listMembers } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, isMemberSort } from "@/lib/constants";
 
@@ -69,6 +70,7 @@ export async function createMemberAction(
     joiningDate: formData.get("joiningDate"),
     remarks: formData.get("remarks"),
     seatId: readSeatId(formData),
+    monthlyFee: formData.get("monthlyFee"),
     payAmount: formData.get("payAmount"),
     payMode: formData.get("payMode"),
     payMonth: formData.get("payMonth"),
@@ -126,6 +128,14 @@ export async function createMemberAction(
         await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
       }
 
+      if (data.monthlyFee !== undefined) {
+        await tx.setting.upsert({
+          where: { key: memberFeeKey(created.id) },
+          update: { value: String(data.monthlyFee) },
+          create: { key: memberFeeKey(created.id), value: String(data.monthlyFee) },
+        });
+      }
+
       if (wantsPayment) {
         const paymentId = await nextPaymentId(tx);
         await tx.payment.create({
@@ -165,6 +175,7 @@ export async function updateMemberAction(
     joiningDate: formData.get("joiningDate"),
     remarks: formData.get("remarks"),
     seatId: readSeatId(formData),
+    monthlyFee: formData.get("monthlyFee"),
   });
 
   if (!parsed.success) {
@@ -236,6 +247,16 @@ export async function updateMemberAction(
         if (seatId) {
           await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
         }
+      }
+
+      if (data.monthlyFee !== undefined) {
+        await tx.setting.upsert({
+          where: { key: memberFeeKey(existing.id) },
+          update: { value: String(data.monthlyFee) },
+          create: { key: memberFeeKey(existing.id), value: String(data.monthlyFee) },
+        });
+      } else {
+        await tx.setting.deleteMany({ where: { key: memberFeeKey(existing.id) } });
       }
     });
 

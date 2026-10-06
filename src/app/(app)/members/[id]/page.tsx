@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
+import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
 export async function generateMetadata({
@@ -45,7 +46,12 @@ export default async function MemberDetailPage({
   const member = await getMemberDetail(memberId);
   if (!member) notFound();
 
-  const openSeats = await listOpenSeats(member.seatId ?? undefined);
+  const [openSeats, standardFee, memberFee] = await Promise.all([
+    listOpenSeats(member.seatId ?? undefined),
+    getMonthlyFee(),
+    getMemberFee(member.id),
+  ]);
+  const monthlyFee = effectiveMemberFee(memberFee, standardFee);
 
   const totalPaid = member.payments
     .filter((payment) => payment.status === "PAID")
@@ -89,6 +95,7 @@ export default async function MemberDetailPage({
                 ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
                 : null
             }
+            defaultFee={monthlyFee}
           />
         }
       />
@@ -176,6 +183,17 @@ export default async function MemberDetailPage({
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="size-3.5" />
                   {formatDate(member.joiningDate)}
+                </span>
+              }
+            />
+            <Detail
+              label="Monthly fee"
+              value={
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  {formatINR(monthlyFee)}
+                  {memberFee === null && (
+                    <span className="text-xs font-normal text-muted-foreground">(standard)</span>
+                  )}
                 </span>
               }
             />

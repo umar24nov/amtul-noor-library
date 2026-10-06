@@ -49,6 +49,7 @@ export default async function NewMemberPage() {
             action={createMemberAction}
             seats={seats}
             months={months}
+            defaultFee={fee}
             submitLabel="Save member"
           />
         </CardContent>

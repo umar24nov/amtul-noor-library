@@ -18,3 +18,60 @@ export async function setMonthlyFee(fee: number): Promise<void> {
     create: { key: MONTHLY_FEE_KEY, value: String(fee) },
   });
 }
+
+const MEMBER_FEE_PREFIX = "memberMonthlyFee:";
+
+export const memberFeeKey = (memberId: number) => `${MEMBER_FEE_PREFIX}${memberId}`;
+
+/**
+ * A member's own monthly fee, stored per member because the standard fee
+ * changes over time and not every member moves with it.
+ *
+ * `null` (or a member who has no row) means "use the standard fee".
+ */
+export async function getMemberFee(memberId: number): Promise<number | null> {
+  const setting = await prisma.setting.findUnique({
+    where: { key: memberFeeKey(memberId) },
+  });
+  const value = Number(setting?.value);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/**
+ * Every member fee in one read, keyed by member database id, so a whole
+ * month of rows can be built without a query per member.
+ */
+export async function memberFeesByMemberId(): Promise<Map<number, number>> {
+  const settings = await prisma.setting.findMany({
+    where: { key: { startsWith: MEMBER_FEE_PREFIX } },
+  });
+  const fees = new Map<number, number>();
+  for (const setting of settings) {
+    const memberId = Number(setting.key.slice(MEMBER_FEE_PREFIX.length));
+    const value = Number(setting.value);
+    if (Number.isInteger(memberId) && Number.isFinite(value) && value > 0) {
+      fees.set(memberId, value);
+    }
+  }
+  return fees;
+}
+
+export async function setMemberFee(memberId: number, fee: number): Promise<void> {
+  await prisma.setting.upsert({
+    where: { key: memberFeeKey(memberId) },
+    update: { value: String(fee) },
+    create: { key: memberFeeKey(memberId), value: String(fee) },
+  });
+}
+
+/** Removes a member's own fee, so the standard fee applies again. */
+export async function clearMemberFee(memberId: number): Promise<void> {
+  await prisma.setting.deleteMany({ where: { key: memberFeeKey(memberId) } });
+}
+
+export function effectiveMemberFee(
+  memberFee: number | null | undefined,
+  standardFee: number,
+): number {
+  return memberFee ?? standardFee;
+}

@@ -6,7 +6,7 @@ import { parseInputDate } from "@/lib/format";
 import { nextPaymentId } from "@/lib/ids";
 import { PAYMENT_ID_PREFIX } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { getMonthlyFee, setMonthlyFee } from "@/lib/settings";
+import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
 import { feeFormSchema, fieldErrors, monthKeySchema, paymentFormSchema } from "@/lib/validators";
 import { listPayments } from "@/lib/queries";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
@@ -173,7 +173,10 @@ export async function generatePendingAction(
   }
 
   const month = parsed.data;
-  const fee = await getMonthlyFee();
+  const [standardFee, memberFees] = await Promise.all([
+    getMonthlyFee(),
+    memberFeesByMemberId(),
+  ]);
 
   const members = await prisma.member.findMany({
     where: { status: "ACTIVE" },
@@ -196,7 +199,7 @@ export async function generatePendingAction(
       paymentId: bumpPaymentId(firstPaymentId, index),
       memberId: member.id,
       month,
-      amount: fee,
+      amount: memberFees.get(member.id) ?? standardFee,
       paymentMode: "CASH" as const,
       paymentDate: parseInputDate(`${month}-01`),
       status: "PENDING" as const,

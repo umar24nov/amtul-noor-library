@@ -62,6 +62,15 @@ export const memberFormSchema = z.object({
   joiningDate: dateInputSchema,
   remarks: optionalText(500),
   seatId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+  monthlyFee: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number("Fee must be a number")
+      .int("Fee must be a whole amount")
+      .min(1, "Fee must be greater than 0")
+      .max(100000, "Fee looks too large")
+      .optional(),
+  ),
   payAmount: z.preprocess(emptyToUndefined, z.coerce.number().positive("Amount must be greater than 0").max(100000).optional()),
   payMode: z.preprocess(emptyToUndefined, z.enum(["CASH", "ONLINE", "OFFER"]).optional()),
   payMonth: z.preprocess(emptyToUndefined, monthKeySchema.optional()),

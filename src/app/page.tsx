@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
+import { LandingHeader } from "@/components/landing-header";
 import { getSession } from "@/lib/auth";
 import {
   LIBRARY_ADDRESS,
@@ -88,7 +89,7 @@ export default async function LandingPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <SiteHeader />
+      <LandingHeader items={NAV} />
       <LiveBar rooms={rooms} />
 
       <main id="main" className="flex-1">
@@ -102,38 +103,6 @@ export default async function LandingPage() {
 
       <SiteFooter />
     </div>
-  );
-}
-
-function SiteHeader() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link
-          href="/"
-          className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Brand compact />
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* The only login link on the page. */}
-        <Button asChild size="lg" className="h-9 shrink-0">
-          <Link href="/login">Login</Link>
-        </Button>
-      </div>
-    </header>
   );
 }
 

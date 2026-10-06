@@ -15,7 +15,7 @@ import {
   seatRoomWhere,
   type RoomFilter,
 } from "@/lib/room-filter";
-import { getMonthlyFee } from "@/lib/settings";
+import { getMonthlyFee, memberFeesByMemberId } from "@/lib/settings";
 import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
 import type {
   Member,
@@ -40,9 +40,12 @@ export type MonthSummaryRow = {
   memberId: string;
   name: string;
   mobile: string | null;
+  joiningDate: Date;
   seatLabel: string | null;
   seatNumber: string | null;
   memberStatus: Member["status"];
+  /** This member's own monthly fee (or the standard one when unset). */
+  fee: number;
   collected: number;
   due: number;
   modes: string[];
@@ -99,7 +102,10 @@ export async function getMonthSummary(
   scope: MemberScope = "ACTIVE",
   room?: RoomFilter,
 ): Promise<MonthSummaryRow[]> {
-  const fee = await getMonthlyFee();
+  const [standardFee, memberFees] = await Promise.all([
+    getMonthlyFee(),
+    memberFeesByMemberId(),
+  ]);
   const members = await prisma.member.findMany({
     // Two independent conditions, so they are combined rather than spread into
     // one object where the second would overwrite the first.
@@ -111,13 +117,19 @@ export async function getMonthSummary(
     orderBy: [{ seat: { seatNumber: "asc" } }, { name: "asc" }],
   });
 
-  return members.map((member) => buildSummaryRow(member, month, fee));
+  return members.map((member) =>
+    buildSummaryRow(
+      member,
+      month,
+      memberFees.get(member.id) ?? standardFee,
+    ),
+  );
 }
 
 function buildSummaryRow(
   member: MemberWithSeatAndPayments,
   month: string,
-  fee: number,
+  memberFee: number,
 ): MonthSummaryRow {
   const joinedAfterMonth = monthKeyFromInputDate(member.joiningDate.toISOString()) > month;
   const payments = joinedAfterMonth ? [] : member.payments;
@@ -137,13 +149,15 @@ function buildSummaryRow(
     memberId: member.memberId,
     name: member.name,
     mobile: member.mobile,
+    joiningDate: member.joiningDate,
     seatLabel: member.seat
       ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}${member.seat.seatNumber}`
       : null,
     seatNumber: member.seat?.seatNumber ?? null,
     memberStatus: member.status,
+    fee: memberFee,
     collected,
-    due: isDue ? (pendingAmount > 0 ? pendingAmount : fee) : pendingAmount,
+    due: isDue ? (pendingAmount > 0 ? pendingAmount : memberFee) : pendingAmount,
     modes: Array.from(new Set(payments.map((payment) => MODE_LABELS[payment.paymentMode]))),
     status,
     hasRecords: payments.length > 0,

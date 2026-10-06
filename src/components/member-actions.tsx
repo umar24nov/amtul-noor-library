@@ -45,10 +45,12 @@ export function MemberActions({
   member,
   seats,
   seatLabel,
+  defaultFee,
 }: {
   member: MemberActionTarget;
   seats: SeatOption[];
   seatLabel: string | null;
+  defaultFee: number;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [leftOpen, setLeftOpen] = useState(false);
@@ -92,6 +94,7 @@ export function MemberActions({
             showPayment={false}
             submitLabel="Save changes"
             seats={seats}
+            defaultFee={defaultFee}
             defaults={{
               memberId: member.memberId,
               name: member.name,
