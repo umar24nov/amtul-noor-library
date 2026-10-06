@@ -164,12 +164,12 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
     console.log("the opening hours on the landing page are missing");
     return false;
   }
-  // Exactly three photographs: one hero and two in the gallery.
+  // Exactly four photographs: one hero and three in the gallery.
   const galleryImages = [...landingBody.matchAll(/\/images\/[a-z0-9-]+\.jpg/g)].map((m) => m[0]);
   const distinct = new Set(galleryImages);
   console.log(`landing page images -> ${[...distinct].join(", ")}`);
-  if (distinct.size !== 3) {
-    console.log(`expected three photographs on the landing page, found ${distinct.size}`);
+  if (distinct.size !== 4) {
+    console.log(`expected four photographs on the landing page, found ${distinct.size}`);
     return false;
   }
 

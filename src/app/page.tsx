@@ -322,7 +322,7 @@ function Gallery() {
           The reading room as it is.
         </p>
 
-        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+        <ul className="mt-6 grid gap-4 sm:grid-cols-3">
           {GALLERY_PHOTOS.map((photo) => (
             <li
               key={photo.src}
@@ -333,7 +333,7 @@ function Gallery() {
                 alt={photo.alt}
                 width={photo.width}
                 height={photo.height}
-                sizes="(min-width: 640px) 50vw, 100vw"
+                sizes="(min-width: 640px) 33vw, 100vw"
                 className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
               />
             </li>

@@ -7,10 +7,11 @@
  * `public/images`, which lets `next/image` reserve the right box before the
  * file loads and so the page does not jump as the pictures arrive.
  *
- * Three photographs, all the same 4:3 shape, which means the grid crops
- * nothing and the page does not change mood as you scroll. They were supplied
- * as PNGs and converted to progressive JPEG at quality 82, taking the total
- * from 5.1 MB to 397 KB with no visible loss at these dimensions.
+ * Four photographs, all the same 4:3 shape except the new 3:2 hero, which
+ * means the grid crops nothing and the page does not change mood as you
+ * scroll. They were supplied as PNGs and converted to progressive JPEG at
+ * quality 82, taking the total from 6.7 MB to 520 KB with no visible loss at
+ * these dimensions.
  *
  * `alt` is deliberately generic. Replace it with a description of what each
  * photograph actually shows, which also makes the page usable with a screen
@@ -28,9 +29,10 @@ export type LibraryPhoto = {
 const ALT = "Amtul Noor Library";
 
 export const LIBRARY_PHOTOS: LibraryPhoto[] = [
-  { src: "hero.jpg", width: 1448, height: 1086, hero: true, alt: ALT },
+  { src: "hero.jpg", width: 1536, height: 1024, hero: true, alt: ALT },
   { src: "gallery-1.jpg", width: 1448, height: 1086, hero: false, alt: ALT },
   { src: "gallery-2.jpg", width: 1195, height: 896, hero: false, alt: ALT },
+  { src: "gallery-3.jpg", width: 1448, height: 1086, hero: false, alt: ALT },
 ];
 
 export const HERO_PHOTO =
