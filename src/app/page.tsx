@@ -6,15 +6,20 @@ import {
   ArrowRight,
   Armchair,
   BookOpen,
+  CalendarDays,
   Clock,
+  DoorOpen,
   Droplets,
-  LampDesk,
   Lock,
   MapPin,
+  Maximize2,
   MessageCircle,
   Phone,
+  Plug,
+  Sparkles,
   VolumeOff,
   Wifi,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
@@ -344,36 +349,62 @@ function Gallery() {
   );
 }
 
-const AMENITIES = [
-  {
-    icon: VolumeOff,
-    title: "Peace and quiet",
-    body: "It is a study room, so calls and group conversation do not happen here. What you get is an hour or three of not being interrupted.",
-  },
-  {
-    icon: Armchair,
-    title: "Proper seating",
-    body: "Proper chairs and a desk to work at, lit so that reading and screen work are both comfortable.",
-  },
+const AMENITIES: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  wide?: boolean;
+}[] = [
   {
     icon: Wifi,
-    title: "Wi-Fi",
-    body: "Internet on the network, so a laptop is useful rather than merely allowed.",
-  },
-  {
-    icon: LampDesk,
-    title: "Power at the desk",
-    body: "A socket for your own plug at the place you sit, rather than one socket the whole room has to queue for.",
+    title: "High-Speed Wi-Fi",
+    body: "Reliable high-speed internet for lectures, research, and online preparation. And both the girls' and the boys' rooms get it.",
   },
   {
     icon: Lock,
-    title: "Lockers in one room",
-    body: "The room that has lockers lets you keep books and notes there overnight. It carries a small extra charge, below.",
+    title: "Personal Locker",
+    body: "Your own locker for books, notes, and study essentials. Lockers are in one room and carry a small extra charge.",
+  },
+  {
+    icon: Armchair,
+    title: "Comfortable Seating",
+    body: "Proper chairs and a desk to work at, lit so that reading and screen work are both comfortable.",
+  },
+  {
+    icon: VolumeOff,
+    title: "Quiet Environment",
+    body: "Calls and group conversation do not happen here. What you get is an hour or three of not being interrupted.",
+  },
+  {
+    icon: DoorOpen,
+    title: "Separate Study Rooms",
+    body: "Dedicated study spaces for girls and boys, so everyone can study at ease.",
+  },
+  {
+    icon: Plug,
+    title: "Charging Points",
+    body: "A socket for your own plug at the place you sit, rather than one socket the whole room has to queue for.",
   },
   {
     icon: Droplets,
-    title: "Water and washrooms",
-    body: "Drinking water and clean washrooms on site, so a break does not mean leaving.",
+    title: "Drinking Water",
+    body: "Clean drinking water and washrooms on site, so a break does not mean leaving.",
+  },
+  {
+    icon: Sparkles,
+    title: "Clean & Hygienic",
+    body: "A well-maintained and clean environment for your daily study routine.",
+  },
+  {
+    icon: Maximize2,
+    title: "Spacious Study Area",
+    body: "Plenty of room to study and prepare without feeling crowded.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Open All Days",
+    body: `Study any day of the week, ${LIBRARY_HOURS}.`,
+    wide: true,
   },
 ];
 
@@ -392,7 +423,7 @@ function Amenities() {
           {AMENITIES.map((amenity) => (
             <li
               key={amenity.title}
-              className="rounded-xl border border-border bg-card p-5"
+              className={`rounded-xl border border-border bg-card p-5 ${amenity.wide ? "lg:col-span-3" : ""}`}
             >
               <amenity.icon className="size-5 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-heading mt-3 font-semibold">{amenity.title}</h3>
