@@ -75,3 +75,19 @@ export function effectiveMemberFee(
 ): number {
   return memberFee ?? standardFee;
 }
+
+/**
+ * Adds the fee each row pays (its own fee or the standard) to every row that
+ * has a member `id`, so a list page can hand the right default to an edit
+ * dialog without a settings query per member.
+ */
+export function withMemberFees<T extends { id: number }>(
+  rows: readonly T[],
+  standardFee: number,
+  fees: ReadonlyMap<number, number>,
+): (T & { defaultFee: number })[] {
+  return rows.map((row) => ({
+    ...row,
+    defaultFee: effectiveMemberFee(fees.get(row.id) ?? null, standardFee),
+  }));
+}

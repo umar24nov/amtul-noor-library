@@ -29,7 +29,7 @@ import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
 import { MemberStatusBadge } from "@/components/status-badges";
 import { formatDate, todayInputValue } from "@/lib/format";
-import { markMemberLeftAction, updateMemberAction, loadMoreMembersAction } from "@/app/(app)/members/actions";
+import { markMemberLeftAction, updateMemberAction, loadMoreMembersAction, getMemberForEdit } from "@/app/(app)/members/actions";
 import type { MemberWithSeat } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, STICKY_HEADER_CELL, type MemberSort } from "@/lib/constants";
 
@@ -44,6 +44,10 @@ export type EditableMember = {
   remarks: string | null;
   seatId: number | null;
   status: MemberWithSeat["status"];
+  /** The seat relation, when the row was loaded with one. */
+  seat?: MemberWithSeat["seat"] | null;
+  /** Fee this member pays; pre-fills the edit dialog. */
+  defaultFee: number;
 };
 
 /** The active filters, sent back to the server when the next batch is needed. */
@@ -54,12 +58,38 @@ export type MemberListQuery = {
   sort?: string;
 };
 
-function seatText(member: MemberWithSeat): string {
+function seatText(member: EditableMember): string {
   if (!member.seat) return "—";
   return `${member.seat.room ? `${member.seat.room.name} · ` : ""}${member.seat.seatNumber}`;
 }
 
-function MarkLeftDialog({ member, seat }: { member: EditableMember; seat: string }) {
+/**
+ * The edit dialog lists every seat the member could keep, but the page only
+ * hands over seats that are free right now. A member who already sits on a
+ * seat must still see that seat so the select can show it: an occupied seat
+ * has no option otherwise and the chosen seat silently appears as
+ * "No seat / assign later".
+ */
+function dialogSeats(member: EditableMember, seats: SeatOption[]): SeatOption[] {
+  if (!member.seat || seats.some((seat) => seat.id === member.seat!.id)) return seats;
+  return [
+    {
+      id: member.seat.id,
+      label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
+    },
+    ...seats,
+  ];
+}
+
+function MarkLeftDialog({
+  member,
+  seat,
+  onUpdated,
+}: {
+  member: EditableMember;
+  seat: string;
+  onUpdated: (member: EditableMember) => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -79,6 +109,8 @@ function MarkLeftDialog({ member, seat }: { member: EditableMember; seat: string
         <form
           action={async (formData) => {
             await markMemberLeftAction(formData);
+            const fresh = await getMemberForEdit(member.id);
+            if (fresh) onUpdated(fresh);
             setOpen(false);
             toast.success(`${member.name} marked as Left. Seat released.`);
           }}
@@ -112,9 +144,11 @@ function MarkLeftDialog({ member, seat }: { member: EditableMember; seat: string
 function EditDialog({
   member,
   seats,
+  onUpdated,
 }: {
   member: EditableMember;
   seats: SeatOption[];
+  onUpdated: (member: EditableMember) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -136,12 +170,17 @@ function EditDialog({
         <MemberForm
           action={async (prev, formData) => {
             const result = await updateMemberAction(prev, formData);
-            if (result.status === "success") setOpen(false);
+            if (result.status === "success") {
+              const fresh = await getMemberForEdit(member.id);
+              if (fresh) onUpdated(fresh);
+              setOpen(false);
+            }
             return result;
           }}
           showPayment={false}
           submitLabel="Save changes"
           seats={seats}
+          defaultFee={member.defaultFee}
           defaults={{
             memberId: member.memberId,
             name: member.name,
@@ -161,11 +200,13 @@ function EditDialog({
 function RowActions({
   member,
   seats,
+  onUpdated,
 }: {
   member: EditableMember;
   seats: SeatOption[];
+  onUpdated: (member: EditableMember) => void;
 }) {
-  const seat = seatText(member as MemberWithSeat);
+  const seat = seatText(member);
 
   return (
     <div className="flex items-center justify-end gap-1.5">
@@ -175,9 +216,9 @@ function RowActions({
           View
         </a>
       </Button>
-      <EditDialog member={member} seats={seats} />
+      <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={onUpdated} />
       {member.status === "ACTIVE" ? (
-        <MarkLeftDialog member={member} seat={seat} />
+        <MarkLeftDialog member={member} seat={seat} onUpdated={onUpdated} />
       ) : (
         <span className="px-2 text-xs text-muted-foreground">No seat</span>
       )}
@@ -212,6 +253,18 @@ export function MemberTable({
   const [total, setTotal] = useState(totalCount);
   const [loading, setLoading] = useState(false);
   const hasMore = rows.length < total;
+
+  // Replaces a row with its fresh record after an in-table edit or leave, so
+  // the next time that row's dialog opens it shows today's values, not the
+  // ones from when the page first loaded.
+  const refreshRow = useCallback(
+    (fresh: EditableMember) => {
+      setRows((current) =>
+        current.map((row) => (row.id === fresh.id ? fresh : row)),
+      );
+    },
+    [],
+  );
 
   const loadMore = useCallback(async () => {
     if (loading || rows.length >= total) return;
@@ -294,7 +347,7 @@ export function MemberTable({
                 </td>
                 <td className="px-3 py-2.5 font-medium">{member.name}</td>
                 <td className="px-3 py-2.5 tabular-nums">{member.mobile}</td>
-                <td className="px-3 py-2.5 tabular-nums">{seatText(member as MemberWithSeat)}</td>
+                <td className="px-3 py-2.5 tabular-nums">{seatText(member)}</td>
                 <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
                   {formatDate(member.joiningDate)}
                 </td>
@@ -302,7 +355,7 @@ export function MemberTable({
                   <MemberStatusBadge status={member.status} />
                 </td>
                 <td className="px-3 py-2.5 text-right">
-                  <RowActions member={member} seats={seats} />
+                  <RowActions member={member} seats={seats} onUpdated={refreshRow} />
                 </td>
               </tr>
             ))}
@@ -329,7 +382,7 @@ export function MemberTable({
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Seat</dt>
-                <dd className="tabular-nums">{seatText(member as MemberWithSeat)}</dd>
+                <dd className="tabular-nums">{seatText(member)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Joining date</dt>
@@ -345,12 +398,12 @@ export function MemberTable({
               <Button asChild variant="secondary" size="sm" className="h-10 flex-1">
                 <a href={`/members/${member.id}`}>View</a>
               </Button>
-              <EditDialog member={member} seats={seats} />
+              <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={refreshRow} />
             </div>
 
             {member.status === "ACTIVE" && (
               <div className="mt-2">
-                <MarkLeftDialog member={member} seat={seatText(member as MemberWithSeat)} />
+                <MarkLeftDialog member={member} seat={seatText(member)} onUpdated={refreshRow} />
               </div>
             )}
           </div>

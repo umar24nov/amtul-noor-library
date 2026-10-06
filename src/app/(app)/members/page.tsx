@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import { listMembers, listOpenSeats, listRooms } from "@/lib/queries";
+import { getMonthlyFee, memberFeesByMemberId, withMemberFees } from "@/lib/settings";
 import {
   parseRoomFilter,
   roomFilterOptions,
@@ -45,9 +46,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const room = parseRoomFilter(params.room, rooms);
 
   // The list grows by scrolling, so this is always the first batch.
-  const [{ members, total }, openSeats] = await Promise.all([
+  const [{ members, total }, openSeats, standardFee, fees] = await Promise.all([
     listMembers({ search, status, sort, room }),
     listOpenSeats(),
+    getMonthlyFee(),
+    memberFeesByMemberId(),
   ]);
 
   const seats = openSeats.map((seat) => ({
@@ -154,7 +157,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         // of appending to rows that no longer match.
         <MemberTable
           key={`${search}|${status}|${roomValue}|${sort}`}
-          members={members as EditableMember[]}
+          members={withMemberFees(members, standardFee, fees) as EditableMember[]}
           seats={seats}
           sort={sort}
           sortBase={sortBase}

@@ -7,7 +7,14 @@ import { parseInputDate } from "@/lib/format";
 import { nextMemberId, nextPaymentId } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
-import { memberFeeKey } from "@/lib/settings";
+import {
+  effectiveMemberFee,
+  getMemberFee,
+  getMonthlyFee,
+  memberFeeKey,
+  memberFeesByMemberId,
+  withMemberFees,
+} from "@/lib/settings";
 import { listMembers } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, isMemberSort } from "@/lib/constants";
 
@@ -32,20 +39,24 @@ export async function loadMoreMembersAction(filters: {
   page?: number;
 }) {
   const roomId = Number(filters.room);
-  const result = await listMembers({
-    search: filters.q,
-    status: filters.status === "ACTIVE" || filters.status === "LEFT" ? filters.status : "ALL",
-    room:
-      filters.room === "NONE"
-        ? "NONE"
-        : Number.isInteger(roomId) && roomId > 0
-          ? roomId
-          : undefined,
-    sort: isMemberSort(filters.sort) ? filters.sort : DEFAULT_MEMBER_SORT,
-    page: filters.page ?? 2,
-  });
+  const [{ members, total }, standardFee, fees] = await Promise.all([
+    listMembers({
+      search: filters.q,
+      status: filters.status === "ACTIVE" || filters.status === "LEFT" ? filters.status : "ALL",
+      room:
+        filters.room === "NONE"
+          ? "NONE"
+          : Number.isInteger(roomId) && roomId > 0
+            ? roomId
+            : undefined,
+      sort: isMemberSort(filters.sort) ? filters.sort : DEFAULT_MEMBER_SORT,
+      page: filters.page ?? 2,
+    }),
+    getMonthlyFee(),
+    memberFeesByMemberId(),
+  ]);
 
-  return { members: result.members, total: result.total };
+  return { members: withMemberFees(members, standardFee, fees), total };
 }
 
 function readSeatId(formData: FormData): string | undefined {
@@ -92,6 +103,7 @@ export async function createMemberAction(
 
   try {
     const seatId = data.seatId;
+    const standardFee = await getMonthlyFee();
 
     if (seatId) {
       const seat = await prisma.seat.findUnique({
@@ -128,7 +140,7 @@ export async function createMemberAction(
         await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
       }
 
-      if (data.monthlyFee !== undefined) {
+      if (data.monthlyFee !== undefined && data.monthlyFee !== standardFee) {
         await tx.setting.upsert({
           where: { key: memberFeeKey(created.id) },
           update: { value: String(data.monthlyFee) },
@@ -198,6 +210,7 @@ export async function updateMemberAction(
     if (!existing) return errorState("Member not found.");
 
     const seatId = data.seatId ?? null;
+    const standardFee = await getMonthlyFee();
 
     if (seatId && seatId !== existing.seatId) {
       const seat = await prisma.seat.findUnique({
@@ -249,7 +262,7 @@ export async function updateMemberAction(
         }
       }
 
-      if (data.monthlyFee !== undefined) {
+      if (data.monthlyFee !== undefined && data.monthlyFee !== standardFee) {
         await tx.setting.upsert({
           where: { key: memberFeeKey(existing.id) },
           update: { value: String(data.monthlyFee) },
@@ -303,8 +316,14 @@ export async function markMemberLeftAction(formData: FormData): Promise<void> {
 
 /** Seat search used by the "Mark as Left" and edit dialogs. */
 export async function getMemberForEdit(memberId: number) {
-  return prisma.member.findUnique({
-    where: { id: memberId },
-    include: { seat: { include: { room: true } } },
-  });
+  const [member, standardFee, memberFee] = await Promise.all([
+    prisma.member.findUnique({
+      where: { id: memberId },
+      include: { seat: { include: { room: true } } },
+    }),
+    getMonthlyFee(),
+    getMemberFee(memberId),
+  ]);
+  if (!member) return null;
+  return { ...member, defaultFee: effectiveMemberFee(memberFee, standardFee) };
 }
