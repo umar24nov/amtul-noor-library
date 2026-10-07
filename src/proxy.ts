@@ -32,9 +32,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn) {
-    // The landing page is the public face of the library, so it is the one page
-    // a signed out visitor is allowed to see. Everything else needs a session.
-    if (pathname === "/") return NextResponse.next();
+    // The landing page and the reviews page are the public face of the library,
+    // so those are the pages a signed out visitor is allowed to see. Everything
+    // else needs a session.
+    if (pathname === "/" || pathname === "/reviews") return NextResponse.next();
 
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);

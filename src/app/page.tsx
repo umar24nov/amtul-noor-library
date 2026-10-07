@@ -12,18 +12,16 @@ import {
   Phone,
   Plug,
   Snowflake,
-  Star,
   VolumeOff,
   Wifi,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Brand } from "@/components/brand";
 import { LandingHeader } from "@/components/landing-header";
+import { SiteFooter } from "@/components/site-footer";
+import { SITE_NAV } from "@/lib/site-nav";
 import {
   LIBRARY_ADDRESS,
-  LIBRARY_EMAIL,
-  LIBRARY_EMAIL_URL,
   LIBRARY_FEES,
   LIBRARY_HOURS,
   LIBRARY_HOURS_DAYS,
@@ -49,13 +47,7 @@ export const metadata: Metadata = {
   description: `${LIBRARY_NAME} — ${LIBRARY_TAGLINE}. A quiet study room in Roorkee with allocated seats, a personal locker in one room, and monthly membership from ${formatINR(LIBRARY_FEES.seat)}.`,
 };
 
-const NAV = [
-  { href: "#seats", label: "Seats" },
-  { href: "#amenities", label: "Amenities" },
-  { href: "#reviews", label: "Reviews" },
-  { href: "#plans", label: "Fees" },
-  { href: "#visit", label: "Visit" },
-];
+const NAV = SITE_NAV;
 
 /**
  * The public face of the library.
@@ -94,7 +86,7 @@ export default async function LandingPage() {
         <Gallery />
         <Amenities />
         <Fees />
-        <Reviews />
+        <ReviewCta />
         <Visit />
       </main>
 
@@ -108,6 +100,7 @@ function LiveBar({ rooms }: { rooms: PublicRoomOccupancy[] }) {
   if (rooms.length === 0) return null;
   const withSeats = rooms.filter((room) => room.total > 0);
   if (withSeats.length === 0) return null;
+  const open = withSeats.reduce((sum, room) => sum + room.open, 0);
 
   return (
     <div className="border-b border-border bg-muted/60">
@@ -118,11 +111,7 @@ function LiveBar({ rooms }: { rooms: PublicRoomOccupancy[] }) {
             <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
           </span>
           <span className="font-medium text-foreground">Seats available now:</span>
-          {withSeats.map((room) => (
-            <span key={room.id}>
-              {room.name} — {room.open} open
-            </span>
-          ))}
+          <span>{open} open</span>
         </p>
         <p className="flex items-center gap-1">
           <Clock className="size-3.5" aria-hidden="true" />
@@ -155,7 +144,7 @@ function Hero({
             A quiet place to read, study and get on with it.
           </h1>
 
-          <p className="mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
+          <p className="mt-4 max-w-prose text-base leading-relaxed text-justify text-muted-foreground">
             {LIBRARY_NAME} is a quiet reading room in Roorkee for students and
             anyone who needs somewhere to sit and work without interruptions. Every
             member is given their own seat, and the fee is one fixed monthly amount
@@ -352,48 +341,6 @@ const AMENITIES: {
   },
 ];
 
-/**
- * The five best reviews members have left on Google, shown word for word.
- * The wording comes straight from the owner's Google listing.
- */
-const REVIEWS: { quote: string; name: string; when: string }[] = [
-  {
-    quote:
-      "A very peaceful and well-maintained library with a great collection of books. The environment is quiet and perfect for studying, reading, and research. The staff is helpful and friendly, and the facilities are clean and organized. Highly recommended for students and book lovers looking for a comfortable place to learn and explore new ideas.",
-    name: "Mish Gaur",
-    when: "3 months ago",
-  },
-  {
-    quote:
-      "It was a peaceful experience, the staff is friendly, helpful, and professional. The atmosphere is quiet, comfortable, and perfect for focused learning.",
-    name: "A.K.",
-    when: "3 months ago",
-  },
-  {
-    quote:
-      "A peaceful and calm study environment, fully equipped with modern facilities and high-speed internet",
-    name: "Mohammad Mohatram",
-    when: "10 months ago",
-  },
-  {
-    quote:
-      "It's been a really good Library, ambience is very good and environment is so good and no unnecessary noise around here. Would really want everyone to come and see once.",
-    name: "Mohd Saif",
-    when: "a week ago",
-  },
-  {
-    quote: "Great initiative",
-    name: "Abdul Quddus Ansari",
-    when: "6 months ago",
-  },
-  {
-    quote:
-      "Amtul Noor Library is an excellent resource for competitive exam aspirants. With a serene atmosphere, it\u2019s perfect for focused learning. The library boasts clean washrooms, no disturbance from surroundings ensuring a comfortable experience. Professional management provides a safe and caring environment.",
-    name: "Shah Jahan",
-    when: "10 months ago",
-  },
-];
-
 function Amenities() {
   return (
     <section id="amenities" className="scroll-mt-16 border-t border-border px-4 py-12 sm:px-6 sm:py-16">
@@ -533,48 +480,25 @@ function PriceCard({
   );
 }
 
-function Reviews() {
+/** A quiet pointer to the reviews, which live on their own page. */
+function ReviewCta() {
   return (
-    <section
-      id="reviews"
-      className="scroll-mt-16 border-t border-border bg-muted/40 px-4 py-12 sm:px-6 sm:py-16"
-    >
-      <div className="mx-auto w-full max-w-6xl">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-          What people say
-        </h2>
-        <p className="mt-2 max-w-prose text-muted-foreground">
-          Reviews members have left for us on Google.
-        </p>
-
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {REVIEWS.map((review) => (
-            <li
-              key={review.name}
-              className="flex flex-col rounded-xl border border-border bg-card p-5"
-            >
-              <span className="flex gap-0.5" aria-label="Rated 5 out of 5 stars">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star
-                    key={index}
-                    className="size-4 text-amber-500"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  />
-                ))}
-              </span>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {review.quote}
-              </p>
-              <p className="mt-4 border-t border-border pt-3 text-sm font-medium">
-                {review.name}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Google review · {review.when}
-              </p>
-            </li>
-          ))}
-        </ul>
+    <section className="border-t border-border bg-muted/40 px-4 py-10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+        <div className="max-w-prose">
+          <h2 className="font-heading text-xl font-semibold tracking-tight">
+            Check out our reviews
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What members have left for us on Google.
+          </p>
+        </div>
+        <Button asChild size="lg" className="h-11 shrink-0 px-5">
+          <Link href="/reviews">
+            Read the reviews
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </div>
     </section>
   );
@@ -697,151 +621,5 @@ function Visit() {
         </a>
       </div>
     </section>
-  );
-}
-
-function SiteFooter() {
-  const year = new Date().getFullYear();
-
-  const productLinks = [
-    { href: "#amenities", label: "Features" },
-    { href: "#plans", label: "Pricing" },
-    { href: "#faq", label: "FAQ" },
-    { href: "/login", label: "Sign in" },
-  ];
-
-  const companyLinks: { href: string; label: string; external?: boolean }[] = [
-    { href: "#visit", label: "Contact" },
-    { href: LIBRARY_WHATSAPP_URL, label: "Help & support", external: true },
-    { href: LIBRARY_MAPS_URL, label: "Find us on Google Maps", external: true },
-  ];
-
-  return (
-    <footer className="border-t border-border bg-muted/40">
-      <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
-          <div className="space-y-4">
-            <Brand />
-            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A quiet place to read, study and get on with it. A reading room in
-              Roorkee where your seat is yours while you are a member, and one
-              fixed monthly fee.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm">
-                <a href={LIBRARY_WHATSAPP_URL} target="_blank" rel="noreferrer">
-                  <MessageCircle className="size-4" aria-hidden="true" />
-                  Ask about a seat
-                </a>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <Link href={LIBRARY_MAPS_URL} target="_blank" rel="noreferrer">
-                  <MapPin className="size-4" aria-hidden="true" />
-                  Visit us
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          <nav aria-label="Product">
-            <h3 className="font-heading text-sm font-semibold">Product</h3>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              {productLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <nav aria-label="Company">
-            <h3 className="font-heading text-sm font-semibold">Company</h3>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              {companyLinks.map((link) =>
-                link.external ? (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ) : (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ),
-              )}
-            </ul>
-          </nav>
-
-          <div>
-            <h3 className="font-heading text-sm font-semibold">Contact</h3>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <Phone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span className="flex flex-col gap-1">
-                  <a
-                    href={LIBRARY_PHONE_URL}
-                    className="text-foreground underline underline-offset-4"
-                  >
-                    {LIBRARY_PHONE}
-                  </a>
-                  <a
-                    href={LIBRARY_PHONE_ALT_URL}
-                    className="text-foreground underline underline-offset-4"
-                  >
-                    {LIBRARY_PHONE_ALT}
-                  </a>
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span aria-hidden="true" className="mt-0.5 text-muted-foreground">
-                  @
-                </span>
-                <a
-                  href={LIBRARY_EMAIL_URL}
-                  className="text-foreground underline underline-offset-4"
-                >
-                  {LIBRARY_EMAIL}
-                </a>
-              </li>
-              <li className="flex gap-2">
-                <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span>
-                  {LIBRARY_HOURS} · {LIBRARY_HOURS_DAYS.toLowerCase()}
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span>{LIBRARY_ADDRESS}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:px-6">
-          <p>
-            &copy; {year} {LIBRARY_NAME} · {LIBRARY_ADDRESS}
-          </p>
-          <p>A quiet place to read, study and get on with it.</p>
-        </div>
-      </div>
-    </footer>
   );
 }

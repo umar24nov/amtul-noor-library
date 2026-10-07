@@ -115,6 +115,21 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
     console.log(`expected two login links (header + footer) on the landing page, found ${loginLinks}`);
     return false;
   }
+
+  // The reviews page is a public page too, reached from the header nav. A
+  // signed out visitor must be able to read it rather than being bounced to
+  // the login page.
+  const reviews = await fetch(`${BASE}/reviews`, { redirect: "manual" });
+  console.log(`GET /reviews (signed out) -> ${reviews.status}`);
+  if (reviews.status !== 200) {
+    console.log("the reviews page is not public, a signed out visitor cannot see it");
+    return false;
+  }
+  const reviewsBody = await reviews.text();
+  if (!reviewsBody.includes("Reviews members left on Google")) {
+    console.log("the reviews page header is missing from /reviews");
+    return false;
+  }
   if (!/href="\/login"[^>]*>Login</.test(landingBody)) {
     console.log("the header login link is not labelled 'Login'");
     return false;
