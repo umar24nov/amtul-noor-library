@@ -3,11 +3,13 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { cn } from "cn";
+import { MessageCircle } from "lucide-react";
 import { LoadMoreFooter } from "@/components/load-more-footer";
 import { PaymentEditDialog } from "@/components/payment-edit-dialog";
 import { PaymentStatusBadge } from "@/components/status-badges";
 import { STICKY_HEADER_CELL, paymentModeLabels } from "@/lib/constants";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
+import { paymentReceiptUrl } from "@/lib/whatsapp";
 import type { Payment } from "@/generated/prisma/client";
 import type { MemberWithSeat } from "@/lib/queries";
 import { loadMorePaymentsAction } from "@/app/(app)/payments/actions";
@@ -77,6 +79,20 @@ export function PaymentsTable({
     }
   }, [loading, page, query, rows.length, total]);
 
+  /** A WhatsApp receipt link for a paid record, or null when it does not apply. */
+  function receiptHref(payment: PaymentRow) {
+    if (payment.status !== "PAID" || !payment.member.mobile) return null;
+    return paymentReceiptUrl(payment.member.mobile, {
+      name: payment.member.name,
+      memberId: payment.member.memberId,
+      paymentId: payment.paymentId,
+      month: payment.month,
+      amount: Number(payment.amount),
+      mode: paymentModeLabels[payment.paymentMode],
+      date: payment.paymentDate,
+    });
+  }
+
   return (
     <>
       <div className="hidden rounded-lg border border-border md:block">
@@ -124,20 +140,33 @@ export function PaymentsTable({
                   <PaymentStatusBadge status={payment.status} />
                 </td>
                 <td className="px-3 py-2.5 text-right">
-                  <PaymentEditDialog
-                    payment={{ ...payment, amount: String(payment.amount) }}
-                    fee={fee}
-                    members={members}
-                    months={months}
-                    member={{
-                      name: payment.member.name,
-                      memberId: payment.member.memberId,
-                      mobile: payment.member.mobile,
-                      seatLabel: payment.member.seat
-                        ? `${payment.member.seat.room?.name} · Seat ${payment.member.seat.seatNumber}`
-                        : null,
-                    }}
-                  />
+                  <div className="flex items-center justify-end gap-2">
+                    {receiptHref(payment) && (
+                      <a
+                        href={receiptHref(payment)!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground underline-offset-2 hover:border-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                        aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
+                      >
+                        <MessageCircle className="size-4" />
+                      </a>
+                    )}
+                    <PaymentEditDialog
+                      payment={{ ...payment, amount: String(payment.amount) }}
+                      fee={fee}
+                      members={members}
+                      months={months}
+                      member={{
+                        name: payment.member.name,
+                        memberId: payment.member.memberId,
+                        mobile: payment.member.mobile,
+                        seatLabel: payment.member.seat
+                          ? `${payment.member.seat.room?.name} · Seat ${payment.member.seat.seatNumber}`
+                          : null,
+                      }}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -163,30 +192,43 @@ export function PaymentsTable({
               <PaymentStatusBadge status={payment.status} />
             </div>
 
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <div>
-                <p className="text-base font-semibold tabular-nums">
-                  {formatINR(payment.amount)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatMonth(payment.month)} · {paymentModeLabels[payment.paymentMode]} ·{" "}
-                  {formatDate(payment.paymentDate)}
-                </p>
-              </div>
-              <PaymentEditDialog
-                payment={{ ...payment, amount: String(payment.amount) }}
-                fee={fee}
-                members={members}
-                months={months}
-                compact
-                member={{
-                  name: payment.member.name,
-                  memberId: payment.member.memberId,
-                  mobile: payment.member.mobile,
-                  seatLabel: null,
-                }}
-              />
-            </div>
+<div className="mt-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold tabular-nums">
+                      {formatINR(payment.amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatMonth(payment.month)} · {paymentModeLabels[payment.paymentMode]} ·{" "}
+                      {formatDate(payment.paymentDate)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {receiptHref(payment) && (
+                      <a
+                        href={receiptHref(payment)!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground underline-offset-2 hover:border-foreground hover:text-foreground"
+                        aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
+                      >
+                        <MessageCircle className="size-4" />
+                      </a>
+                    )}
+                    <PaymentEditDialog
+                      payment={{ ...payment, amount: String(payment.amount) }}
+                      fee={fee}
+                      members={members}
+                      months={months}
+                      compact
+                      member={{
+                        name: payment.member.name,
+                        memberId: payment.member.memberId,
+                        mobile: payment.member.mobile,
+                        seatLabel: null,
+                      }}
+                    />
+                  </div>
+                </div>
 
             {payment.remarks && (
               <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>

@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Phone,
   Plug,
+  Share2,
   Snowflake,
   VolumeOff,
   Wifi,
@@ -37,15 +38,78 @@ import {
   LIBRARY_WHATSAPP_URL,
 } from "@/lib/constants";
 import { formatINR, formatNumber } from "@/lib/format";
-import { GALLERY_PHOTOS, HERO_PHOTO } from "@/lib/photos";
+import { HERO_PHOTO, GALLERY_PHOTOS } from "@/lib/photos";
 import { listPublicOccupancy, type PublicRoomOccupancy } from "@/lib/queries";
+import { siteHomeUrl, siteOrigin } from "@/lib/site";
+import { JoinForm } from "@/components/join-form";
+import { whatsappShareUrl } from "@/lib/whatsapp";
 
-export const metadata: Metadata = {
-  // Absolute, because the root layout appends the site name to every title and
-  // "Amtul Noor Library · Amtul Noor Library" helps nobody.
-  title: { absolute: LIBRARY_NAME },
-  description: `${LIBRARY_NAME} — ${LIBRARY_TAGLINE}. A quiet study room in Roorkee with allocated seats, a personal locker in one room, and monthly membership from ${formatINR(LIBRARY_FEES.seat)}.`,
-};
+/**
+ * Landing page metadata.
+ *
+ * Absolute because the root layout appends the site name to every title, and
+ * "Amtul Noor Library · Amtul Noor Library" helps nobody. Everything a social
+ * network shows for a shared link lives here too.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await siteOrigin();
+  const title = LIBRARY_NAME;
+  const description = `${LIBRARY_NAME} — ${LIBRARY_TAGLINE}. A quiet study room in Roorkee with allocated seats, a personal locker in one room, and monthly membership from ${formatINR(LIBRARY_FEES.seat)}.`;
+
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `${origin}/` },
+    openGraph: {
+      type: "website",
+      url: `${origin}/`,
+      siteName: LIBRARY_NAME,
+      title,
+      description,
+      images: [
+        {
+          url: `${origin}/images/hero.jpg`,
+          width: HERO_PHOTO.width,
+          height: HERO_PHOTO.height,
+          alt: HERO_PHOTO.alt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${origin}/images/hero.jpg`],
+    },
+  };
+}
+
+/**
+ * The landing page metadata and schema are built from the same facts. Search
+ * engines read the JSON-LD block to describe the library in local results;
+ * the `generateMetadata` above covers social links.
+ */
+function librarySchema(origin: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Library",
+    name: LIBRARY_NAME,
+    description: LIBRARY_TAGLINE,
+    url: `${origin}/`,
+    image: `${origin}/images/hero.jpg`,
+    telephone: `+91${LIBRARY_PHONE}`,
+    priceRange: `₹${LIBRARY_FEES.seat}+`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Rampur Chungi, Eidgah Enclave, Farukh Colony",
+      addressLocality: "Roorkee",
+      addressRegion: "Uttarakhand",
+      postalCode: "247667",
+      addressCountry: "IN",
+    },
+    openingHours: "Mo-Su 07:00-12:00",
+  };
+}
 
 const NAV = SITE_NAV;
 
@@ -67,6 +131,8 @@ export default async function LandingPage() {
     rooms = [];
   }
 
+  const [origin, homeUrl] = await Promise.all([siteOrigin(), siteHomeUrl()]);
+
   const totals = rooms.reduce(
     (sum, room) => ({
       seats: sum.seats + room.total,
@@ -75,13 +141,19 @@ export default async function LandingPage() {
     { seats: 0, open: 0 },
   );
 
+  const shareHref = whatsappShareUrl(`${LIBRARY_NAME} — ${LIBRARY_TAGLINE}`, homeUrl);
+
   return (
     <div className="flex min-h-dvh flex-col bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(librarySchema(origin)) }}
+      />
       <LandingHeader items={NAV} />
       <LiveBar rooms={rooms} />
 
       <main id="main" className="flex-1">
-        <Hero totals={totals} roomCount={rooms.length} />
+        <Hero totals={totals} roomCount={rooms.length} shareHref={shareHref} />
         <SeatStatus rooms={rooms} />
         <Gallery />
         <Amenities />
@@ -127,9 +199,11 @@ function LiveBar({ rooms }: { rooms: PublicRoomOccupancy[] }) {
 function Hero({
   totals,
   roomCount,
+  shareHref,
 }: {
   totals: { seats: number; open: number };
   roomCount: number;
+  shareHref: string;
 }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-6 sm:pt-14">
@@ -163,6 +237,12 @@ function Hero({
                 See membership plans
                 <ArrowRight className="size-4" />
               </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg" className="h-11 px-5">
+              <a href={shareHref} target="_blank" rel="noreferrer">
+                <Share2 className="size-4" />
+                Send to a friend
+              </a>
             </Button>
           </div>
 
@@ -588,6 +668,8 @@ function Visit() {
               </Link>
             </Button>
           </div>
+
+          <JoinForm />
 
           <div id="faq" className="mt-8 scroll-mt-16 space-y-4 border-t border-border pt-6">
             <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">

@@ -6,6 +6,7 @@ import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
 import { PaymentsToolbar } from "@/components/payments-toolbar";
 import { PaymentsTable } from "@/components/payments-table";
+import { PaymentReminders } from "@/components/payment-reminders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterField, SearchInput, selectClassName } from "@/components/filters";
@@ -20,6 +21,7 @@ import {
   getPaymentStats,
   listActiveMembers,
   listPayments,
+  listPaymentReminders,
   listSelectableMonthOptions,
   listSelectableMonths,
 } from "@/lib/queries";
@@ -47,14 +49,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const mode = (params.mode as PaymentMode | undefined) ?? ALL;
   const status = (params.status as PaymentStatus | undefined) ?? ALL;
 
-  const [result, stats, fee, activeMembers, months, monthOptions] = await Promise.all([
-    listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
-    getPaymentStats(month),
-    getMonthlyFee(),
-    listActiveMembers(),
-    listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
-    listSelectableMonthOptions(),
-  ]);
+  const [result, stats, fee, activeMembers, months, monthOptions, reminders] =
+    await Promise.all([
+      listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
+      getPaymentStats(month),
+      getMonthlyFee(),
+      listActiveMembers(),
+      listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
+      listSelectableMonthOptions(),
+      listPaymentReminders(month),
+    ]);
 
   const members = activeMembers.map((member) => ({
     id: member.id,
@@ -62,7 +66,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     memberId: member.memberId,
     mobile: member.mobile,
     seatLabel: member.seat
-      ? `${member.seat.room.name} Â· Seat ${member.seat.seatNumber}`
+      ? `${member.seat.room.name} · Seat ${member.seat.seatNumber}`
       : null,
   }));
 
@@ -125,6 +129,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           tone="muted"
         />
       </div>
+
+      <PaymentReminders rows={reminders} month={month} />
 
       <Card>
         <CardHeader>

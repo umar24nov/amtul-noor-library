@@ -58,6 +58,8 @@ next-env.d.ts
 # the same logs written without the leading dot, e.g. `npm run dev > dev.log`
 dev.log
 db.log
+db-local.log
+dev.err.log
 
 # agent tooling installed by `npx prisma init` (regenerated on demand)
 .agents/

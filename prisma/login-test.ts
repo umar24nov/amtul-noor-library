@@ -130,6 +130,37 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
     console.log("the reviews page header is missing from /reviews");
     return false;
   }
+
+  // Search engines are told where the public pages are and how to crawl them.
+  const sitemap = await fetch(`${BASE}/sitemap.xml`);
+  console.log(`GET /sitemap.xml -> ${sitemap.status}`);
+  if (sitemap.status !== 200) {
+    console.log("the sitemap did not render");
+    return false;
+  }
+  const sitemapBody = await sitemap.text();
+  if (!sitemapBody.includes("<loc>")) {
+    console.log("the sitemap has no page URLs in it");
+    return false;
+  }
+
+  const robots = await fetch(`${BASE}/robots.txt`);
+  console.log(`GET /robots.txt -> ${robots.status}`);
+  if (robots.status !== 200) {
+    console.log("robots.txt did not render");
+    return false;
+  }
+  const robotsBody = await robots.text();
+  if (!robotsBody.includes("Sitemap:")) {
+    console.log("robots.txt does not point at the sitemap");
+    return false;
+  }
+
+  // The landing page describes the library to search engines in a JSON-LD block.
+  if (!landingBody.includes('application/ld+json') || !landingBody.includes('"@type":"Library"')) {
+    console.log("the landing page has no LocalBusiness JSON-LD block");
+    return false;
+  }
   if (!/href="\/login"[^>]*>Login</.test(landingBody)) {
     console.log("the header login link is not labelled 'Login'");
     return false;

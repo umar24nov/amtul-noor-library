@@ -6,6 +6,7 @@ import {
   monthSelectOptions,
   monthWindow,
   parseInputDate,
+  recentMonthKeys,
   selectableMonthKeys,
 } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
@@ -571,5 +572,61 @@ export const listPublicOccupancy = cache(async () => {
     };
   });
 });
+
+/**
+ * What each of the last twelve months collected, newest month first.
+ *
+ * Paid records only: a pending row is money owed, not money in, so counting it
+ * would flatter the chart. Months with nothing are included as zeroes so the
+ * bars line up with a real calendar rather than skipping gaps.
+ */
+export async function getRevenueTrend(through: string): Promise<RevenuePoint[]> {
+  const keys = recentMonthKeys(12, through);
+  const groups = await prisma.payment.groupBy({
+    by: ["month"],
+    where: { status: "PAID", month: { in: keys } },
+    _sum: { amount: true },
+  });
+  const byMonth = new Map(groups.map((group) => [group.month, toNumber(group._sum.amount)]));
+  return keys.map((month) => ({ month, total: byMonth.get(month) ?? 0 }));
+}
+
+export type RevenuePoint = {
+  month: string;
+  total: number;
+};
+
+export type PaymentReminderRow = {
+  memberPk: number;
+  name: string;
+  memberId: string;
+  mobile: string | null;
+  due: number;
+  status: "PENDING" | "NONE";
+};
+
+/**
+ * Active members who still owe the chosen month.
+ *
+ * "None" is a real state here: someone who joined on time but has never had a
+ * payment generated for the month still owes it, so reminders cover both the
+ * explicit PENDING rows and members with no record at all.
+ */
+export async function listPaymentReminders(month: string): Promise<PaymentReminderRow[]> {
+  const summary = await getMonthSummary(month, "ACTIVE");
+  return summary
+    .filter(
+      (row): row is typeof row & { status: "PENDING" | "NONE" } =>
+        row.status === "PENDING" || row.status === "NONE",
+    )
+    .map((row) => ({
+      memberPk: row.memberPk,
+      name: row.name,
+      memberId: row.memberId,
+      mobile: row.mobile,
+      due: row.due,
+      status: row.status,
+    }));
+}
 
 export type PublicRoomOccupancy = Awaited<ReturnType<typeof listPublicOccupancy>>[number];

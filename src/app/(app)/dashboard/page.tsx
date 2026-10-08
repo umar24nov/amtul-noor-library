@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
 import { PaymentStatusBadge } from "@/components/status-badges";
+import { RevenueChart } from "@/components/revenue-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthStepper } from "@/components/month-stepper";
@@ -16,6 +17,7 @@ import {
 import { currentMonthKey, formatDate, formatINR, formatMonth } from "@/lib/format";
 import {
   getDashboardData,
+  getRevenueTrend,
   listRooms,
   listSelectableMonths,
   type MemberScope,
@@ -63,9 +65,10 @@ export default async function DashboardPage({
     room === undefined ? "/members?status=ACTIVE" : `/members?status=ACTIVE&room=${roomValue}`;
   const seatsHref = room === undefined ? "/seats" : `/seats?room=${roomValue}`;
 
-  const [data, months] = await Promise.all([
+  const [data, months, trend] = await Promise.all([
     getDashboardData(month, memberScope, room),
     listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
+    getRevenueTrend(month),
   ]);
 
   return (
@@ -164,6 +167,8 @@ export default async function DashboardPage({
           href={`/payments?month=${month}&status=PENDING`}
         />
       </div>
+
+      <RevenueChart series={trend} highlighted={month} />
 
       <Card>
         <CardHeader>

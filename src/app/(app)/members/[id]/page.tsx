@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info } from "lucide-react";
+import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, MessageCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PaymentStatusBadge, MemberStatusBadge } from "@/components/status-badges";
 import { MemberActions } from "@/components/member-actions";
@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
+import { paymentModeLabels } from "@/lib/constants";
+import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
 export async function generateMetadata({
@@ -69,6 +71,20 @@ export default async function MemberDetailPage({
       label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
     });
   }
+
+  /** The WhatsApp receipt link for a paid month, or null when it does not apply. */
+  const receiptHref = (payment: (typeof member.payments)[number]): string | null => {
+    if (payment.status !== "PAID" || !member.mobile) return null;
+    return paymentReceiptUrl(member.mobile, {
+      name: member.name,
+      memberId: member.memberId,
+      paymentId: payment.paymentId,
+      month: payment.month,
+      amount: toNumber(payment.amount),
+      mode: paymentModeLabels[payment.paymentMode],
+      date: payment.paymentDate,
+    });
+  };
 
   return (
     <div className="grid gap-5">
@@ -243,6 +259,7 @@ export default async function MemberDetailPage({
                       <th className="px-3 py-2 font-medium">Mode</th>
                       <th className="px-3 py-2 font-medium">Date</th>
                       <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">WhatsApp</th>
                       <th className="px-3 py-2 font-medium">Remarks</th>
                     </tr>
                   </thead>
@@ -264,6 +281,20 @@ export default async function MemberDetailPage({
                         </td>
                         <td className="px-3 py-2">
                           <PaymentStatusBadge status={payment.status} />
+                        </td>
+                        <td className="px-3 py-2">
+                          {receiptHref(payment) && (
+                            <a
+                              href={receiptHref(payment)!}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline"
+                              aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
+                            >
+                              <MessageCircle className="size-4" />
+                              Receipt
+                            </a>
+                          )}
                         </td>
                         <td className="max-w-48 truncate px-3 py-2 text-muted-foreground">
                           {payment.remarks || "—"}
@@ -298,6 +329,17 @@ export default async function MemberDetailPage({
                     </div>
                     {payment.remarks && (
                       <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>
+                    )}
+                    {receiptHref(payment) && (
+                      <a
+                        href={receiptHref(payment)!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      >
+                        <MessageCircle className="size-3.5" />
+                        Send this receipt on WhatsApp
+                      </a>
                     )}
                   </li>
                 ))}
