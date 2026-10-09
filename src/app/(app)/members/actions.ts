@@ -237,6 +237,11 @@ export async function updateMemberAction(
     }
 
     await prisma.$transaction(async (tx) => {
+      // A member who had left comes back simply by giving them a seat again.
+      // Their joining date is kept, so they hold their original place in the
+      // join-date order.
+      const rejoining = existing.status === "LEFT" && seatId !== null;
+
       await tx.member.update({
         where: { id: existing.id },
         data: {
@@ -246,11 +251,13 @@ export async function updateMemberAction(
           guardianMobile: data.guardianMobile ?? null,
           joiningDate: parseInputDate(data.joiningDate),
           remarks: data.remarks ?? null,
-          seatId: existing.status === "ACTIVE" ? seatId : existing.seatId,
+          seatId: existing.status === "ACTIVE" || rejoining ? seatId : existing.seatId,
+          status: rejoining ? "ACTIVE" : undefined,
+          leavingDate: rejoining ? null : undefined,
         },
       });
 
-      if (existing.status === "ACTIVE") {
+      if (existing.status === "ACTIVE" || rejoining) {
         if (existing.seatId && existing.seatId !== seatId) {
           await tx.seat.update({
             where: { id: existing.seatId },

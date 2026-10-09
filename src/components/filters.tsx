@@ -1,11 +1,14 @@
-﻿import { cn } from "cn";
+﻿"use client";
+
+import { useRef } from "react";
+import { cn } from "cn";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export function SearchInput({
   defaultValue,
-  placeholder = "Searchâ€¦",
+  placeholder = "Search…",
   standalone = true,
   className,
 }: {
@@ -15,6 +18,16 @@ export function SearchInput({
   standalone?: boolean;
   className?: string;
 }) {
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const submitSoon = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      formRef.current?.requestSubmit();
+    }, 400);
+  };
+
   const field = (
     <div className="relative flex-1">
       <Search
@@ -28,6 +41,10 @@ export function SearchInput({
         placeholder={placeholder}
         aria-label={placeholder}
         className="h-11 pl-8"
+        onChange={submitSoon}
+        ref={(el) => {
+          formRef.current = el?.closest("form") ?? null;
+        }}
       />
     </div>
   );

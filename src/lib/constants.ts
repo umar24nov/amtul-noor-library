@@ -199,19 +199,19 @@ export const MAX_MONTH_WINDOW = 360;
 
 /** Ways the member list can be ordered. The first entry is the default. */
 export const MEMBER_SORTS = [
+  { value: "oldest", label: "Join date, oldest first" },
+  { value: "newest", label: "Join date, newest first" },
   { value: "status-name", label: "Active first, then name A-Z" },
   { value: "name-asc", label: "Name (A-Z)" },
   { value: "name-desc", label: "Name (Z-A)" },
   { value: "seat", label: "Seat number" },
-  { value: "newest", label: "Newest members first" },
-  { value: "oldest", label: "Oldest members first" },
   { value: "member-id", label: "Member ID" },
   { value: "recently-updated", label: "Recently updated" },
 ] as const;
 
 export type MemberSort = (typeof MEMBER_SORTS)[number]["value"];
 
-export const DEFAULT_MEMBER_SORT: MemberSort = "status-name";
+export const DEFAULT_MEMBER_SORT: MemberSort = "oldest";
 
 export function isMemberSort(value: string | undefined): value is MemberSort {
   return MEMBER_SORTS.some((option) => option.value === value);
