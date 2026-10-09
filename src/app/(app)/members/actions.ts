@@ -21,6 +21,11 @@ import { DEFAULT_MEMBER_SORT, isMemberSort } from "@/lib/constants";
 function revalidateAll() {
   revalidatePath("/dashboard");
   revalidatePath("/members");
+  // The member detail page is a dynamic route, so it needs its own call with
+  // the route pattern and "page" type. Revalidating "/members" alone refreshes
+  // the list but leaves "/members/<id>" showing the pre-edit details until a
+  // manual reload — the "edit only seems to save after refresh" report.
+  revalidatePath("/members/[id]", "page");
   revalidatePath("/payments");
   revalidatePath("/seats");
 }
