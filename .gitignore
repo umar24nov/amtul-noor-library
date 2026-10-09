@@ -60,6 +60,7 @@ dev.log
 db.log
 db-local.log
 dev.err.log
+prod.log
 
 # agent tooling installed by `npx prisma init` (regenerated on demand)
 .agents/

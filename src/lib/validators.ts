@@ -31,6 +31,21 @@ export const optionalMobileSchema = z.preprocess(
     .optional(),
 );
 
+/**
+ * Optional email, used only to send receipts. Not every member has one yet, so
+ * an empty value is accepted and stored as null.
+ */
+export const optionalEmailSchema = z.preprocess(
+  emptyToUndefined,
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address")
+    .optional(),
+);
+
 export const dateInputSchema = z
   .string()
   .trim()
@@ -57,6 +72,7 @@ export const memberFormSchema = z.object({
     .min(2, "Name is required")
     .max(80, "Name must be 80 characters or fewer"),
   mobile: mobileSchema,
+  email: optionalEmailSchema,
   guardianName: optionalText(80),
   guardianMobile: optionalMobileSchema,
   joiningDate: dateInputSchema,

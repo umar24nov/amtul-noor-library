@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { cn } from "cn";
-import { MessageCircle } from "lucide-react";
 import { LoadMoreFooter } from "@/components/load-more-footer";
 import { PaymentEditDialog } from "@/components/payment-edit-dialog";
+import { ReceiptActions } from "@/components/receipt-actions";
 import { PaymentStatusBadge } from "@/components/status-badges";
 import { STICKY_HEADER_CELL, paymentModeLabels } from "@/lib/constants";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
@@ -141,17 +141,12 @@ export function PaymentsTable({
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    {receiptHref(payment) && (
-                      <a
-                        href={receiptHref(payment)!}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground underline-offset-2 hover:border-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                        aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
-                      >
-                        <MessageCircle className="size-4" />
-                      </a>
-                    )}
+                    <ReceiptActions
+                      paymentPk={payment.id}
+                      whatsappHref={receiptHref(payment)}
+                      hasEmail={Boolean(payment.member.email)}
+                      compact
+                    />
                     <PaymentEditDialog
                       payment={{ ...payment, amount: String(payment.amount) }}
                       fee={fee}
@@ -203,17 +198,12 @@ export function PaymentsTable({
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    {receiptHref(payment) && (
-                      <a
-                        href={receiptHref(payment)!}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground underline-offset-2 hover:border-foreground hover:text-foreground"
-                        aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
-                      >
-                        <MessageCircle className="size-4" />
-                      </a>
-                    )}
+                    <ReceiptActions
+                      paymentPk={payment.id}
+                      whatsappHref={receiptHref(payment)}
+                      hasEmail={Boolean(payment.member.email)}
+                      compact
+                    />
                     <PaymentEditDialog
                       payment={{ ...payment, amount: String(payment.amount) }}
                       fee={fee}

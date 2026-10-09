@@ -42,7 +42,8 @@ export async function loadMoreMembersAction(filters: {
   const [{ members, total }, standardFee, fees] = await Promise.all([
     listMembers({
       search: filters.q,
-      status: filters.status === "ACTIVE" || filters.status === "LEFT" ? filters.status : "ALL",
+      status:
+        filters.status === "LEFT" ? "LEFT" : filters.status === "ALL" ? "ALL" : "ACTIVE",
       room:
         filters.room === "NONE"
           ? "NONE"
@@ -76,6 +77,7 @@ export async function createMemberAction(
   const parsed = memberFormSchema.safeParse({
     name: formData.get("name"),
     mobile: formData.get("mobile"),
+    email: formData.get("email"),
     guardianName: formData.get("guardianName"),
     guardianMobile: formData.get("guardianMobile"),
     joiningDate: formData.get("joiningDate"),
@@ -126,6 +128,7 @@ export async function createMemberAction(
           memberId,
           name: data.name,
           mobile: data.mobile,
+          email: data.email ?? null,
           guardianName: data.guardianName ?? null,
           guardianMobile: data.guardianMobile ?? null,
           joiningDate: parseInputDate(data.joiningDate),
@@ -182,6 +185,7 @@ export async function updateMemberAction(
   const parsed = memberFormSchema.safeParse({
     name: formData.get("name"),
     mobile: formData.get("mobile"),
+    email: formData.get("email"),
     guardianName: formData.get("guardianName"),
     guardianMobile: formData.get("guardianMobile"),
     joiningDate: formData.get("joiningDate"),
@@ -247,6 +251,9 @@ export async function updateMemberAction(
         data: {
           name: data.name,
           mobile: data.mobile,
+          // Only touch the email when the form carried the field, so an older
+          // form can never blank a saved address by omitting it.
+          email: formData.has("email") ? (data.email ?? null) : undefined,
           guardianName: data.guardianName ?? null,
           guardianMobile: data.guardianMobile ?? null,
           joiningDate: parseInputDate(data.joiningDate),

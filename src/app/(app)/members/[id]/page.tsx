@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, MessageCircle } from "lucide-react";
+import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, Mail } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PaymentStatusBadge, MemberStatusBadge } from "@/components/status-badges";
 import { MemberActions } from "@/components/member-actions";
+import { ReceiptActions } from "@/components/receipt-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
@@ -98,6 +99,7 @@ export default async function MemberDetailPage({
               memberId: member.memberId,
               name: member.name,
               mobile: member.mobile,
+              email: member.email,
               guardianName: member.guardianName,
               guardianMobile: member.guardianMobile,
               joiningDate: member.joiningDate.toISOString().slice(0, 10),
@@ -177,6 +179,22 @@ export default async function MemberDetailPage({
               }
             />
             <Detail label="Guardian name" value={member.guardianName || "—"} />
+            <Detail
+              label="Email"
+              value={
+                member.email ? (
+                  <a
+                    href={`mailto:${member.email}`}
+                    className="inline-flex items-center gap-1.5 underline-offset-2 hover:underline"
+                  >
+                    <Mail className="size-3.5" />
+                    {member.email}
+                  </a>
+                ) : (
+                  "—"
+                )
+              }
+            />
             <Detail
               label="Guardian mobile"
               value={
@@ -259,7 +277,7 @@ export default async function MemberDetailPage({
                       <th className="px-3 py-2 font-medium">Mode</th>
                       <th className="px-3 py-2 font-medium">Date</th>
                       <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 font-medium">WhatsApp</th>
+                      <th className="px-3 py-2 font-medium">Receipt</th>
                       <th className="px-3 py-2 font-medium">Remarks</th>
                     </tr>
                   </thead>
@@ -283,17 +301,14 @@ export default async function MemberDetailPage({
                           <PaymentStatusBadge status={payment.status} />
                         </td>
                         <td className="px-3 py-2">
-                          {receiptHref(payment) && (
-                            <a
-                              href={receiptHref(payment)!}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline"
-                              aria-label={`Send the ${formatMonth(payment.month)} receipt on WhatsApp`}
-                            >
-                              <MessageCircle className="size-4" />
-                              Receipt
-                            </a>
+                          {payment.status === "PAID" ? (
+                            <ReceiptActions
+                              paymentPk={payment.id}
+                              whatsappHref={receiptHref(payment)}
+                              hasEmail={Boolean(member.email)}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
                         <td className="max-w-48 truncate px-3 py-2 text-muted-foreground">
@@ -330,16 +345,15 @@ export default async function MemberDetailPage({
                     {payment.remarks && (
                       <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>
                     )}
-                    {receiptHref(payment) && (
-                      <a
-                        href={receiptHref(payment)!}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                      >
-                        <MessageCircle className="size-3.5" />
-                        Send this receipt on WhatsApp
-                      </a>
+                    {payment.status === "PAID" && (
+                      <div className="mt-2">
+                        <ReceiptActions
+                          paymentPk={payment.id}
+                          whatsappHref={receiptHref(payment)}
+                          hasEmail={Boolean(member.email)}
+                          compact
+                        />
+                      </div>
                     )}
                   </li>
                 ))}

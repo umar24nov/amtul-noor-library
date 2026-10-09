@@ -38,6 +38,7 @@ export type EditableMember = {
   memberId: string;
   name: string;
   mobile: string | null;
+  email: string | null;
   guardianName: string | null;
   guardianMobile: string | null;
   joiningDate: Date;
@@ -185,6 +186,7 @@ function EditDialog({
             memberId: member.memberId,
             name: member.name,
             mobile: member.mobile ?? undefined,
+            email: member.email ?? undefined,
             guardianName: member.guardianName ?? undefined,
             guardianMobile: member.guardianMobile ?? undefined,
             joiningDate: member.joiningDate.toISOString().slice(0, 10),

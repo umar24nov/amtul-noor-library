@@ -9,6 +9,7 @@ const ICONS = {
   "/dashboard": "M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z",
   "/members": "M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 2a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-2.33 0-7 1.17-7 3.5V21h8v-2.5c0-.83.38-1.6 1-2.19A12.6 12.6 0 0 0 8 15Zm8 0c-2.67 0-8 1.33-8 4v2h16v-2c0-2.67-5.33-4-8-4Z",
   "/payments": "M3 6h18v12H3V6Zm2 2v8h14V8H5Zm2 2h6v2H7v-2Zm0 4h4v1H7v-1Z",
+  "/reminders": "M12 2a6 6 0 0 0-6 6v3.6L4.3 14a1 1 0 0 0 .9 1.5h13.6a1 1 0 0 0 .9-1.5L18 11.6V8a6 6 0 0 0-6-6Zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Z",
   "/seats": "M5 3h5v7H5V3Zm0 9h5v7H5v-7Zm9-9h5v7h-5V3Zm0 9h5v7h-5v-7ZM4 10h16v2H4v-2Z",
 } as const;
 

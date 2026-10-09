@@ -66,6 +66,8 @@ model Member {
   memberId       String       @unique
   name           String
   mobile         String?
+  /// Optional. Used to email fee receipts; not every member has one yet.
+  email          String?
   guardianName   String?
   guardianMobile String?
   joiningDate    DateTime

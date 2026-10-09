@@ -9,6 +9,11 @@ import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
 import { feeFormSchema, fieldErrors, monthKeySchema, paymentFormSchema } from "@/lib/validators";
 import { listPayments } from "@/lib/queries";
+import {
+  getReceiptContext,
+  receiptEmailIsConfigured,
+  sendReceiptEmail,
+} from "@/lib/receipts";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 function revalidateAll() {
@@ -224,6 +229,38 @@ export async function updateFeeAction(
   await setMonthlyFee(parsed.data.fee);
   revalidateAll();
   return successState("Monthly fee updated.");
+}
+
+/**
+ * Emails one paid month's receipt as a PDF attachment.
+ *
+ * The same PDF the download link serves, so email and WhatsApp carry an
+ * identical receipt.
+ */
+export async function sendReceiptEmailAction(paymentPk: number): Promise<ActionState> {
+  if (!Number.isInteger(paymentPk) || paymentPk <= 0) {
+    return errorState("That receipt is not available.");
+  }
+
+  const context = await getReceiptContext(paymentPk);
+  if (!context) return errorState("That receipt is not available.");
+
+  if (!context.email) {
+    return errorState(
+      "No email on record for this member yet. Add one on the member's page, then try again.",
+    );
+  }
+
+  if (!receiptEmailIsConfigured()) {
+    return errorState(
+      "Email is not set up yet. Add a Resend API key to start emailing receipts.",
+    );
+  }
+
+  const result = await sendReceiptEmail(context.email, context.info);
+  if (!result.ok) return errorState(result.error);
+
+  return successState(`Receipt sent to ${context.email}.`);
 }
 
 /** Active members, used by the member picker in the payment form. */

@@ -21,6 +21,7 @@ export type MemberFormDefaults = {
   memberId?: string;
   name?: string;
   mobile?: string;
+  email?: string;
   guardianName?: string;
   guardianMobile?: string;
   joiningDate?: string;
@@ -117,6 +118,21 @@ export function MemberForm({
             className="h-11"
           />
           <FieldError message={state.fieldErrors?.mobile} />
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-email`}>Email</Label>
+          <Input
+            id={`${id}-email`}
+            name="email"
+            type="email"
+            defaultValue={defaults?.email}
+            placeholder="Optional — used to email fee receipts"
+            autoComplete="email"
+            aria-invalid={Boolean(state.fieldErrors?.email)}
+            className="h-11"
+          />
+          <FieldError message={state.fieldErrors?.email} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

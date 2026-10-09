@@ -51,6 +51,41 @@ export function paymentReminderUrl(
   return `https://wa.me/91${digits}?text=${encodeURIComponent(paymentReminderMessage(info))}`;
 }
 
+export type OverdueReminderInfo = {
+  name: string;
+  /** Every month the member still owes, oldest first. */
+  months: string[];
+  totalDue: number;
+};
+
+/** A message listing every month a member has fallen behind on. */
+export function overdueReminderMessage(info: OverdueReminderInfo): string {
+  const list = info.months.map((month) => `- ${formatMonth(month)}`).join("\n");
+  return [
+    `Hi ${info.name},`,
+    ``,
+    `This is ${LIBRARY_NAME}. Your membership fee is still due for ${info.months.length} ${
+      info.months.length === 1 ? "month" : "months"
+    }:`,
+    list,
+    ``,
+    `Total due: ${formatINR(info.totalDue)}.`,
+    `You can pay by visiting us during opening hours or on WhatsApp.`,
+    ``,
+    `Thank you.`,
+  ].join("\n");
+}
+
+/** A chat with the member listing everything they owe. */
+export function overdueReminderUrl(
+  mobile: string | null | undefined,
+  info: OverdueReminderInfo,
+): string | null {
+  const digits = mobile?.replace(/\D/g, "");
+  if (!digits) return null;
+  return `https://wa.me/91${digits}?text=${encodeURIComponent(overdueReminderMessage(info))}`;
+}
+
 export type ReceiptInfo = {
   name: string;
   memberId: string;

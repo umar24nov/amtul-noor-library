@@ -8,6 +8,7 @@ import {
   parseInputDate,
   recentMonthKeys,
   selectableMonthKeys,
+  shiftMonthKey,
 } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -627,6 +628,100 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
       due: row.due,
       status: row.status,
     }));
+}
+
+export type OverdueReminder = {
+  memberPk: number;
+  memberId: string;
+  name: string;
+  mobile: string | null;
+  email: string | null;
+  seatLabel: string | null;
+  /** Months still owed, oldest first. */
+  months: string[];
+  monthsCount: number;
+  totalDue: number;
+  /** The earliest month owed; the strongest signal of "gone too long". */
+  oldestMonth: string;
+};
+
+/**
+ * Active members who are behind on fees across the months that have already
+ * finished.
+ *
+ * Only completed months count, so the current month (which everyone is expected
+ * to pay) never shows as overdue. Every owed month is summed with the member's
+ * own fee, matching the month summary used elsewhere. Rows come back worst
+ * first so the members who have gone longest are at the top.
+ */
+export async function listOverdueReminders(monthsBack = 12): Promise<OverdueReminder[]> {
+  const keys = recentMonthKeys(
+    monthsBack,
+    shiftMonthKey(currentMonthKey(), -1),
+  ).sort();
+
+  const [standardFee, memberFees, members] = await Promise.all([
+    getMonthlyFee(),
+    memberFeesByMemberId(),
+    prisma.member.findMany({
+      where: { status: "ACTIVE" },
+      include: {
+        seat: { include: { room: true } },
+        payments: { where: { month: { in: keys } } },
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const reminders: OverdueReminder[] = [];
+
+  for (const member of members) {
+    const fee = memberFees.get(member.id) ?? standardFee;
+    const byMonth = new Map<string, typeof member.payments>();
+    for (const payment of member.payments) {
+      const list = byMonth.get(payment.month) ?? [];
+      list.push(payment);
+      byMonth.set(payment.month, list);
+    }
+
+    const owed: string[] = [];
+    let totalDue = 0;
+
+    for (const key of keys) {
+      const joinedAfterMonth = monthKeyFromInputDate(member.joiningDate.toISOString()) > key;
+      const monthPayments = byMonth.get(key) ?? [];
+      const status = deriveMonthStatus(monthPayments, joinedAfterMonth);
+      if (status !== "PENDING" && status !== "NONE") continue;
+
+      const pendingAmount = monthPayments
+        .filter((payment) => payment.status === "PENDING")
+        .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+      owed.push(key);
+      totalDue += pendingAmount > 0 ? pendingAmount : fee;
+    }
+
+    if (owed.length === 0) continue;
+
+    reminders.push({
+      memberPk: member.id,
+      memberId: member.memberId,
+      name: member.name,
+      mobile: member.mobile,
+      email: member.email,
+      seatLabel: member.seat
+        ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
+        : null,
+      months: owed,
+      monthsCount: owed.length,
+      totalDue,
+      oldestMonth: owed[0],
+    });
+  }
+
+  reminders.sort(
+    (a, b) => b.monthsCount - a.monthsCount || a.name.localeCompare(b.name),
+  );
+  return reminders;
 }
 
 export type PublicRoomOccupancy = Awaited<ReturnType<typeof listPublicOccupancy>>[number];

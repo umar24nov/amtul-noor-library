@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, ReceiptIndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export type MemberActionTarget = {
   memberId: string;
   name: string;
   mobile: string | null;
+  email?: string | null;
   guardianName: string | null;
   guardianMobile: string | null;
   joiningDate: string;
@@ -54,6 +56,7 @@ export function MemberActions({
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [leftOpen, setLeftOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -88,7 +91,12 @@ export function MemberActions({
           <MemberForm
             action={async (prev, formData) => {
               const result = await updateMemberAction(prev, formData);
-              if (result.status === "success") setEditOpen(false);
+              if (result.status === "success") {
+                setEditOpen(false);
+                // Pull the updated record straight away, so the page never shows
+                // the old details until the owner reloads it by hand.
+                router.refresh();
+              }
               return result;
             }}
             showPayment={false}
@@ -99,6 +107,7 @@ export function MemberActions({
               memberId: member.memberId,
               name: member.name,
               mobile: member.mobile ?? undefined,
+              email: member.email ?? undefined,
               guardianName: member.guardianName ?? undefined,
               guardianMobile: member.guardianMobile ?? undefined,
               joiningDate: member.joiningDate,
@@ -130,6 +139,7 @@ export function MemberActions({
               action={async (formData) => {
                 await markMemberLeftAction(formData);
                 setLeftOpen(false);
+                router.refresh();
                 toast.success(`${member.name} marked as Left.`);
               }}
             >

@@ -33,8 +33,12 @@ type SearchParams = Promise<{
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const search = params.q ?? "";
+  // The list opens on active members by default, which is what the owner looks
+  // at day to day. "Left" and "All members" stay one tap away.
   const status =
-    params.status === "ACTIVE" || params.status === "LEFT" ? params.status : "ALL";
+    params.status === "ACTIVE" || params.status === "LEFT" || params.status === "ALL"
+      ? params.status
+      : "ACTIVE";
   // An unknown value falls back to the default rather than erroring on a
   // hand-edited or stale link.
   const sort = isMemberSort(params.sort) ? params.sort : DEFAULT_MEMBER_SORT;
@@ -145,7 +149,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                 ? "No member matches that search. Try a different name, mobile number, member ID or seat number."
                 : room !== undefined
                   ? `No member is sitting in that room right now. Try "All rooms" or "No seat".`
-                  : "Add your first member to get started."}
+                  : status === "LEFT"
+                    ? "No member has left the library."
+                    : status === "ACTIVE"
+                      ? 'No active members to show right now. Try "All members", or add someone new.'
+                      : "Add your first member to get started."}
             </p>
             <Button asChild variant="secondary" className="mt-2 h-10">
               <Link href="/members/new">Add Member</Link>

@@ -148,6 +148,7 @@ export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/members", label: "Members" },
   { href: "/payments", label: "Payments" },
+  { href: "/reminders", label: "Reminders" },
   { href: "/seats", label: "Seats" },
 ] as const;
 
