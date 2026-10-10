@@ -92,6 +92,26 @@ export const SEAT_PAD = 2;
 export const DEFAULT_MONTHLY_FEE = "700";
 
 /**
+ * The rules shown on the join form, directly above the "I agree" tick. Share
+ * the wording with the printed board / the old Google Form so the two never
+ * drift apart. To change a rule, edit the text here and push.
+ */
+export const LIBRARY_RULES = [
+  "I will maintain silence inside the library at all times.",
+  "I will show respect and courtesy to all fellow learners and avoid any behavior that may cause disturbance, discomfort, or harassment.",
+  "I will not litter, stand unnecessarily, or form groups in or around the library premises.",
+  "I will respect the privacy and personal space of all learners.",
+  "I understand that the library and its premises are monitored by CCTV for safety and security.",
+  "I will use the library Wi-Fi only for academic and research purposes. Accessing social media, streaming, gaming, or inappropriate content is strictly prohibited.",
+  "I will not share my Wi-Fi credentials with others.",
+  "I will take proper care of library property (tables, chairs, equipment, internet facilities) and return everything to its proper place before leaving.",
+  "Smoking, drinking, or creating any disturbance inside or near the library premises is strictly prohibited.",
+  "I understand that library membership is non-transferable and the membership fee is non-refundable.",
+  "I accept that serious or repeated violations of these rules may be reported to authorities and may result in suspension or cancellation of membership.",
+  "I understand that the membership fee must be paid in advance at the beginning of the membership period.",
+] as const;
+
+/**
  * The fixed options on the public join form for "What are you currently
  * preparing for?". "Other" is special-cased so the applicant can name their own
  * preparation, which is stored separately.

@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { submitApplicationAction } from "@/app/join/actions";
 import { IDLE_STATE } from "@/lib/action-result";
-import { PREPARATION_OPTIONS } from "@/lib/constants";
+import { LIBRARY_RULES, PREPARATION_OPTIONS } from "@/lib/constants";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -302,8 +302,22 @@ export function ApplicationForm({ className }: { className?: string }) {
 
       <Card>
         <CardContent className="grid gap-4">
-          <label className="flex items-start gap-3 text-sm">
+          <SectionTitle>Library rules and regulations</SectionTitle>
+          <ol className="grid list-decimal gap-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+            {LIBRARY_RULES.map((rule) => (
+              <li key={rule} className="pl-1 marker:font-medium marker:text-foreground">
+                {rule}
+              </li>
+            ))}
+          </ol>
+          <p className="text-sm text-muted-foreground">
+            Please fill this form carefully. By submitting this form, you agree to
+            follow the library rules and regulations.
+          </p>
+
+          <label className="flex items-start gap-3 text-sm" htmlFor={`${id}-agreed`}>
             <input
+              id={`${id}-agreed`}
               type="checkbox"
               name="agreed"
               value="1"
