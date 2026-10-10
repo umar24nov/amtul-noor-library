@@ -82,6 +82,9 @@ model Member {
   status         MemberStatus @default(ACTIVE)
   leavingDate    DateTime?
   remarks        String?
+  /// A secret, unguessable token that gives this member a permanent, reusable
+  /// link (/pay/<token>) for paying their fee and downloading their receipts.
+  payToken       String?      @unique
   seat           Seat?        @relation(fields: [seatId], references: [id], onDelete: SetNull)
   payments       Payment[]
   applications   Application[]
@@ -105,9 +108,12 @@ model Payment {
   amount      Decimal       @db.Decimal(10, 2)
   paymentMode PaymentMode
   paymentDate DateTime
-  status      PaymentStatus @default(PAID)
-  remarks     String?
-  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  status       PaymentStatus @default(PAID)
+  remarks      String?
+  /// A secret, unguessable token that lets a member download their own
+  /// receipt without logging in (see the public /receipts/<token> route).
+  receiptToken String?       @unique
+  member       Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 

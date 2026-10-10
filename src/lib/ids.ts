@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { MEMBER_ID_PREFIX, PAYMENT_ID_PREFIX } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import type { Payment, Prisma } from "@/generated/prisma/client";
@@ -26,6 +27,23 @@ export async function nextPaymentId(db: Db = prisma): Promise<string> {
     select: { paymentId: true },
   });
   return nextPaddedId(PAYMENT_ID_PREFIX, last?.paymentId, 4);
+}
+
+/**
+ * A fresh, unguessable token used to retrieve a payment's receipt via the
+ * public /receipts/<token> route without a session. 144 bits of randomness is
+ * far more than a guesser can search, and each token only reveals one receipt.
+ */
+export function newReceiptToken(): string {
+  return randomBytes(18).toString("hex");
+}
+
+/**
+ * A member's permanent, unguessable token that powers their reusable /pay/<token>
+ * link. Same length and strength as the per-receipt token.
+ */
+export function newPayToken(): string {
+  return randomBytes(18).toString("hex");
 }
 
 /** Prisma returns Decimal for money columns; the UI works with numbers. */

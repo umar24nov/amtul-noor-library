@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { parseInputDate, shiftMonthKey } from "@/lib/format";
-import { nextMemberId, nextPaymentId } from "@/lib/ids";
+import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
 import {
@@ -147,6 +147,7 @@ export async function createMemberAction(
           remarks: data.remarks ?? null,
           status: "ACTIVE",
           seatId: seatId ?? null,
+          payToken: newPayToken(),
         },
         select: { id: true, memberId: true },
       });
@@ -183,6 +184,7 @@ export async function createMemberAction(
                 paymentDate: payDate,
                 status: "PAID",
                 remarks: "Thanks for joining us",
+                receiptToken: newReceiptToken(),
               },
             });
           }
@@ -196,6 +198,7 @@ export async function createMemberAction(
               paymentDate: payDate,
               status: "PAID",
               remarks: "Free month — 3 + 1 offer",
+              receiptToken: newReceiptToken(),
             },
           });
         } else {
@@ -209,6 +212,7 @@ export async function createMemberAction(
               paymentDate: payDate,
               status: "PAID",
               remarks: "Thanks for joining us",
+              receiptToken: newReceiptToken(),
             },
           });
         }

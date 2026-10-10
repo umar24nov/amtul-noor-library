@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { parseInputDate } from "@/lib/format";
-import { nextPaymentId } from "@/lib/ids";
+import { nextPaymentId, newReceiptToken } from "@/lib/ids";
 import { PAYMENT_ID_PREFIX } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
@@ -106,6 +106,7 @@ export async function recordPaymentAction(
         paymentDate: parseInputDate(data.paymentDate),
         status: data.status,
         remarks: data.remarks ?? null,
+        receiptToken: newReceiptToken(),
       },
     });
 
@@ -209,6 +210,7 @@ export async function generatePendingAction(
       paymentDate: parseInputDate(`${month}-01`),
       status: "PENDING" as const,
       remarks: "Auto generated as pending",
+      receiptToken: newReceiptToken(),
     })),
   });
 

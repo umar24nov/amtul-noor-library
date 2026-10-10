@@ -8,6 +8,21 @@ import type {
 export const LIBRARY_NAME = "Amtul Noor Library";
 export const LIBRARY_TAGLINE = "Your Gateway to Knowledge and Success";
 
+/**
+ * The library's UPI address, used to build `upi://` payment links and shown
+ * next to the QR so a member can pay a fee from their phone.
+ *
+ * This is the address actually encoded in the owner's bank-generated QR
+ * (`UPI QR.jpeg`, served at `LIBRARY_UPI_QR_PATH`). The display name shown to
+ * the payer comes from `LIBRARY_UPI_NAME`. The pay sections are hidden until
+ * the address is set.
+ */
+export const LIBRARY_UPI_ID = "8273306126@ibl";
+export const LIBRARY_UPI_NAME = LIBRARY_NAME;
+
+/** The owner's own UPI QR image, shown wherever a fee can be paid by UPI. */
+export const LIBRARY_UPI_QR_PATH = "/upi-qr.jpg";
+
 /** Where the library is, as written on the sign outside it. */
 export const LIBRARY_ADDRESS =
   "Rampur Chungi, Eidgah Enclave, Farukh Colony, Purani Tehsil, Roorkee, Uttarakhand 247667";

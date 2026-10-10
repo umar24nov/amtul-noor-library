@@ -8,11 +8,19 @@ import { MemberActions } from "@/components/member-actions";
 import { ReceiptActions } from "@/components/receipt-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, formatINR, formatMonth } from "@/lib/format";
+import {
+  currentMonthKey,
+  formatDate,
+  formatINR,
+  formatMonth,
+  shiftMonthKey,
+} from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
+import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
+import { UpiPayCard } from "@/components/upi-pay-card";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
 export async function generateMetadata({
@@ -55,12 +63,49 @@ export default async function MemberDetailPage({
     getMemberFee(member.id),
   ]);
   const monthlyFee = effectiveMemberFee(memberFee, standardFee);
+  const origin = await siteOrigin();
+  const memberPayUrl = member.payToken ? `${origin}/pay/${member.payToken}` : null;
 
   const totalPaid = member.payments
     .filter((payment) => payment.status === "PAID")
     .reduce((total, payment) => total + toNumber(payment.amount), 0);
   const paidMonths = member.payments.filter((payment) => payment.status === "PAID").length;
   const pendingMonths = member.payments.filter((payment) => payment.status === "PENDING").length;
+
+  // The oldest month still owed, so the UPI tile asks for the fee that is due
+  // first rather than a random one; when nothing is pending the next month leads.
+  const soonestPending = [...member.payments]
+    .filter((payment) => payment.status === "PENDING")
+    .sort((a, b) => a.month.localeCompare(b.month))[0];
+  const dueMonth = soonestPending?.month ?? shiftMonthKey(currentMonthKey(), 1);
+  const dueAmount =
+    soonestPending && toNumber(soonestPending.amount) > 0
+      ? toNumber(soonestPending.amount)
+      : monthlyFee;
+
+  /** Public link to download a payment's receipt without a login, when it exists. */
+  const receiptPublicUrl = (payment: (typeof member.payments)[number]): string | null =>
+    payment.status === "PAID" && payment.receiptToken
+      ? `${origin}/receipts/${payment.receiptToken}`
+      : null;
+
+  /** The WhatsApp receipt link for a paid month, or null when it does not apply. */
+  const receiptHref = (payment: (typeof member.payments)[number]): string | null => {
+    if (payment.status !== "PAID" || !member.mobile) return null;
+    return paymentReceiptUrl(
+      member.mobile,
+      {
+        name: member.name,
+        memberId: member.memberId,
+        paymentId: payment.paymentId,
+        month: payment.month,
+        amount: toNumber(payment.amount),
+        mode: paymentModeLabels[payment.paymentMode],
+        date: payment.paymentDate,
+      },
+      receiptPublicUrl(payment),
+    );
+  };
 
   const seats = openSeats.map((seat) => ({
     id: seat.id,
@@ -72,20 +117,6 @@ export default async function MemberDetailPage({
       label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
     });
   }
-
-  /** The WhatsApp receipt link for a paid month, or null when it does not apply. */
-  const receiptHref = (payment: (typeof member.payments)[number]): string | null => {
-    if (payment.status !== "PAID" || !member.mobile) return null;
-    return paymentReceiptUrl(member.mobile, {
-      name: member.name,
-      memberId: member.memberId,
-      paymentId: payment.paymentId,
-      month: payment.month,
-      amount: toNumber(payment.amount),
-      mode: paymentModeLabels[payment.paymentMode],
-      date: payment.paymentDate,
-    });
-  };
 
   return (
     <div className="grid gap-5">
@@ -155,6 +186,13 @@ export default async function MemberDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <UpiPayCard
+        amount={dueAmount}
+        month={dueMonth}
+        memberId={member.memberId}
+        memberPayUrl={memberPayUrl}
+      />
 
       <Card>
         <CardHeader>
@@ -306,6 +344,7 @@ export default async function MemberDetailPage({
                               paymentPk={payment.id}
                               whatsappHref={receiptHref(payment)}
                               hasEmail={Boolean(member.email)}
+                              publicUrl={receiptPublicUrl(payment)}
                             />
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -351,6 +390,7 @@ export default async function MemberDetailPage({
                           paymentPk={payment.id}
                           whatsappHref={receiptHref(payment)}
                           hasEmail={Boolean(member.email)}
+                          publicUrl={receiptPublicUrl(payment)}
                           compact
                         />
                       </div>

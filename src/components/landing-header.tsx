@@ -49,9 +49,11 @@ function MobileLink({
 }
 
 /**
- * The landing page header. The section links, the Login button and the mobile
- * menu all live here so one component owns the single `href="/login"` on the
- * page and nothing can add a second one.
+ * The landing page header. The section links, the Join us button and the mobile
+ * menu all live here so one component owns the single join CTA on the page.
+ *
+ * Signing in is owner-only: nothing here links to /login, which is still
+ * reachable by typing the address directly.
  */
 export function LandingHeader({ items }: { items: LandingNavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -78,7 +80,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
 
           <div className="flex shrink-0 items-center gap-2">
             <Button asChild size="lg" className="h-9">
-              <Link href="/login">Login</Link>
+              <Link href="/join">Join us</Link>
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>

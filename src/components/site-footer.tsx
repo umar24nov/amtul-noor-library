@@ -25,7 +25,6 @@ export function SiteFooter() {
     { href: "/#plans", label: "Pricing" },
     { href: "/#faq", label: "FAQ" },
     { href: "/reviews", label: "Reviews" },
-    { href: "/login", label: "Sign in" },
   ];
 
   const companyLinks: { href: string; label: string; external?: boolean }[] = [

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { nextMemberId } from "@/lib/ids";
+import { nextMemberId, newPayToken } from "@/lib/ids";
 
 /**
  * Approves a pending application and, in the same transaction, creates the
@@ -37,6 +37,7 @@ export async function approveApplicationAction(formData: FormData): Promise<void
           remarks: "Approved from an online application",
           status: "ACTIVE",
           seatId: null,
+          payToken: newPayToken(),
         },
         select: { id: true, memberId: true },
       });

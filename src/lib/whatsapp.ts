@@ -97,7 +97,10 @@ export type ReceiptInfo = {
 };
 
 /** A ready receipt for one paid month, sent to the member on WhatsApp. */
-export function paymentReceiptMessage(info: ReceiptInfo): string {
+export function paymentReceiptMessage(
+  info: ReceiptInfo,
+  receiptUrl?: string | null,
+): string {
   return [
     `${LIBRARY_NAME} — payment receipt`,
     ``,
@@ -108,6 +111,9 @@ export function paymentReceiptMessage(info: ReceiptInfo): string {
     `Mode: ${info.mode}`,
     `Date: ${formatDate(info.date)}`,
     ``,
+    ...(receiptUrl
+      ? [`Download your receipt: ${receiptUrl}`, ``]
+      : []),
     `Thank you for your membership.`,
   ].join("\n");
 }
@@ -116,8 +122,11 @@ export function paymentReceiptMessage(info: ReceiptInfo): string {
 export function paymentReceiptUrl(
   mobile: string | null | undefined,
   info: ReceiptInfo,
+  receiptUrl?: string | null,
 ): string | null {
   const digits = mobile?.replace(/\D/g, "");
   if (!digits) return null;
-  return `https://wa.me/91${digits}?text=${encodeURIComponent(paymentReceiptMessage(info))}`;
+  return `https://wa.me/91${digits}?text=${encodeURIComponent(
+    paymentReceiptMessage(info, receiptUrl),
+  )}`;
 }

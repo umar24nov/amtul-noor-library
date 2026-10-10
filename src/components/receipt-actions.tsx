@@ -2,25 +2,29 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Download, Loader2, Mail, MessageCircle } from "lucide-react";
+import { Download, Link2, Loader2, Mail, MessageCircle } from "lucide-react";
 import { cn } from "cn";
 import { sendReceiptEmailAction } from "@/app/(app)/payments/actions";
 
 /**
- * The three ways one receipt can leave the app: download the PDF, send the PDF
- * by email, or open WhatsApp with the receipt text ready (the same PDF can be
- * attached in the chat). All three use the same receipt.
+ * The ways one receipt can leave the app: download the PDF, send the PDF by
+ * email, open WhatsApp with the receipt text (and its public download link), or
+ * copy that same link so it can be sent wherever the member will see it. The
+ * link needs no login, so it is how a member gets their own copy.
  */
 export function ReceiptActions({
   paymentPk,
   whatsappHref,
   hasEmail,
   compact = false,
+  publicUrl = null,
 }: {
   paymentPk: number;
   whatsappHref: string | null;
   hasEmail: boolean;
   compact?: boolean;
+  /** Public download link for the member, null until the payment has a token. */
+  publicUrl?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -33,6 +37,16 @@ export function ReceiptActions({
         toast.success(result.message ?? "Receipt sent.");
       }
     });
+  };
+
+  const copyLink = async () => {
+    if (!publicUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success("Receipt link copied.");
+    } catch {
+      toast.error("Could not copy the link.");
+    }
   };
 
   const iconClass = cn(
@@ -81,6 +95,18 @@ export function ReceiptActions({
         >
           <MessageCircle className="size-4" />
         </a>
+      )}
+
+      {publicUrl && (
+        <button
+          type="button"
+          onClick={copyLink}
+          className={iconClass}
+          aria-label="Copy the member's receipt link"
+          title="Copy receipt link"
+        >
+          <Link2 className="size-4" />
+        </button>
       )}
     </div>
   );
