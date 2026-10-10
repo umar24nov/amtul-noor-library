@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
-import { parseInputDate } from "@/lib/format";
+import { parseInputDate, shiftMonthKey } from "@/lib/format";
 import { nextMemberId, nextPaymentId } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +16,7 @@ import {
   withMemberFees,
 } from "@/lib/settings";
 import { listMembers } from "@/lib/queries";
-import { DEFAULT_MEMBER_SORT, isMemberSort } from "@/lib/constants";
+import { DEFAULT_MEMBER_SORT, isMemberSort, LIBRARY_PREPAID_OFFER } from "@/lib/constants";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
@@ -100,11 +100,18 @@ export async function createMemberAction(
   }
 
   const data = parsed.data;
-  const wantsPayment = data.payAmount !== undefined && data.payMode !== undefined;
+  const offer3Plus1 = formData.get("offer3Plus1") === "1";
+  const wantsPayment =
+    offer3Plus1 || (data.payAmount !== undefined && data.payMode !== undefined);
   if (wantsPayment && (!data.payMonth || !data.payDate)) {
     return errorState("Please check the highlighted fields.", {
       payMonth: "Choose the month this payment is for",
       payDate: "Payment date is required",
+    });
+  }
+  if (offer3Plus1 && data.payMode === "OFFER") {
+    return errorState("Pick Cash or Online for the paid months of the offer.", {
+      payMode: "Cash or Online",
     });
   }
 
@@ -157,19 +164,54 @@ export async function createMemberAction(
       }
 
       if (wantsPayment) {
-        const paymentId = await nextPaymentId(tx);
-        await tx.payment.create({
-          data: {
-            paymentId,
-            memberId: created.id,
-            month: data.payMonth as string,
-            amount: data.payAmount as number,
-            paymentMode: data.payMode as "CASH" | "ONLINE" | "OFFER",
-            paymentDate: parseInputDate(data.payDate as string),
-            status: "PAID",
-            remarks: "Initial payment on joining",
-          },
-        });
+        const startMonth = data.payMonth as string;
+        const payDate = parseInputDate(data.payDate as string);
+
+        if (offer3Plus1) {
+          // One join with the 3 + 1 offer becomes four payments: three months
+          // at the fee starting from the chosen month, then the fourth month
+          // free, recorded as a zero-rupee offer so it never shows as due.
+          const perMonth = data.payAmount ?? data.monthlyFee ?? standardFee;
+          for (let step = 0; step < LIBRARY_PREPAID_OFFER.paidMonths; step++) {
+            await tx.payment.create({
+              data: {
+                paymentId: await nextPaymentId(tx),
+                memberId: created.id,
+                month: shiftMonthKey(startMonth, step),
+                amount: perMonth,
+                paymentMode: data.payMode as "CASH" | "ONLINE",
+                paymentDate: payDate,
+                status: "PAID",
+                remarks: "Thanks for joining us",
+              },
+            });
+          }
+          await tx.payment.create({
+            data: {
+              paymentId: await nextPaymentId(tx),
+              memberId: created.id,
+              month: shiftMonthKey(startMonth, LIBRARY_PREPAID_OFFER.paidMonths),
+              amount: 0,
+              paymentMode: "OFFER",
+              paymentDate: payDate,
+              status: "PAID",
+              remarks: "Free month — 3 + 1 offer",
+            },
+          });
+        } else {
+          await tx.payment.create({
+            data: {
+              paymentId: await nextPaymentId(tx),
+              memberId: created.id,
+              month: startMonth,
+              amount: data.payAmount as number,
+              paymentMode: data.payMode as "CASH" | "ONLINE" | "OFFER",
+              paymentDate: payDate,
+              status: "PAID",
+              remarks: "Thanks for joining us",
+            },
+          });
+        }
       }
 
       return created;

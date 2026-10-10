@@ -218,7 +218,7 @@ function Hero({
             A quiet place to read, study and get on with it.
           </h1>
 
-          <p className="mt-4 max-w-prose text-base leading-relaxed text-justify text-muted-foreground">
+          <p className="mt-4 max-w-prose text-base leading-relaxed text-left text-muted-foreground sm:text-justify">
             {LIBRARY_NAME} is a quiet reading room in Roorkee for students and
             anyone who needs somewhere to sit and work without interruptions. Every
             member is given their own seat, and the fee is one fixed monthly amount

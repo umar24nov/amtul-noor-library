@@ -63,6 +63,7 @@ export function MemberForm({
   const id = useId();
   const [seatId, setSeatId] = useState<string>(defaults?.seatId ? String(defaults.seatId) : "");
   const [collectPayment, setCollectPayment] = useState(showPayment);
+  const [offer3Plus1, setOffer3Plus1] = useState(false);
 
   useEffect(() => {
     if (state.status === "success" && state.message) {
@@ -265,8 +266,33 @@ export function MemberForm({
 
           {collectPayment && (
             <div className="grid gap-4 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-2">
+              <label className="col-span-full flex items-start gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="offer3Plus1"
+                  value="1"
+                  checked={offer3Plus1}
+                  onChange={(event) => setOffer3Plus1(event.target.checked)}
+                  className="mt-0.5 size-4 rounded border-input accent-primary"
+                />
+                <span className="text-muted-foreground">
+                  This member is taking the <strong>3 months + 1 free</strong>{" "}
+                  offer (4 payments recorded automatically)
+                </span>
+              </label>
+
+              {offer3Plus1 && (
+                <p className="col-span-full rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  Records <strong>3 months</strong> at the monthly fee from the
+                  month you pick above, then the <strong>4th month free</strong>{" "}
+                  (₹0), so none of the four months will show as due.
+                </p>
+              )}
+
               <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-payMonth`}>Payment month</Label>
+                <Label htmlFor={`${id}-payMonth`}>
+                  {offer3Plus1 ? "First paid month" : "Payment month"}
+                </Label>
                 <select
                   id={`${id}-payMonth`}
                   name="payMonth"
@@ -294,22 +320,24 @@ export function MemberForm({
                 <FieldError message={state.fieldErrors?.payDate} />
               </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-payAmount`}>Amount (₹)</Label>
-                <Input
-                  id={`${id}-payAmount`}
-                  name="payAmount"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  defaultValue={defaultFee?.toString() ?? ""}
-                  placeholder="e.g. 700"
-                  aria-invalid={Boolean(state.fieldErrors?.payAmount)}
-                  className="h-11"
-                />
-                <FieldError message={state.fieldErrors?.payAmount} />
-              </div>
+              {!offer3Plus1 && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${id}-payAmount`}>Amount (₹)</Label>
+                  <Input
+                    id={`${id}-payAmount`}
+                    name="payAmount"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="1"
+                    defaultValue={defaultFee?.toString() ?? ""}
+                    placeholder="e.g. 700"
+                    aria-invalid={Boolean(state.fieldErrors?.payAmount)}
+                    className="h-11"
+                  />
+                  <FieldError message={state.fieldErrors?.payAmount} />
+                </div>
+              )}
 
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-payMode`}>Payment mode</Label>
@@ -321,7 +349,7 @@ export function MemberForm({
                 >
                   <option value="ONLINE">Online</option>
                   <option value="CASH">Cash</option>
-                  <option value="OFFER">Offer / Discount</option>
+                  {!offer3Plus1 && <option value="OFFER">Offer / Discount</option>}
                 </select>
                 <FieldError message={state.fieldErrors?.payMode} />
               </div>
