@@ -24,8 +24,12 @@ function acceptedExtension(file: File): string | null {
  * at it.
  *
  * In production the file goes to Vercel Blob (public, so the admin page can
- * show it in a plain <img> or <embed>). Locally there is no Blob token, so the
- * file is written under `public/` where the dev server can serve it directly.
+ * show it in a plain <img> or <embed>). A connected project can authenticate
+ * two ways: with the static `BLOB_READ_WRITE_TOKEN`, or through OIDC when the
+ * store id is present (`BLOB_STORE_ID`, paired with `VERCEL_OIDC_TOKEN` which
+ * the SDK reads by itself). Blob is used whenever either is available; only a
+ * local machine with no store connection falls back to writing under `public/`
+ * where the dev server can serve the file directly.
  */
 export async function storeAadhaarFile(
   file: File,
@@ -43,10 +47,14 @@ export async function storeAadhaarFile(
   const filename = `${Date.now()}-${side}.${extension}`;
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
+  const storeId = process.env.BLOB_STORE_ID;
+  if (token || storeId) {
+    // Only pass the static token when we actually have one; with OIDC the SDK
+    // reads VERCEL_OIDC_TOKEN itself, and an explicit token (a missing one
+    // included) would override that resolution.
     const blob = await put(`aadhaar/${filename}`, bytes, {
       access: "public",
-      token,
+      ...(token ? { token } : {}),
       contentType: file.type || undefined,
     });
     return { ok: true, url: blob.url };
