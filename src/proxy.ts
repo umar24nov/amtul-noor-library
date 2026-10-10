@@ -32,10 +32,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn) {
-    // The landing page and the reviews page are the public face of the library,
-    // so those are the pages a signed out visitor is allowed to see. Everything
-    // else needs a session.
-    if (pathname === "/" || pathname === "/reviews") return NextResponse.next();
+    // The landing page, the reviews page and the join form are the public face
+    // of the library, so those are the pages a signed out visitor is allowed to
+    // see. Everything else needs a session.
+    if (pathname === "/" || pathname === "/reviews" || pathname === "/join") {
+      return NextResponse.next();
+    }
 
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);

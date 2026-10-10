@@ -227,15 +227,20 @@ function Hero({
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="h-11 px-5">
+              <Link href="/join">
+                Apply to join
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-11 px-5">
               <a href={LIBRARY_WHATSAPP_URL} target="_blank" rel="noreferrer">
                 <MessageCircle className="size-4" />
                 Ask about a seat
               </a>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-11 px-5">
+            <Button asChild variant="ghost" size="lg" className="h-11 px-5">
               <Link href="#plans">
                 See membership plans
-                <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="h-11 px-5">

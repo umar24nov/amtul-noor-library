@@ -91,6 +91,28 @@ export const SEAT_PAD = 2;
 
 export const DEFAULT_MONTHLY_FEE = "700";
 
+/**
+ * The fixed options on the public join form for "What are you currently
+ * preparing for?". "Other" is special-cased so the applicant can name their own
+ * preparation, which is stored separately.
+ */
+export const PREPARATION_OPTIONS = [
+  "UPSC (Civil Services)",
+  "State PSC",
+  "SSC / Group C",
+  "Banking (IBPS / SBI)",
+  "Railways / Defence",
+  "NEET / Medical",
+  "JEE / Engineering",
+  "GATE / Post-graduate",
+  "School / College studies",
+  "Other",
+] as const;
+
+/** How many applications one IP may submit in a day, and the window (in days)
+ *  that a mobile or Aadhaar number stays tied to an open application. */
+export const APPLICATION_RATE_LIMIT = { perIpPerDay: 5, duplicateWindowDays: 30 } as const;
+
 export const MONTH_NAMES = [
   "January",
   "February",
@@ -147,6 +169,7 @@ export const paymentStatusHelp: Record<PaymentStatus, string> = {
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/members", label: "Members" },
+  { href: "/applications", label: "Applications" },
   { href: "/payments", label: "Payments" },
   { href: "/reminders", label: "Reminders" },
   { href: "/seats", label: "Seats" },

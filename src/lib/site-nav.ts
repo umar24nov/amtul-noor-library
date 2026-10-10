@@ -7,6 +7,7 @@ export type SiteNavItem = { href: string; label: string };
  * landing page.
  */
 export const SITE_NAV: SiteNavItem[] = [
+  { href: "/join", label: "Join" },
   { href: "/#seats", label: "Seats" },
   { href: "/#amenities", label: "Amenities" },
   { href: "/reviews", label: "Reviews" },

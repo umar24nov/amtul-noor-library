@@ -34,6 +34,12 @@ enum PaymentStatus {
   ON_HOLD
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 /// A physical room in the library (Room 1, Room 2, ...).
 model Room {
   id        Int      @id @default(autoincrement())
@@ -78,6 +84,7 @@ model Member {
   remarks        String?
   seat           Seat?        @relation(fields: [seatId], references: [id], onDelete: SetNull)
   payments       Payment[]
+  applications   Application[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -114,6 +121,49 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+/// A membership application submitted from the public join page. Nothing here
+/// makes the person a member; the owner approves it and the member is created
+/// from the details, so the same fields are never typed twice.
+model Application {
+  id        Int               @id @default(autoincrement())
+  name      String
+  mobile    String
+  email     String?
+  address   String?
+  /// The father / guardian, and their number, exactly as the applicant wrote
+  /// them on the form.
+  guardianName   String?
+  guardianMobile String?
+  /// Aadhaar number as entered. Kept as text so leading zeroes are not lost.
+  aadhaarNumber String
+  /// Where the scanned sides ended up (a local path in dev, a Blob URL on
+  /// Vercel). Null when the applicant did not attach a side.
+  aadhaarFrontUrl  String?
+  aadhaarBackUrl   String?
+  /// The exam or stream from the form's fixed options.
+  preparingFor     String
+  /// Filled when `preparingFor` was "Other".
+  otherPreparation String?
+  /// The day the applicant hopes to join, from the "Date of joining" field.
+  desiredJoiningDate DateTime
+  /// The "I have read and understood the rules" checkbox.
+  agreed    Boolean @default(false)
+  /// Client address, kept so repeated spam from one source is visible.
+  ip        String  @default("")
+  status    ApplicationStatus @default(PENDING)
+  notes     String?
+  /// Set when an application is approved; points at the member it created.
+  memberId  Int?
+  member    Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([mobile, createdAt])
+  @@index([ip, createdAt])
 }
 
 /// One row per rejected sign-in attempt. Lives in the database because serverless

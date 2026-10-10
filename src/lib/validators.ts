@@ -140,6 +140,38 @@ export const roomEditSchema = roomFormSchema.extend({
   roomId: z.coerce.number().int().positive("Room not found"),
 });
 
+/** Aadhaar number: twelve digits, spaces tolerated and stripped. */
+export const aadhaarNumberSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\s/g, ""))
+  .refine((value) => /^\d{12}$/.test(value), "Aadhaar number must be 12 digits");
+
+/**
+ * The public membership application form. `agreed` arrives as "1" only when the
+ * applicant ticks the rules checkbox, so the string check is the honest one.
+ */
+export const applicationSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name is required")
+    .max(80, "Name must be 80 characters or fewer"),
+  mobile: mobileSchema,
+  email: optionalEmailSchema,
+  address: optionalText(200),
+  guardianName: optionalText(80),
+  guardianMobile: optionalMobileSchema,
+  aadhaarNumber: aadhaarNumberSchema,
+  preparingFor: z.string().trim().min(1, "Choose what you are preparing for"),
+  otherPreparation: optionalText(80),
+  joiningDate: dateInputSchema,
+  agreed: z.string().refine((value) => value === "1", "Please agree to the rules to apply"),
+});
+
+export type ApplicationFormValues = z.input<typeof applicationSchema>;
+export type ApplicationFormOutput = z.output<typeof applicationSchema>;
+
 export const seatFormSchema = z.object({
   roomId: z.coerce.number().int().positive(),
   seatNumber: seatNumberSchema,

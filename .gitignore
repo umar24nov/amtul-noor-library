@@ -62,6 +62,10 @@ db-local.log
 dev.err.log
 prod.log
 
+# Aadhaar scans saved while running against the local database. Vercel Blob
+# stores them in production instead, so this folder is only a dev fallback.
+/public/uploads/
+
 # agent tooling installed by `npx prisma init` (regenerated on demand)
 .agents/
 .claude/
