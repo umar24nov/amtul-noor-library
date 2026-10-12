@@ -7,7 +7,7 @@ export type Review = { quote: string; name: string; when: string };
 export const REVIEWS: Review[] = [
   {
     quote:
-      "A very peaceful and well-maintained library with a great collection of books. The environment is quiet and perfect for studying, reading, and research. The staff is helpful and friendly, and the facilities are clean and organized. Highly recommended for students and book lovers looking for a comfortable place to learn and explore new ideas.",
+      "A very peaceful and well-maintained library. The environment is quiet and perfect for studying, reading, and research. The staff is helpful and friendly, and the facilities are clean and organized. Highly recommended for students and book lovers looking for a comfortable place to learn and explore new ideas.",
     name: "Mish Gaur",
     when: "3 months ago",
   },
