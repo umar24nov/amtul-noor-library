@@ -83,7 +83,7 @@ export function ApplicationForm({ className }: { className?: string }) {
             <Input
               id={`${id}-name`}
               name="name"
-              placeholder="e.g. Talib Hasan"
+              placeholder="e.g. Mohammad Umar"
               autoComplete="name"
               required
               aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -262,39 +262,20 @@ export function ApplicationForm({ className }: { className?: string }) {
 
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-aadhaarFront`}>
-              Upload Aadhaar (both sides) <span className="text-destructive">*</span>
+              Upload Aadhaar <span className="text-destructive">*</span>
             </Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-aadhaarFrontFile`} className="text-xs text-muted-foreground">
-                  Front side
-                </Label>
-                <Input
-                  id={`${id}-aadhaarFrontFile`}
-                  name="aadhaarFront"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                  aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
-                  className="h-11 cursor-pointer"
-                />
-                <FieldError message={state.fieldErrors?.aadhaarFront} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-aadhaarBackFile`} className="text-xs text-muted-foreground">
-                  Back side
-                </Label>
-                <Input
-                  id={`${id}-aadhaarBackFile`}
-                  name="aadhaarBack"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                  className="h-11 cursor-pointer"
-                />
-              </div>
-            </div>
+            <Input
+              id={`${id}-aadhaarFrontFile`}
+              name="aadhaarFront"
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+              aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
+              className="h-11 cursor-pointer"
+            />
+            <FieldError message={state.fieldErrors?.aadhaarFront} />
             <p className="text-xs text-muted-foreground">
-              JPG, PNG or PDF, up to 3 MB per side. At least one side is required;
-              your scans are only seen by the owner.
+              JPG, PNG or PDF, up to 3 MB. One attachment is enough; your scan is
+              only seen by the owner.
             </p>
           </div>
         </CardContent>

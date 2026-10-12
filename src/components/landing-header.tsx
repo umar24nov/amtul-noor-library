@@ -80,7 +80,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
 
           <div className="flex shrink-0 items-center gap-2">
             <Button asChild size="lg" className="h-9">
-              <Link href="/join">Join us</Link>
+              <Link href="/join">Book your seat</Link>
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>

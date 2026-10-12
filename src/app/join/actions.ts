@@ -77,26 +77,18 @@ export async function submitApplicationAction(
     }
 
     const front = formData.get("aadhaarFront");
-    const back = formData.get("aadhaarBack");
-    const files = [
-      ["aadhaarFront", front],
-      ["aadhaarBack", back],
-    ] as const;
 
-    const hasImage = files.some(([, value]) => value instanceof File && value.size > 0);
-    if (!hasImage) {
+    if (!(front instanceof File) || front.size === 0) {
       return errorState("Please attach a scan of your Aadhaar card.", {
-        aadhaarFront: "Upload at least one side of your Aadhaar card",
+        aadhaarFront: "Upload your Aadhaar card",
       });
     }
 
-    const results: Record<string, { ok: true; url: string } | { ok: false; message: string }> = {};
-    for (const [field, value] of files) {
-      if (!(value instanceof File) || value.size === 0) continue;
-      results[field] = await storeAadhaarFile(value, field === "aadhaarFront" ? "front" : "back");
-      if (results[field]!.ok === false) {
-        return errorState(results[field]!.message, { [field]: results[field]!.message });
-      }
+    const storedFront = await storeAadhaarFile(front, "front");
+    if (storedFront.ok === false) {
+      return errorState(storedFront.message, {
+        aadhaarFront: storedFront.message,
+      });
     }
 
     await prisma.application.create({
@@ -108,8 +100,8 @@ export async function submitApplicationAction(
         guardianName: data.guardianName ?? null,
         guardianMobile: data.guardianMobile ?? null,
         aadhaarNumber: data.aadhaarNumber,
-        aadhaarFrontUrl: results.aadhaarFront?.ok ? results.aadhaarFront.url : null,
-        aadhaarBackUrl: results.aadhaarBack?.ok ? results.aadhaarBack.url : null,
+        aadhaarFrontUrl: storedFront.ok ? storedFront.url : null,
+        aadhaarBackUrl: null,
         preparingFor:
           data.preparingFor === "Other" && data.otherPreparation
             ? data.otherPreparation
