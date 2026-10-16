@@ -166,6 +166,8 @@ export const applicationSchema = z.object({
   preparingFor: z.string().trim().min(1, "Choose what you are preparing for"),
   otherPreparation: optionalText(80),
   joiningDate: dateInputSchema,
+  roomId: z.coerce.number("Choose a room").int("Choose a room").positive("Choose a room"),
+  seatId: z.coerce.number("Choose a seat").int("Choose a seat").positive("Choose a seat"),
   agreed: z.string().refine((value) => value === "1", "Please agree to the rules to apply"),
 });
 

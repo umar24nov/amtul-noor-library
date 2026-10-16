@@ -36,6 +36,8 @@ export async function submitApplicationAction(
     preparingFor: formData.get("preparingFor"),
     otherPreparation: formData.get("otherPreparation"),
     joiningDate: formData.get("joiningDate"),
+    roomId: formData.get("roomId"),
+    seatId: formData.get("seatId"),
     agreed: formData.get("agreed"),
   });
 
@@ -76,6 +78,20 @@ export async function submitApplicationAction(
       return errorState("Too many applications from this device today. Try again tomorrow.");
     }
 
+    // The seat is only a request: it is checked here so a stale form cannot
+    // request a seat that was taken in the meantime, but it stays available
+    // until the owner approves the application and it is assigned.
+    const seat = await prisma.seat.findUnique({
+      where: { id: data.seatId },
+      select: { id: true, roomId: true, status: true },
+    });
+
+    if (!seat || seat.roomId !== data.roomId || seat.status !== "AVAILABLE") {
+      return errorState("That seat is no longer free. Please choose another seat.", {
+        seatId: "Choose an available seat",
+      });
+    }
+
     const front = formData.get("aadhaarFront");
 
     if (!(front instanceof File) || front.size === 0) {
@@ -109,6 +125,7 @@ export async function submitApplicationAction(
         otherPreparation:
           data.preparingFor === "Other" ? (data.otherPreparation ?? null) : null,
         desiredJoiningDate: parseInputDate(data.joiningDate),
+        preferredSeatId: seat.id,
         agreed: true,
         ip,
       },

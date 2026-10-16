@@ -25,6 +25,18 @@ export async function approveApplicationAction(formData: FormData): Promise<void
 
     const member = await prisma.$transaction(async (tx) => {
       const applicationData = await tx.application.findUniqueOrThrow({ where: { id } });
+
+      // Honour the seat the applicant asked for, but only if it is still free;
+      // otherwise the member is created without one and the owner assigns it.
+      let seatId: number | null = null;
+      if (applicationData.preferredSeatId) {
+        const seat = await tx.seat.findUnique({
+          where: { id: applicationData.preferredSeatId },
+          select: { id: true, status: true },
+        });
+        if (seat && seat.status === "AVAILABLE") seatId = seat.id;
+      }
+
       const member = await tx.member.create({
         data: {
           memberId: await nextMemberId(tx),
@@ -36,11 +48,15 @@ export async function approveApplicationAction(formData: FormData): Promise<void
           joiningDate: applicationData.desiredJoiningDate,
           remarks: "Approved from an online application",
           status: "ACTIVE",
-          seatId: null,
+          seatId,
           payToken: newPayToken(),
         },
         select: { id: true, memberId: true },
       });
+
+      if (seatId !== null) {
+        await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
+      }
 
       await tx.application.update({
         where: { id },
@@ -52,6 +68,7 @@ export async function approveApplicationAction(formData: FormData): Promise<void
 
     revalidatePath("/applications");
     revalidatePath("/members");
+    revalidatePath("/seats");
     redirect(`/members/${member.id}?joined=1&from=application`);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;

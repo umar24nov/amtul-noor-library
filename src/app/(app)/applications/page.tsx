@@ -65,7 +65,12 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   const applications = await prisma.application.findMany({
     where: { status },
     orderBy: { createdAt: "desc" },
-    include: { member: { select: { id: true, memberId: true } } },
+    include: {
+      member: { select: { id: true, memberId: true } },
+      preferredSeat: {
+        select: { seatNumber: true, room: { select: { name: true } } },
+      },
+    },
   });
 
   return (
@@ -141,6 +146,15 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <dt className="text-muted-foreground">Aadhaar</dt>
                     <dd>{application.aadhaarNumber}</dd>
                   </div>
+                  {application.preferredSeat && (
+                    <div className="flex justify-between gap-2 sm:block">
+                      <dt className="text-muted-foreground">Requested seat</dt>
+                      <dd>
+                        {application.preferredSeat.room.name} · Seat{" "}
+                        {application.preferredSeat.seatNumber}
+                      </dd>
+                    </div>
+                  )}
                   {application.guardianName && (
                     <div className="flex justify-between gap-2 sm:block">
                       <dt className="text-muted-foreground">Guardian</dt>

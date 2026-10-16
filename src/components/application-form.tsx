@@ -27,10 +27,27 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 const inputClass =
   "h-11 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
 
-export function ApplicationForm({ className }: { className?: string }) {
+const selectClass = cn(
+  inputClass,
+  "w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+);
+
+export type SeatOption = { id: number; seatNumber: string };
+export type RoomOption = { id: number; name: string; seats: SeatOption[] };
+
+export function ApplicationForm({
+  className,
+  rooms = [],
+}: {
+  className?: string;
+  rooms?: RoomOption[];
+}) {
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
   const id = useId();
   const [preparingFor, setPreparingFor] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [seatId, setSeatId] = useState("");
+  const selectedRoom = rooms.find((room) => String(room.id) === roomId);
 
   useEffect(() => {
     if (state.status === "success" && state.message) toast.success(state.message);
@@ -150,7 +167,7 @@ export function ApplicationForm({ className }: { className?: string }) {
               id={`${id}-guardianName`}
               name="guardianName"
               autoComplete="family-name"
-              placeholder="e.g. Mohd. Umar"
+              placeholder="e.g. Mubassir Hussain"
               aria-invalid={Boolean(state.fieldErrors?.guardianName)}
               className={inputClass}
             />
@@ -189,11 +206,7 @@ export function ApplicationForm({ className }: { className?: string }) {
               onChange={(event) => setPreparingFor(event.target.value)}
               required
               aria-invalid={Boolean(state.fieldErrors?.preparingFor)}
-              className={cn(
-                inputClass,
-                "w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                !preparingFor && "text-muted-foreground",
-              )}
+              className={cn(selectClass, !preparingFor && "text-muted-foreground")}
             >
               <option value="" disabled>
                 Choose your preparation
@@ -236,6 +249,74 @@ export function ApplicationForm({ className }: { className?: string }) {
               className={inputClass}
             />
             <FieldError message={state.fieldErrors?.joiningDate} />
+          </div>
+
+          <div className="grid gap-2 border-t border-border pt-4">
+            <SectionTitle>Your seat</SectionTitle>
+            <p className="text-xs text-muted-foreground">
+              Only seats that are free right now are shown. Pick the seat you want;
+              the owner confirms it when your application is approved.
+            </p>
+            {rooms.length === 0 && (
+              <p className="text-xs text-destructive">
+                No seats are free right now. Please contact the library before
+                applying.
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${id}-roomId`}>
+              Room <span className="text-destructive">*</span>
+            </Label>
+            <select
+              id={`${id}-roomId`}
+              name="roomId"
+              value={roomId}
+              onChange={(event) => {
+                setRoomId(event.target.value);
+                setSeatId("");
+              }}
+              required
+              aria-invalid={Boolean(state.fieldErrors?.roomId)}
+              className={cn(selectClass, !roomId && "text-muted-foreground")}
+            >
+              <option value="" disabled>
+                Choose a room
+              </option>
+              {rooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
+                </option>
+              ))}
+            </select>
+            <FieldError message={state.fieldErrors?.roomId} />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${id}-seatId`}>
+              Seat <span className="text-destructive">*</span>
+            </Label>
+            <select
+              id={`${id}-seatId`}
+              name="seatId"
+              value={seatId}
+              onChange={(event) => setSeatId(event.target.value)}
+              required
+              disabled={!selectedRoom}
+              aria-invalid={Boolean(state.fieldErrors?.seatId)}
+              className={cn(selectClass, !seatId && "text-muted-foreground")}
+            >
+              <option value="" disabled>
+                {selectedRoom ? "Choose a seat" : "Choose a room first"}
+              </option>
+              {selectedRoom?.seats.map((seat) => (
+                <option key={seat.id} value={seat.id}>
+                  Seat {seat.seatNumber}
+                </option>
+              ))}
+            </select>
+            <FieldError message={state.fieldErrors?.seatId} />
           </div>
         </CardContent>
       </Card>

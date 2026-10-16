@@ -69,6 +69,9 @@ model Seat {
   status     SeatStatus @default(AVAILABLE)
   room       Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   occupants  Member[]
+  /// Applications that asked for this seat. A request, not a reservation:
+  /// the seat stays free until the owner approves and it is assigned.
+  applications Application[] @relation("ApplicationPreferredSeat")
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
@@ -165,6 +168,12 @@ model Application {
   otherPreparation String?
   /// The day the applicant hopes to join, from the "Date of joining" field.
   desiredJoiningDate DateTime
+  /// The seat the applicant chose (a room + seat, from the seats that were
+  /// free at the time). The public form requires it, so new applications
+  /// always carry one; nullable so applications made before this existed, and
+  /// rows whose seat was later removed, stay valid.
+  preferredSeatId Int?
+  preferredSeat   Seat? @relation("ApplicationPreferredSeat", fields: [preferredSeatId], references: [id], onDelete: SetNull)
   /// The "I have read and understood the rules" checkbox.
   agreed    Boolean @default(false)
   /// Client address, kept so repeated spam from one source is visible.
@@ -181,6 +190,7 @@ model Application {
   @@index([status, createdAt])
   @@index([mobile, createdAt])
   @@index([ip, createdAt])
+  @@index([preferredSeatId])
 }
 
 /// One row per rejected sign-in attempt. Lives in the database because serverless
