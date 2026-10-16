@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { NAV_ITEMS } from "@/lib/constants";
-import type { UserRole } from "@/generated/prisma/enums";
+import type { RoleLevel } from "@/generated/prisma/enums";
 
 const ICONS = {
   "/dashboard": "M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z",
@@ -20,14 +20,14 @@ const ICONS = {
 function NavLinks({
   onNavigate,
   className,
-  role,
+  level,
 }: {
   onNavigate?: () => void;
   className?: string;
-  role: UserRole;
+  level: RoleLevel;
 }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || role === "ADMIN");
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || level === "ADMIN");
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
@@ -66,24 +66,24 @@ function NavLinks({
   );
 }
 
-export function DesktopNav({ role }: { role: UserRole }) {
+export function DesktopNav({ level }: { level: RoleLevel }) {
   return (
     <nav className="flex flex-col gap-1 px-3">
-      <NavLinks role={role} />
+      <NavLinks level={level} />
     </nav>
   );
 }
 
 export function MobileNav({
   onNavigate,
-  role,
+  level,
 }: {
   onNavigate?: () => void;
-  role: UserRole;
+  level: RoleLevel;
 }) {
   return (
     <nav className="flex flex-col gap-1">
-      <NavLinks onNavigate={onNavigate} role={role} />
+      <NavLinks onNavigate={onNavigate} level={level} />
     </nav>
   );
 }

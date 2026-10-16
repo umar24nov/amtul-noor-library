@@ -27,6 +27,12 @@ async function adminOnly(): Promise<ActionState | null> {
   return session ? null : errorState("Only an admin can manage accounts.");
 }
 
+/** Active people whose role is at the full-admin level. The library must always
+ *  keep at least one, or nobody could manage accounts again. */
+async function countActiveAdmins(): Promise<number> {
+  return prisma.user.count({ where: { active: true, role: { level: "ADMIN" } } });
+}
+
 export async function createUserAction(
   _prev: ActionState,
   formData: FormData,
@@ -37,16 +43,23 @@ export async function createUserAction(
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
-    role: formData.get("role"),
+    roleId: formData.get("roleId"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
   }
 
-  const { name, email, role, password } = parsed.data;
+  const { name, email, roleId, password } = parsed.data;
 
   try {
+    const role = await prisma.role.findUnique({ where: { id: roleId }, select: { name: true } });
+    if (!role) {
+      return errorState("Please check the highlighted fields.", {
+        roleId: "Choose a role",
+      });
+    }
+
     const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
     if (taken) {
       return errorState("Please check the highlighted fields.", {
@@ -58,13 +71,13 @@ export async function createUserAction(
       data: {
         email,
         name: name ?? null,
-        role,
+        roleId,
         passwordHash: bcrypt.hashSync(password, BCRYPT_COST),
       },
     });
 
     revalidateUsers();
-    return successState(`${email} can now sign in as ${role === "ADMIN" ? "an admin" : "staff"}.`);
+    return successState(`${email} can now sign in as ${role.name}.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
@@ -76,7 +89,7 @@ export async function updateUserRoleAction(formData: FormData): Promise<ActionSt
 
   const parsed = userRoleChangeSchema.safeParse({
     userId: formData.get("userId"),
-    role: formData.get("role"),
+    roleId: formData.get("roleId"),
   });
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
@@ -85,28 +98,29 @@ export async function updateUserRoleAction(formData: FormData): Promise<ActionSt
   try {
     const target = await prisma.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, role: true, active: true },
+      select: { id: true, email: true, active: true, role: { select: { level: true } } },
     });
     if (!target) return errorState("That account no longer exists.");
 
-    if (target.role === "ADMIN" && parsed.data.role === "STAFF") {
-      const activeAdmins = await prisma.user.count({
-        where: { role: "ADMIN", active: true },
-      });
-      if (activeAdmins <= 1) {
-        return errorState("At least one active admin must remain. Promote someone else first.");
+    const role = await prisma.role.findUnique({
+      where: { id: parsed.data.roleId },
+      select: { name: true, level: true },
+    });
+    if (!role) return errorState("That role no longer exists.");
+
+    if (target.role.level === "ADMIN" && role.level !== "ADMIN" && target.active) {
+      if ((await countActiveAdmins()) <= 1) {
+        return errorState("At least one active admin must remain. Give someone else full admin first.");
       }
     }
 
     await prisma.user.update({
       where: { id: target.id },
-      data: { role: parsed.data.role },
+      data: { roleId: parsed.data.roleId },
     });
 
     revalidateUsers();
-    return successState(
-      `${target.email} is now ${parsed.data.role === "ADMIN" ? "an admin" : "staff"}.`,
-    );
+    return successState(`${target.email} is now ${role.name}.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
@@ -164,7 +178,7 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
   try {
     const target = await prisma.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, role: true, active: true },
+      select: { id: true, email: true, active: true, role: { select: { level: true } } },
     });
     if (!target) return errorState("That account no longer exists.");
 
@@ -172,11 +186,8 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
       return errorState("You cannot deactivate your own account.");
     }
 
-    if (target.active && target.role === "ADMIN") {
-      const activeAdmins = await prisma.user.count({
-        where: { role: "ADMIN", active: true },
-      });
-      if (activeAdmins <= 1) {
+    if (target.active && target.role.level === "ADMIN") {
+      if ((await countActiveAdmins()) <= 1) {
         return errorState("At least one active admin must remain.");
       }
     }

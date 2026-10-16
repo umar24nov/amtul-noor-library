@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { RolesPanel, type PanelRole } from "@/components/roles-panel";
 import { UsersPanel, type PanelUser } from "@/components/users-panel";
 import { getAdminSession } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
@@ -11,30 +12,53 @@ export const metadata: Metadata = {
 };
 
 /**
- * Who can sign in to the app. Admin only: staff never see this page, and the
- * actions behind it check again, because a form action can be called directly.
+ * Who can sign in to the app, and the roles they sign in with. Admin only: people
+ * on a day-to-day role never see this page, and the actions behind it check again,
+ * because a form action can be called directly.
  */
 export default async function UsersPage() {
   const session = await getAdminSession();
   if (!session) redirect("/dashboard");
 
-  const rows = await prisma.user.findMany({
-    orderBy: [{ createdAt: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      active: true,
-      lastLoginAt: true,
-    },
-  });
+  const [roles, rows] = await Promise.all([
+    prisma.role.findMany({
+      orderBy: [{ level: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        level: true,
+        builtIn: true,
+        _count: { select: { users: true } },
+      },
+    }),
+    prisma.user.findMany({
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        active: true,
+        lastLoginAt: true,
+        role: { select: { id: true, name: true, level: true } },
+      },
+    }),
+  ]);
+
+  const roleOptions: PanelRole[] = roles.map((role) => ({
+    id: role.id,
+    name: role.name,
+    level: role.level,
+    builtIn: role.builtIn,
+    userCount: role._count.users,
+  }));
 
   const users: PanelUser[] = rows.map((row) => ({
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
+    roleId: row.role.id,
+    roleName: row.role.name,
+    level: row.role.level,
     active: row.active,
     lastLoginAt: row.lastLoginAt ? formatDate(row.lastLoginAt) : null,
   }));
@@ -43,9 +67,10 @@ export default async function UsersPage() {
     <div className="grid gap-6">
       <PageHeader
         title="Users"
-        description="Everyone who can sign in to the app. Admins manage accounts and settings; staff run the day-to-day library."
+        description="Everyone who can sign in to the app, and the roles they use. Full admins manage accounts and the monthly fee; day-to-day roles run the library."
       />
-      <UsersPanel users={users} currentUserId={session.userId} />
+      <UsersPanel users={users} roles={roleOptions} currentUserId={session.userId} />
+      <RolesPanel roles={roleOptions} />
     </div>
   );
 }

@@ -217,7 +217,7 @@ export const createUserSchema = z.object({
     .min(1, "Email is required")
     .max(120, "Email must be 120 characters or fewer")
     .email("Enter a valid email address"),
-  role: z.enum(["ADMIN", "STAFF"], { message: "Choose a role" }),
+  roleId: z.coerce.number().int().positive("Choose a role"),
   password: accountPasswordSchema,
 });
 
@@ -230,11 +230,36 @@ export const resetPasswordSchema = z.object({
 
 export const userRoleChangeSchema = z.object({
   userId: z.coerce.number().int().positive("Account not found"),
-  role: z.enum(["ADMIN", "STAFF"], { message: "Choose a role" }),
+  roleId: z.coerce.number().int().positive("Choose a role"),
 });
 
 export const userToggleSchema = z.object({
   userId: z.coerce.number().int().positive("Account not found"),
+});
+
+/** The two abilities a role can grant, mirrored from the RoleLevel enum. */
+export const roleLevelSchema = z.enum(["ADMIN", "DAY_TO_DAY"], { message: "Choose a level" });
+
+/** A role's name, chosen by the owner, e.g. "Front desk" or "Owner". */
+const roleNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Give the role a name")
+  .max(30, "Keep the name to 30 characters or fewer");
+
+export const createRoleSchema = z.object({
+  name: roleNameSchema,
+  level: roleLevelSchema,
+});
+
+export const updateRoleSchema = z.object({
+  roleId: z.coerce.number().int().positive("Role not found"),
+  name: roleNameSchema,
+  level: roleLevelSchema,
+});
+
+export const deleteRoleSchema = z.object({
+  roleId: z.coerce.number().int().positive("Role not found"),
 });
 
 /** Flattens a Zod error into `{ field: message }` for form rendering. */

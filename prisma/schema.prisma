@@ -40,9 +40,15 @@ enum ApplicationStatus {
   REJECTED
 }
 
-enum UserRole {
+/// The two abilities a role can grant. The owner picks a role's name freely,
+/// so several day-to-day names can exist, but only these two levels do.
+enum RoleLevel {
+  /// Full access: the day-to-day library work, plus user accounts and the
+  /// monthly fee / settings.
   ADMIN
-  STAFF
+  /// Day-to-day work only: members, applications, payments, reminders and seats.
+  /// Cannot open the Users screen or change the monthly fee.
+  DAY_TO_DAY
 }
 
 /// A physical room in the library (Room 1, Room 2, ...).
@@ -193,6 +199,24 @@ model LoginAttempt {
   @@index([createdAt])
 }
 
+/// A named set of abilities the owner hands to people. The owner chooses each
+/// role's name, so "Front desk" and "Reader" can both be day-to-day while
+/// "Owner" is a full admin.
+model Role {
+  id        Int       @id @default(autoincrement())
+  /// What the owner called it, shown on the Users screen and in the sidebar.
+  name      String    @unique
+  level     RoleLevel
+  /// The seeded full-admin role. It can be renamed but not deleted, and its
+  /// level cannot be lowered, so the library can never lock itself out.
+  builtIn   Boolean   @default(false)
+  users     User[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([level])
+}
+
 /// Someone who can sign in to the app. Passwords are bcrypt hashes, never plain
 /// text. Accounts are deactivated rather than deleted so the audit trail of
 /// who worked here stays intact.
@@ -203,14 +227,15 @@ model User {
   /// Display name, shown in the sidebar. Optional: the login form has no name.
   name         String?
   passwordHash String
-  /// ADMIN manages users and settings; STAFF runs the day-to-day library.
-  role         UserRole @default(STAFF)
+  /// The named role this person signs in with. Every account has one.
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
   /// A deactivated account cannot sign in, but its row is kept.
   active       Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([role])
+  @@index([roleId])
   @@index([active])
 }

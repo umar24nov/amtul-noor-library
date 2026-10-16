@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import type { UserRole } from "@/generated/prisma/enums";
+import type { RoleLevel } from "@/generated/prisma/enums";
 
 export const SESSION_COOKIE = "anl_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12; // 12 hours
@@ -17,7 +17,34 @@ function getSecretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export type SessionPayload = { email: string; role: UserRole; userId: number };
+export type SessionPayload = { email: string; userId: number; roleId: number; level: RoleLevel };
+
+/**
+ * The seeded full-admin role. The env-var admin is provisioned into it, and the
+ * last-active-admin guards count roles at this level, so it is fetched in a few
+ * places. The migration seeds it; the create is only a safety net on a fresh
+ * host where the seed somehow did not run.
+ */
+export async function getBuiltInAdminRole(): Promise<{ id: number; level: RoleLevel }> {
+  const builtIn = await prisma.role.findFirst({
+    where: { builtIn: true },
+    orderBy: { id: "asc" },
+    select: { id: true, level: true },
+  });
+  if (builtIn) return builtIn;
+
+  const adminLevel = await prisma.role.findFirst({
+    where: { level: "ADMIN" },
+    orderBy: { id: "asc" },
+    select: { id: true, level: true },
+  });
+  if (adminLevel) return adminLevel;
+
+  return prisma.role.create({
+    data: { name: "Admin", level: "ADMIN", builtIn: true },
+    select: { id: true, level: true },
+  });
+}
 
 /**
  * Next.js expands $VAR inside .env files, so a bcrypt hash stored there has to
@@ -58,13 +85,16 @@ export async function verifyCredentials(
 ): Promise<SessionPayload | null> {
   const normalisedEmail = email.trim().toLowerCase();
 
-  const user = await prisma.user.findUnique({ where: { email: normalisedEmail } });
+  const user = await prisma.user.findUnique({
+    where: { email: normalisedEmail },
+    include: { role: { select: { level: true } } },
+  });
   if (user) {
     if (!user.active) return null;
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
     await recordLogin(user.id);
-    return { email: user.email, role: user.role, userId: user.id };
+    return { email: user.email, userId: user.id, roleId: user.roleId, level: user.role.level };
   }
 
   const adminEmail = process.env.ADMIN_EMAIL;
@@ -88,28 +118,45 @@ export async function verifyCredentials(
   const valid = await bcrypt.compare(password, adminHash);
   if (!valid) return null;
 
-  let provisioned: { id: number; email: string; role: UserRole; active: boolean };
+  const adminRole = await getBuiltInAdminRole();
+
+  let provisioned: { id: number; email: string; roleId: number; level: RoleLevel };
   try {
     provisioned = await prisma.user.create({
-      data: { email: normalisedEmail, passwordHash: adminHash, role: "ADMIN" },
-      select: { id: true, email: true, role: true, active: true },
-    });
+      data: { email: normalisedEmail, passwordHash: adminHash, roleId: adminRole.id },
+      select: { id: true, email: true, roleId: true, role: { select: { level: true } } },
+    }).then((row) => ({
+      id: row.id,
+      email: row.email,
+      roleId: row.roleId,
+      level: row.role.level,
+    }));
   } catch {
     // Two first logins racing each other; the row is there now, use it.
     const existing = await prisma.user.findUnique({
       where: { email: normalisedEmail },
-      select: { id: true, email: true, role: true, active: true },
+      select: { id: true, email: true, roleId: true, active: true, role: { select: { level: true } } },
     });
     if (!existing || !existing.active) return null;
-    provisioned = existing;
+    provisioned = {
+      id: existing.id,
+      email: existing.email,
+      roleId: existing.roleId,
+      level: existing.role.level,
+    };
   }
 
   await recordLogin(provisioned.id);
-  return { email: provisioned.email, role: provisioned.role, userId: provisioned.id };
+  return { email: provisioned.email, userId: provisioned.id, roleId: provisioned.roleId, level: provisioned.level };
 }
 
 export async function createSession(payload: SessionPayload): Promise<void> {
-  const token = await new SignJWT({ email: payload.email, role: payload.role, userId: payload.userId })
+  const token = await new SignJWT({
+    email: payload.email,
+    userId: payload.userId,
+    roleId: payload.roleId,
+    level: payload.level,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
@@ -137,19 +184,20 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
     if (typeof payload.email !== "string") return null;
-    // Cookies issued before roles existed carry no role. Everyone who could
-    // sign in then was an admin, so that is how they are read; the next sign-in
-    // re-issues the cookie with the role in it.
-    const role: UserRole = payload.role === "STAFF" ? "STAFF" : "ADMIN";
+    // Cookies issued before roles became custom carry only ADMIN/STAFF. Everyone
+    // who could sign in then was an admin, so that is how they are read; the
+    // next sign-in re-issues the cookie with the role id and level in it.
+    const level: RoleLevel = payload.level === "DAY_TO_DAY" ? "DAY_TO_DAY" : "ADMIN";
+    const roleId = typeof payload.roleId === "number" ? payload.roleId : 0;
     const userId = typeof payload.userId === "number" ? payload.userId : 0;
-    return { email: payload.email, role, userId };
+    return { email: payload.email, userId, roleId, level };
   } catch {
     return null;
   }
 });
 
-/** The session, but only when it belongs to an admin. */
+/** The session, but only when it belongs to a full admin. */
 export async function getAdminSession(): Promise<SessionPayload | null> {
   const session = await getSession();
-  return session?.role === "ADMIN" ? session : null;
+  return session?.level === "ADMIN" ? session : null;
 }

@@ -226,7 +226,7 @@ export async function updateFeeAction(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await getSession();
-  if (session?.role !== "ADMIN") {
+  if (session?.level !== "ADMIN") {
     return errorState("Only an admin can change the monthly fee.");
   }
 

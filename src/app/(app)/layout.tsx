@@ -7,13 +7,18 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { LogoutButton } from "@/components/logout-button";
 import { getSession } from "@/lib/auth";
 import { isDatabaseReachable } from "@/lib/db-status";
+import { prisma } from "@/lib/prisma";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
   const databaseIsUp = await isDatabaseReachable();
-  const roleLabel = session.role === "ADMIN" ? "Admin" : "Staff";
+  // The role name is read fresh so a rename shows up without signing in again.
+  const role = session.roleId
+    ? await prisma.role.findUnique({ where: { id: session.roleId }, select: { name: true } })
+    : null;
+  const roleLabel = role?.name ?? (session.level === "ADMIN" ? "Admin" : "Staff");
 
   return (
     <div className="flex min-h-dvh bg-muted/30">
@@ -30,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
-          <DesktopNav role={session.role} />
+          <DesktopNav level={session.level} />
         </div>
         <div className="border-t border-sidebar-border p-3">
           <p className="truncate px-1 text-xs font-medium text-foreground">
@@ -44,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 xl:pl-64">
         {/* Mobile / tablet top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-          <MobileMenu role={session.role} />
+          <MobileMenu level={session.level} />
           <Link
             href="/"
             className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,23 +33,25 @@ import {
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
+import type { PanelRole } from "@/components/roles-panel";
 import {
   createUserAction,
   resetUserPasswordAction,
   toggleUserActiveAction,
   updateUserRoleAction,
 } from "@/app/(app)/users/actions";
+import type { RoleLevel } from "@/generated/prisma/enums";
 
 export type PanelUser = {
   id: number;
   name: string | null;
   email: string;
-  role: "ADMIN" | "STAFF";
+  roleId: number;
+  roleName: string;
+  level: RoleLevel;
   active: boolean;
   lastLoginAt: string | null;
 };
-
-const ROLE_LABELS = { ADMIN: "Admin", STAFF: "Staff" } as const;
 
 /** Runs a form action and reports the outcome as a toast, for the row actions
  *  that have no fields to validate inline. */
@@ -59,9 +61,30 @@ async function runAndToast(action: (formData: FormData) => Promise<ActionState>,
   else if (state.status === "success") toast.success(state.message ?? "Saved.");
 }
 
-function AddUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function RoleOptions({ roles }: { roles: PanelRole[] }) {
+  return (
+    <>
+      {roles.map((role) => (
+        <SelectItem key={role.id} value={String(role.id)}>
+          {role.name} — {role.level === "ADMIN" ? "full admin" : "day-to-day"}
+        </SelectItem>
+      ))}
+    </>
+  );
+}
+
+function AddUserDialog({
+  open,
+  onOpenChange,
+  roles,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roles: PanelRole[];
+}) {
   const [state, formAction] = useActionState(createUserAction, IDLE_STATE);
-  const [role, setRole] = useState<"ADMIN" | "STAFF">("STAFF");
+  const initialRole = roles.find((role) => role.level === "DAY_TO_DAY") ?? roles[0];
+  const [roleId, setRoleId] = useState(String(initialRole?.id ?? ""));
 
   useEffect(() => {
     if (state.done) {
@@ -103,18 +126,17 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             <Label>
               Role <span className="text-destructive">*</span>
             </Label>
-            <input type="hidden" name="role" value={role} />
-            <Select value={role} onValueChange={(value) => setRole(value as typeof role)}>
+            <input type="hidden" name="roleId" value={roleId} />
+            <Select value={roleId} onValueChange={setRoleId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="STAFF">Staff — day-to-day library work</SelectItem>
-                <SelectItem value="ADMIN">Admin — everything, including users</SelectItem>
+                <RoleOptions roles={roles} />
               </SelectContent>
             </Select>
-            {state.fieldErrors?.role && (
-              <p className="text-xs text-destructive">{state.fieldErrors.role}</p>
+            {state.fieldErrors?.roleId && (
+              <p className="text-xs text-destructive">{state.fieldErrors.roleId}</p>
             )}
           </div>
           <div className="grid gap-1.5">
@@ -145,6 +167,46 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** A role picker for one row. Choosing a role calls the server action straight
+ *  away, so changing someone's role is one action rather than a form plus a
+ *  save. The action is invoked directly with FormData so there is no hidden
+ *  field that could still hold the previous choice when it is read. */
+function RoleSelect({ user, roles }: { user: PanelUser; roles: PanelRole[] }) {
+  const [value, setValue] = useState(String(user.roleId));
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <Select
+      value={value}
+      disabled={pending}
+      onValueChange={(next) => {
+        if (next === value) return;
+        const previous = value;
+        setValue(next);
+        startTransition(async () => {
+          const fd = new FormData();
+          fd.set("userId", String(user.id));
+          fd.set("roleId", next);
+          const state = await updateUserRoleAction(fd);
+          if (state.status === "error") {
+            toast.error(state.message ?? "Something went wrong.");
+            setValue(previous);
+          } else if (state.status === "success") {
+            toast.success(state.message ?? "Saved.");
+          }
+        });
+      }}
+    >
+      <SelectTrigger size="sm" className="w-40" aria-label={`Role for ${user.email}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <RoleOptions roles={roles} />
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -230,10 +292,7 @@ function ToggleActiveDialog({
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <form action={runAndToast.bind(null, toggleUserActiveAction)} className="contents">
             <input type="hidden" name="userId" value={user?.id ?? 0} />
-            <AlertDialogAction
-              type="submit"
-              onClick={() => onOpenChange(null)}
-            >
+            <AlertDialogAction type="submit" onClick={() => onOpenChange(null)}>
               {user?.active ? "Deactivate" : "Reactivate"}
             </AlertDialogAction>
           </form>
@@ -245,9 +304,11 @@ function ToggleActiveDialog({
 
 export function UsersPanel({
   users,
+  roles,
   currentUserId,
 }: {
   users: PanelUser[];
+  roles: PanelRole[];
   currentUserId: number;
 }) {
   const [addOpen, setAddOpen] = useState(false);
@@ -255,17 +316,17 @@ export function UsersPanel({
   const [toggleTarget, setToggleTarget] = useState<PanelUser | null>(null);
 
   return (
-    <div className="grid gap-4">
+    <section className="grid gap-4">
       <div className="flex justify-end">
         <Button onClick={() => setAddOpen(true)}>
           <UserPlus className="size-4" />
           Add user
         </Button>
-        <AddUserDialog open={addOpen} onOpenChange={setAddOpen} />
+        <AddUserDialog open={addOpen} onOpenChange={setAddOpen} roles={roles} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-background">
-        <table className="w-full min-w-[36rem] text-sm">
+        <table className="w-full min-w-[40rem] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted text-left">
               <th className="px-3 py-2.5 font-medium">Name</th>
@@ -279,17 +340,15 @@ export function UsersPanel({
           <tbody className="divide-y divide-border">
             {users.map((user) => (
               <tr key={user.id} className={user.active ? undefined : "opacity-60"}>
-                <td className="px-3 py-2.5 font-medium">{user.name ?? "—"}</td>
-                <td className="px-3 py-2.5">
-                  {user.email}
+                <td className="px-3 py-2.5 font-medium">
+                  {user.name ?? "—"}
                   {user.id === currentUserId && (
                     <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>
                   )}
                 </td>
+                <td className="px-3 py-2.5">{user.email}</td>
                 <td className="px-3 py-2.5">
-                  <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-                    {ROLE_LABELS[user.role]}
-                  </Badge>
+                  <RoleSelect user={user} roles={roles} />
                 </td>
                 <td className="px-3 py-2.5">
                   {user.active ? (
@@ -301,17 +360,6 @@ export function UsersPanel({
                 <td className="px-3 py-2.5 text-muted-foreground">{user.lastLoginAt ?? "Never"}</td>
                 <td className="px-3 py-2.5">
                   <div className="flex flex-wrap justify-end gap-1.5">
-                    <form action={runAndToast.bind(null, updateUserRoleAction)}>
-                      <input type="hidden" name="userId" value={user.id} />
-                      <input
-                        type="hidden"
-                        name="role"
-                        value={user.role === "ADMIN" ? "STAFF" : "ADMIN"}
-                      />
-                      <Button type="submit" variant="outline" size="sm">
-                        {user.role === "ADMIN" ? "Make staff" : "Make admin"}
-                      </Button>
-                    </form>
                     <Button
                       type="button"
                       variant="outline"
@@ -343,12 +391,12 @@ export function UsersPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Staff can see and record everything in the app except this page and the monthly fee. A
-        deactivated account keeps its history but cannot sign in.
+        Pick a role from the list to move someone between roles. A deactivated account keeps its
+        history but cannot sign in.
       </p>
 
       <ResetPasswordDialog user={resetTarget} onOpenChange={setResetTarget} />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
-    </div>
+    </section>
   );
 }
