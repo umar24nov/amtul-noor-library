@@ -111,14 +111,11 @@ function RoleFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="DAY_TO_DAY">
-              Day-to-day — {LEVEL_DESCRIPTIONS.DAY_TO_DAY}
-            </SelectItem>
-            <SelectItem value="ADMIN">
-              Full admin — {LEVEL_DESCRIPTIONS.ADMIN}
-            </SelectItem>
+            <SelectItem value="DAY_TO_DAY">{LEVEL_LABELS.DAY_TO_DAY}</SelectItem>
+            <SelectItem value="ADMIN">{LEVEL_LABELS.ADMIN}</SelectItem>
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">{LEVEL_DESCRIPTIONS[level]}</p>
         {lockLevel && (
           <p className="text-xs text-muted-foreground">
             The built-in admin role always stays a full admin. Its name can be changed.

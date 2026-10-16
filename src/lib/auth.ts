@@ -201,3 +201,42 @@ export async function getAdminSession(): Promise<SessionPayload | null> {
   const session = await getSession();
   return session?.level === "ADMIN" ? session : null;
 }
+
+export type CurrentUser = {
+  id: number;
+  name: string | null;
+  email: string;
+  roleId: number;
+  level: RoleLevel;
+};
+
+/**
+ * The signed-in person's own row. The session carries the id, so that is used
+ * first; a cookie issued before the id was added falls back to the email, so an
+ * older session can still manage its own profile instead of being locked out.
+ */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const session = await getSession();
+  if (!session) return null;
+
+  const select = {
+    id: true,
+    name: true,
+    email: true,
+    roleId: true,
+    role: { select: { level: true } },
+  } as const;
+
+  const row = session.userId
+    ? await prisma.user.findUnique({ where: { id: session.userId }, select })
+    : await prisma.user.findUnique({ where: { email: session.email }, select });
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    roleId: row.roleId,
+    level: row.role.level,
+  };
+});

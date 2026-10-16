@@ -262,6 +262,31 @@ export const deleteRoleSchema = z.object({
   roleId: z.coerce.number().int().positive("Role not found"),
 });
 
+/** A signed-in person editing their own name and sign-in email. */
+export const updateProfileSchema = z.object({
+  name: optionalText(60),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Email is required")
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address"),
+});
+
+/** Changing your own password. The current one is checked, and the new one is
+ *  confirmed, so a typo cannot lock you out. */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: accountPasswordSchema,
+    confirmPassword: z.string().min(1, "Re-enter the new password"),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The passwords do not match",
+  });
+
 /** Flattens a Zod error into `{ field: message }` for form rendering. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

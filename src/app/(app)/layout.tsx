@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = session.roleId
     ? await prisma.role.findUnique({ where: { id: session.roleId }, select: { name: true } })
     : null;
-  const roleLabel = role?.name ?? (session.level === "ADMIN" ? "Admin" : "Staff");
+  const roleLabel = role?.name ?? (session.level === "ADMIN" ? "Admin" : "Day-to-day");
 
   return (
     <div className="flex min-h-dvh bg-muted/30">
