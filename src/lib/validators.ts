@@ -201,6 +201,42 @@ export const loginSchema = z.object({
   next: z.string().optional(),
 });
 
+/** Password shared by account creation and password resets: at least 8
+ *  characters, which is also what the hash-password script insists on. */
+const accountPasswordSchema = z
+  .string()
+  .min(8, "Use at least 8 characters")
+  .max(200, "Password must be 200 characters or fewer");
+
+export const createUserSchema = z.object({
+  name: optionalText(60),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Email is required")
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address"),
+  role: z.enum(["ADMIN", "STAFF"], { message: "Choose a role" }),
+  password: accountPasswordSchema,
+});
+
+export type CreateUserFormValues = z.input<typeof createUserSchema>;
+
+export const resetPasswordSchema = z.object({
+  userId: z.coerce.number().int().positive("Account not found"),
+  password: accountPasswordSchema,
+});
+
+export const userRoleChangeSchema = z.object({
+  userId: z.coerce.number().int().positive("Account not found"),
+  role: z.enum(["ADMIN", "STAFF"], { message: "Choose a role" }),
+});
+
+export const userToggleSchema = z.object({
+  userId: z.coerce.number().int().positive("Account not found"),
+});
+
 /** Flattens a Zod error into `{ field: message }` for form rendering. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

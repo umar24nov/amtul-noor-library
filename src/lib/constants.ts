@@ -202,12 +202,13 @@ export const paymentStatusHelp: Record<PaymentStatus, string> = {
 };
 
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/members", label: "Members" },
-  { href: "/applications", label: "Applications" },
-  { href: "/payments", label: "Payments" },
-  { href: "/reminders", label: "Reminders" },
-  { href: "/seats", label: "Seats" },
+  { href: "/dashboard", label: "Dashboard", adminOnly: false },
+  { href: "/members", label: "Members", adminOnly: false },
+  { href: "/applications", label: "Applications", adminOnly: false },
+  { href: "/payments", label: "Payments", adminOnly: false },
+  { href: "/reminders", label: "Reminders", adminOnly: false },
+  { href: "/seats", label: "Seats", adminOnly: false },
+  { href: "/users", label: "Users", adminOnly: true },
 ] as const;
 
 /**

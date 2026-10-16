@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import { getSession } from "@/lib/auth";
 import { parseInputDate } from "@/lib/format";
 import { nextPaymentId, newReceiptToken } from "@/lib/ids";
 import { PAYMENT_ID_PREFIX } from "@/lib/constants";
@@ -224,6 +225,11 @@ export async function updateFeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const session = await getSession();
+  if (session?.role !== "ADMIN") {
+    return errorState("Only an admin can change the monthly fee.");
+  }
+
   const parsed = feeFormSchema.safeParse({ fee: formData.get("fee") });
   if (!parsed.success) {
     return errorState("Please check the fee amount.", fieldErrors(parsed.error));

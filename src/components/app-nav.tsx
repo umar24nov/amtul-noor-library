@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { NAV_ITEMS } from "@/lib/constants";
+import type { UserRole } from "@/generated/prisma/enums";
 
 const ICONS = {
   "/dashboard": "M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z",
@@ -12,20 +13,25 @@ const ICONS = {
   "/payments": "M3 6h18v12H3V6Zm2 2v8h14V8H5Zm2 2h6v2H7v-2Zm0 4h4v1H7v-1Z",
   "/reminders": "M12 2a6 6 0 0 0-6 6v3.6L4.3 14a1 1 0 0 0 .9 1.5h13.6a1 1 0 0 0 .9-1.5L18 11.6V8a6 6 0 0 0-6-6Zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Z",
   "/seats": "M5 3h5v7H5V3Zm0 9h5v7H5v-7Zm9-9h5v7h-5V3Zm0 9h5v7h-5v-7ZM4 10h16v2H4v-2Z",
+  "/users":
+    "M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91ZM4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2Zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29ZM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2Zm4 3.43c0-.81-.48-1.53-1.22-1.85-.85-.37-1.79-.58-2.78-.58-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57ZM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3Z",
 } as const;
 
 function NavLinks({
   onNavigate,
   className,
+  role,
 }: {
   onNavigate?: () => void;
   className?: string;
+  role: UserRole;
 }) {
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || role === "ADMIN");
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
@@ -60,18 +66,24 @@ function NavLinks({
   );
 }
 
-export function DesktopNav() {
+export function DesktopNav({ role }: { role: UserRole }) {
   return (
     <nav className="flex flex-col gap-1 px-3">
-      <NavLinks />
+      <NavLinks role={role} />
     </nav>
   );
 }
 
-export function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
+export function MobileNav({
+  onNavigate,
+  role,
+}: {
+  onNavigate?: () => void;
+  role: UserRole;
+}) {
   return (
     <nav className="flex flex-col gap-1">
-      <NavLinks onNavigate={onNavigate} />
+      <NavLinks onNavigate={onNavigate} role={role} />
     </nav>
   );
 }

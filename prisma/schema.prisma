@@ -40,6 +40,11 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
 /// A physical room in the library (Room 1, Room 2, ...).
 model Room {
   id        Int      @id @default(autoincrement())
@@ -186,4 +191,26 @@ model LoginAttempt {
   @@index([email, createdAt])
   @@index([ip, createdAt])
   @@index([createdAt])
+}
+
+/// Someone who can sign in to the app. Passwords are bcrypt hashes, never plain
+/// text. Accounts are deactivated rather than deleted so the audit trail of
+/// who worked here stays intact.
+model User {
+  id           Int      @id @default(autoincrement())
+  /// The address they type on the login form. Unique across the app.
+  email        String   @unique
+  /// Display name, shown in the sidebar. Optional: the login form has no name.
+  name         String?
+  passwordHash String
+  /// ADMIN manages users and settings; STAFF runs the day-to-day library.
+  role         UserRole @default(STAFF)
+  /// A deactivated account cannot sign in, but its row is kept.
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role])
+  @@index([active])
 }

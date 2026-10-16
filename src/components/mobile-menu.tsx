@@ -13,8 +13,9 @@ import {
 import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/app-nav";
 import { LIBRARY_TAGLINE } from "@/lib/constants";
+import type { UserRole } from "@/generated/prisma/enums";
 
-export function MobileMenu() {
+export function MobileMenu({ role }: { role: UserRole }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -40,7 +41,7 @@ export function MobileMenu() {
           {/* Choosing a destination dismisses the menu. Without this the sheet
               stays open over the page you just asked for, because the route
               change does not close a Radix dialog on its own. */}
-          <MobileNav onNavigate={() => setOpen(false)} />
+          <MobileNav onNavigate={() => setOpen(false)} role={role} />
         </div>
       </SheetContent>
     </Sheet>

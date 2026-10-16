@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect("/login");
 
   const databaseIsUp = await isDatabaseReachable();
+  const roleLabel = session.role === "ADMIN" ? "Admin" : "Staff";
 
   return (
     <div className="flex min-h-dvh bg-muted/30">
@@ -29,10 +30,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
-          <DesktopNav />
+          <DesktopNav role={session.role} />
         </div>
         <div className="border-t border-sidebar-border p-3">
-          <p className="mb-2 truncate px-1 text-xs text-muted-foreground">{session.email}</p>
+          <p className="truncate px-1 text-xs font-medium text-foreground">
+            {session.email}
+          </p>
+          <p className="mb-2 truncate px-1 text-xs text-muted-foreground">{roleLabel}</p>
           <LogoutButton />
         </div>
       </aside>
@@ -40,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 xl:pl-64">
         {/* Mobile / tablet top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-          <MobileMenu />
+          <MobileMenu role={session.role} />
           <Link
             href="/"
             className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
