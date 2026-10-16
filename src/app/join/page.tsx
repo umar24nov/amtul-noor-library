@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ApplicationForm, type RoomOption } from "@/components/application-form";
 import { SITE_NAV } from "@/lib/site-nav";
 import { LIBRARY_NAME } from "@/lib/constants";
+import { layoutKeyForRoom } from "@/lib/seat-layouts";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -14,8 +15,15 @@ export const metadata: Metadata = {
     "Apply for a seat in one place: fill your details, attach your Aadhaar, and the library owner will get back to you after reviewing your application.",
 };
 
-/** Every room that still has at least one free seat, with those seats only. */
-async function getAvailableRooms(): Promise<RoomOption[]> {
+/**
+ * Every room that still has at least one free seat, with every seat it holds.
+ *
+ * Free seats are what the applicant may pick, but the whole room is returned so
+ * the map can show taken seats in place rather than leaving gaps. A room with no
+ * free seat is dropped, which is also what tells the form to say "no seats are
+ * free right now".
+ */
+async function getRooms(): Promise<RoomOption[]> {
   try {
     const rooms = await prisma.room.findMany({
       orderBy: { id: "asc" },
@@ -23,8 +31,8 @@ async function getAvailableRooms(): Promise<RoomOption[]> {
         id: true,
         name: true,
         seats: {
-          where: { status: "AVAILABLE" },
-          select: { id: true, seatNumber: true },
+          select: { id: true, seatNumber: true, status: true },
+          orderBy: { seatNumber: "asc" },
         },
       },
     });
@@ -33,11 +41,16 @@ async function getAvailableRooms(): Promise<RoomOption[]> {
       .map((room) => ({
         id: room.id,
         name: room.name,
-        seats: [...room.seats].sort(
-          (a, b) => Number(a.seatNumber) - Number(b.seatNumber),
-        ),
+        layoutKey: layoutKeyForRoom(room.name),
+        seats: [...room.seats]
+          .sort((a, b) => Number(a.seatNumber) - Number(b.seatNumber))
+          .map((seat) => ({
+            id: seat.id,
+            seatNumber: seat.seatNumber,
+            available: seat.status === "AVAILABLE",
+          })),
       }))
-      .filter((room) => room.seats.length > 0);
+      .filter((room) => room.seats.some((seat) => seat.available));
   } catch {
     // The join page must still render if the database is briefly unreachable;
     // the form will refuse to submit without a seat and tell the applicant so.
@@ -45,8 +58,15 @@ async function getAvailableRooms(): Promise<RoomOption[]> {
   }
 }
 
-export default async function JoinPage() {
-  const rooms = await getAvailableRooms();
+const asId = (value?: string): number | null =>
+  value && /^\d+$/.test(value) ? Number(value) : null;
+
+export default async function JoinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room?: string; seat?: string }>;
+}) {
+  const [rooms, params] = await Promise.all([getRooms(), searchParams]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -78,7 +98,12 @@ export default async function JoinPage() {
             </Link>
           </div>
 
-          <ApplicationForm className="mt-8" rooms={rooms} />
+          <ApplicationForm
+            className="mt-8"
+            rooms={rooms}
+            defaultRoomId={asId(params.room)}
+            defaultSeatNumber={asId(params.seat)}
+          />
         </section>
       </main>
 

@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
+import { SeatMap } from "@/components/seat-map";
 import { submitApplicationAction } from "@/app/join/actions";
 import { IDLE_STATE } from "@/lib/action-result";
 import { LIBRARY_RULES, PREPARATION_OPTIONS } from "@/lib/constants";
+import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -32,22 +34,51 @@ const selectClass = cn(
   "w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
 );
 
-export type SeatOption = { id: number; seatNumber: string };
-export type RoomOption = { id: number; name: string; seats: SeatOption[] };
+export type SeatOption = { id: number; seatNumber: string; available: boolean };
+export type RoomOption = {
+  id: number;
+  name: string;
+  /** Which drawing to use for this room, or null to fall back to a seat list. */
+  layoutKey: SeatLayoutKey | null;
+  seats: SeatOption[];
+};
 
 export function ApplicationForm({
   className,
   rooms = [],
+  defaultRoomId = null,
+  defaultSeatNumber = null,
 }: {
   className?: string;
   rooms?: RoomOption[];
+  /** Pre-filled when the applicant arrived by tapping a seat on the landing map. */
+  defaultRoomId?: number | null;
+  defaultSeatNumber?: number | null;
 }) {
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
   const id = useId();
   const [preparingFor, setPreparingFor] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [seatId, setSeatId] = useState("");
+
+  const initialRoom =
+    (defaultRoomId != null ? rooms.find((room) => room.id === defaultRoomId) : undefined) ??
+    rooms[0] ??
+    null;
+  const initialSeat =
+    initialRoom && defaultSeatNumber != null
+      ? initialRoom.seats.find(
+          (seat) => Number(seat.seatNumber) === defaultSeatNumber && seat.available,
+        )
+      : undefined;
+
+  const [roomId, setRoomId] = useState(initialRoom ? String(initialRoom.id) : "");
+  const [seatId, setSeatId] = useState(initialSeat ? String(initialSeat.id) : "");
   const selectedRoom = rooms.find((room) => String(room.id) === roomId);
+  const selectedSeat = selectedRoom?.seats.find((seat) => String(seat.id) === seatId);
+  const selectedLayout = selectedRoom?.layoutKey ? SEAT_LAYOUTS[selectedRoom.layoutKey] : null;
+
+  function chooseSeat(seat: SeatOption) {
+    if (seat.available) setSeatId(String(seat.id));
+  }
 
   useEffect(() => {
     if (state.status === "success" && state.message) toast.success(state.message);
@@ -251,72 +282,130 @@ export function ApplicationForm({
             <FieldError message={state.fieldErrors?.joiningDate} />
           </div>
 
-          <div className="grid gap-2 border-t border-border pt-4">
-            <SectionTitle>Your seat</SectionTitle>
-            <p className="text-xs text-muted-foreground">
-              Only seats that are free right now are shown. Pick the seat you want;
-              the owner confirms it when your application is approved.
-            </p>
-            {rooms.length === 0 && (
+          <div className="grid gap-3 border-t border-border pt-4">
+            <div className="grid gap-1">
+              <SectionTitle>Your seat</SectionTitle>
+              <p className="text-xs text-muted-foreground">
+                Tap a free seat on the map. Only seats that are free right now
+                can be chosen; the owner confirms your seat when your
+                application is approved.
+              </p>
+            </div>
+
+            {rooms.length === 0 ? (
               <p className="text-xs text-destructive">
                 No seats are free right now. Please contact the library before
                 applying.
               </p>
+            ) : (
+              <>
+                <input type="hidden" name="roomId" value={roomId} />
+                <input type="hidden" name="seatId" value={seatId} />
+
+                {rooms.length > 1 && (
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Choose a room">
+                    {rooms.map((room) => {
+                      const active = String(room.id) === roomId;
+                      const open = room.seats.filter((seat) => seat.available).length;
+                      return (
+                        <button
+                          key={room.id}
+                          type="button"
+                          onClick={() => {
+                            setRoomId(String(room.id));
+                            setSeatId("");
+                          }}
+                          aria-pressed={active}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                            active
+                              ? "border-foreground bg-foreground text-background"
+                              : "border-border bg-card hover:bg-muted",
+                          )}
+                        >
+                          {room.name}
+                          <span className="ml-2 text-xs opacity-70">{open} free</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    selectedSeat ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {selectedSeat && selectedRoom
+                    ? `${selectedRoom.name} · Seat ${Number(selectedSeat.seatNumber)}`
+                    : "No seat chosen yet — tap a free seat."}
+                </p>
+
+                {selectedRoom && selectedLayout ? (
+                  <SeatMap
+                    layout={selectedLayout}
+                    seats={selectedRoom.seats.map((seat) => ({
+                      number: Number(seat.seatNumber),
+                      status: seat.available ? "AVAILABLE" : "OCCUPIED",
+                    }))}
+                    selectedNumber={selectedSeat ? Number(selectedSeat.seatNumber) : null}
+                    onSelectSeat={(number) => {
+                      const seat = selectedRoom.seats.find(
+                        (candidate) => Number(candidate.seatNumber) === number,
+                      );
+                      if (seat) chooseSeat(seat);
+                    }}
+                    ariaLabel={`${selectedRoom.name} seat map. Tap a free seat to choose it.`}
+                    className="mx-auto max-w-3xl rounded-xl border border-border bg-card p-2"
+                  />
+                ) : selectedRoom ? (
+                  <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
+                    {selectedRoom.seats.map((seat) => {
+                      const isSelected = String(seat.id) === seatId;
+                      return (
+                        <li key={seat.id}>
+                          <button
+                            type="button"
+                            disabled={!seat.available}
+                            onClick={() => chooseSeat(seat)}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              "w-full rounded-md border px-2 py-2.5 text-center font-mono text-xs font-medium transition-colors",
+                              !seat.available
+                                ? "cursor-not-allowed border-border bg-muted-foreground/30 text-muted-foreground line-through"
+                                : isSelected
+                                  ? "border-emerald-600 bg-emerald-500 text-white"
+                                  : "border-sky-700/30 bg-sky-600 text-white hover:brightness-110",
+                            )}
+                          >
+                            {seat.seatNumber}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+
+                <ul className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <span className="size-3 rounded-sm border border-sky-700/30 bg-sky-600" />
+                    Free
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="size-3 rounded-sm border border-emerald-600/30 bg-emerald-500" />
+                    Your pick
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="size-3 rounded-sm border border-red-700/30 bg-red-500" />
+                    Taken
+                  </li>
+                </ul>
+
+                <FieldError message={state.fieldErrors?.roomId} />
+                <FieldError message={state.fieldErrors?.seatId} />
+              </>
             )}
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-roomId`}>
-              Room <span className="text-destructive">*</span>
-            </Label>
-            <select
-              id={`${id}-roomId`}
-              name="roomId"
-              value={roomId}
-              onChange={(event) => {
-                setRoomId(event.target.value);
-                setSeatId("");
-              }}
-              required
-              aria-invalid={Boolean(state.fieldErrors?.roomId)}
-              className={cn(selectClass, !roomId && "text-muted-foreground")}
-            >
-              <option value="" disabled>
-                Choose a room
-              </option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
-            <FieldError message={state.fieldErrors?.roomId} />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-seatId`}>
-              Seat <span className="text-destructive">*</span>
-            </Label>
-            <select
-              id={`${id}-seatId`}
-              name="seatId"
-              value={seatId}
-              onChange={(event) => setSeatId(event.target.value)}
-              required
-              disabled={!selectedRoom}
-              aria-invalid={Boolean(state.fieldErrors?.seatId)}
-              className={cn(selectClass, !seatId && "text-muted-foreground")}
-            >
-              <option value="" disabled>
-                {selectedRoom ? "Choose a seat" : "Choose a room first"}
-              </option>
-              {selectedRoom?.seats.map((seat) => (
-                <option key={seat.id} value={seat.id}>
-                  Seat {seat.seatNumber}
-                </option>
-              ))}
-            </select>
-            <FieldError message={state.fieldErrors?.seatId} />
           </div>
         </CardContent>
       </Card>

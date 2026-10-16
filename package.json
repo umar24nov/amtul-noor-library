@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:local": "tsx prisma/local-db.ts",
+    "seed-room2": "tsx prisma/seed-room2.ts",
     "import": "tsx prisma/import-excel.ts",
     "check-data": "tsx prisma/check-data.ts",
     "hash-password": "tsx prisma/hash-password.ts",

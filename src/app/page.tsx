@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingHeader } from "@/components/landing-header";
+import { SeatMap, type SeatMapSeat } from "@/components/seat-map";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAV } from "@/lib/site-nav";
 import {
@@ -40,6 +41,7 @@ import {
 import { formatINR, formatNumber } from "@/lib/format";
 import { HERO_PHOTO, GALLERY_PHOTOS } from "@/lib/photos";
 import { listPublicOccupancy, type PublicRoomOccupancy } from "@/lib/queries";
+import { layoutForRoom } from "@/lib/seat-layouts";
 import { siteHomeUrl, siteOrigin } from "@/lib/site";
 import { JoinForm } from "@/components/join-form";
 import { whatsappShareUrl } from "@/lib/whatsapp";
@@ -309,47 +311,66 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
               Which seats are free
             </h2>
             <p className="mt-2 max-w-prose text-muted-foreground">
-              Taken at the moment. Seats change through the day, so ask on WhatsApp
-              before you set off.
+              Taken at the moment. Tap a free seat to apply for it, or ask on
+              WhatsApp before you set off.
             </p>
           </div>
           <ul className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
             <li className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-border bg-muted-foreground/70" />
-              Occupied
+              <span className="size-3 rounded-sm border border-sky-700/30 bg-sky-600" />
+              Available
             </li>
             <li className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-emerald-600/40 bg-emerald-500/15" />
-              Free
+              <span className="size-3 rounded-sm border border-red-700/30 bg-red-500" />
+              Booked
             </li>
           </ul>
         </div>
 
         <div className="space-y-8">
-          {withSeats.map((room) => (
-            <div key={room.id}>
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h3 className="font-heading text-lg font-semibold">{room.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {room.open} free of {room.total}
-                </p>
+          {withSeats.map((room) => {
+            const layout = layoutForRoom(room.name);
+            const seats: SeatMapSeat[] = room.seats.map((seat) => ({
+              number: Number(seat.seatNumber),
+              status: seat.occupied ? "OCCUPIED" : "AVAILABLE",
+            }));
+
+            return (
+              <div key={room.id}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h3 className="font-heading text-lg font-semibold">{room.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {room.open} free of {room.total}
+                  </p>
+                </div>
+
+                {layout ? (
+                  <SeatMap
+                    layout={layout}
+                    seats={seats}
+                    seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
+                    ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
+                    className="mx-auto mt-3 max-w-3xl rounded-xl border border-border bg-card p-3"
+                  />
+                ) : (
+                  <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
+                    {room.seats.map((seat) => (
+                      <li
+                        key={seat.id}
+                        className={
+                          seat.occupied
+                            ? "rounded-md border border-border bg-muted-foreground/70 px-2 py-2.5 text-center font-mono text-xs text-background"
+                            : "rounded-md border border-emerald-600/40 bg-emerald-500/15 px-2 py-2.5 text-center font-mono text-xs font-medium text-emerald-800 dark:text-emerald-300"
+                        }
+                      >
+                        {seat.seatNumber}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-                {room.seats.map((seat) => (
-                  <li
-                    key={seat.id}
-                    className={
-                      seat.occupied
-                        ? "rounded-md border border-border bg-muted-foreground/70 px-2 py-2.5 text-center font-mono text-xs text-background"
-                        : "rounded-md border border-emerald-600/40 bg-emerald-500/15 px-2 py-2.5 text-center font-mono text-xs font-medium text-emerald-800 dark:text-emerald-300"
-                    }
-                  >
-                    {seat.seatNumber}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
