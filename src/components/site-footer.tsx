@@ -40,7 +40,7 @@ export function SiteFooter() {
           <div className="space-y-4">
             <Brand />
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A quiet place to read, study and get on with it. A reading room in
+              A quiet place to study, a better way to succeed. A reading room in
               Roorkee where your seat is yours while you are a member, and one
               fixed monthly fee.
             </p>
@@ -156,7 +156,7 @@ export function SiteFooter() {
           <p>
             &copy; {year} {LIBRARY_NAME} · {LIBRARY_ADDRESS}
           </p>
-          <p>A quiet place to read, study and get on with it.</p>
+          <p>A quiet place to study, a better way to succeed.</p>
         </div>
       </div>
     </footer>

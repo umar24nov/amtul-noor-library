@@ -33,8 +33,9 @@ import {
   LIBRARY_PHONE_ALT,
   LIBRARY_PHONE_ALT_URL,
   LIBRARY_PHONE_URL,
+  LIBRARY_PREPAID_FULL_PRICES,
   LIBRARY_PREPAID_OFFER,
-  LIBRARY_PREPAID_PRICE,
+  LIBRARY_PREPAID_PRICES,
   LIBRARY_TAGLINE,
   LIBRARY_WHATSAPP_URL,
 } from "@/lib/constants";
@@ -109,7 +110,7 @@ function librarySchema(origin: string) {
       postalCode: "247667",
       addressCountry: "IN",
     },
-    openingHours: "Mo-Su 07:00-12:00",
+    openingHours: "Mo-Su 07:00-24:00",
   };
 }
 
@@ -216,14 +217,20 @@ function Hero({
           </p>
 
           <h1 className="font-heading mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            A quiet place to read, study and get on with it.
+            A Quiet Place to Study. A Better Way to Succeed.
           </h1>
 
-          <p className="mt-4 max-w-prose text-base leading-relaxed text-left text-muted-foreground sm:text-justify">
-            {LIBRARY_NAME} is a quiet reading room in Roorkee for students and
-            anyone who needs somewhere to sit and work without interruptions. Every
-            member is given their own seat, and the fee is one fixed monthly amount
-            with nothing else to pay.
+          <p className="mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
+            {LIBRARY_NAME} is a peaceful reading room in Roorkee, designed for
+            students and anyone who needs a quiet, comfortable space to focus on
+            their studies or work. Every member gets their own reserved study
+            seat, along with Wi-Fi, charging facilities, and a distraction-free
+            environment.
+          </p>
+
+          <p className="mt-4 max-w-prose font-semibold text-foreground">
+            Simple monthly fees. No hidden charges. Just a peaceful place to
+            focus, learn, and move closer to your goals.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -331,7 +338,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
           </ul>
         </div>
 
-        <div className="space-y-8">
+        <div className="grid gap-6 lg:grid-cols-2">
           {withSeats.map((room) => {
             const layout = layoutForRoom(room.name);
             const seats: SeatMapSeat[] = room.seats.map((seat) => ({
@@ -340,7 +347,10 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
             }));
 
             return (
-              <div key={room.id}>
+              <div
+                key={room.id}
+                className="rounded-xl border border-border bg-card p-4 sm:p-5"
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h3 className="font-heading text-lg font-semibold">{room.name}</h3>
                   <p className="text-sm text-muted-foreground">
@@ -354,10 +364,10 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-3 max-w-lg rounded-xl border border-border bg-card p-3"
+                    className="mx-auto mt-4 max-w-sm"
                   />
                 ) : (
-                  <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
+                  <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
                     {room.seats.map((seat) => (
                       <li
                         key={seat.id}
@@ -494,44 +504,33 @@ function Fees() {
           </p>
         </div>
 
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 sm:grid-cols-2">
           <PriceCard
-            name="A seat"
+            name="Regular Seat"
             price={LIBRARY_FEES.seat}
-            unit="per month"
+            unit="/ month"
             points={[
-              "Your own seat, yours for as long as you are a member",
-              "Reading room access during opening hours",
-              "Wi-Fi and power at the desk",
-              "Quiet study conditions",
+              "Your own reserved study seat for as long as your membership continues.",
+              "Access to the library during opening hours.",
+              "Free Wi-Fi and charging facilities.",
+              "A quiet and comfortable environment for focused study.",
             ]}
           />
           <PriceCard
-            name="A seat with a locker"
+            name="Seat with Locker"
             price={LIBRARY_FEES.seatWithLocker}
-            unit="per month"
+            unit="/ month"
             points={[
-              "Everything in the plain seat",
-              "A personal locker, so books stay overnight",
-              "Only available in the room that has lockers",
-              "Tell us on WhatsApp which room you want",
+              "Includes all the benefits of a regular seat.",
+              "A personal locker to keep your books and study materials safely at the library.",
+              "Available only in rooms with lockers.",
+              "Contact us on WhatsApp to ask about locker availability and choose your preferred room.",
             ]}
             highlighted
           />
-          <PriceCard
-            name={`Pay ${LIBRARY_PREPAID_OFFER.paidMonths}, get ${LIBRARY_PREPAID_OFFER.totalMonths}`}
-            price={LIBRARY_PREPAID_PRICE}
-            unit={`/ ${LIBRARY_PREPAID_OFFER.totalMonths} months`}
-            points={[
-              `${LIBRARY_PREPAID_OFFER.paidMonths} months paid up front and the fourth is free`,
-              `Works out at ${formatINR(
-                LIBRARY_PREPAID_PRICE / LIBRARY_PREPAID_OFFER.totalMonths,
-              )} a month, on the plain seat`,
-              "Your seat is booked across all four months",
-              "The equivalent of a month free every four",
-            ]}
-          />
         </ul>
+
+        <PrepaidOffer />
 
         <p className="text-sm text-muted-foreground">
           To join, message us on{" "}
@@ -547,6 +546,65 @@ function Fees() {
         </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * The pay-for-three, get-four offer. Kept beside the two monthly plans rather
+ * than as a third card, because it is a way of paying for either of them.
+ */
+function PrepaidOffer() {
+  const { paidMonths, totalMonths } = LIBRARY_PREPAID_OFFER;
+
+  const rows = [
+    {
+      label: "Regular Seat",
+      price: LIBRARY_PREPAID_PRICES.seat,
+      full: LIBRARY_PREPAID_FULL_PRICES.seat,
+    },
+    {
+      label: "Seat with Locker",
+      price: LIBRARY_PREPAID_PRICES.seatWithLocker,
+      full: LIBRARY_PREPAID_FULL_PRICES.seatWithLocker,
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-foreground/15 bg-card p-6 sm:p-8">
+      <h3 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+        {totalMonths} Months for the Price of {paidMonths}
+      </h3>
+      <p className="mt-1 font-medium text-foreground">
+        Pay for {paidMonths} months. Get the {totalMonths}th FREE.
+      </p>
+
+      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+        {rows.map((row) => (
+          <li
+            key={row.label}
+            className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-xl border border-border bg-background p-4"
+          >
+            <span className="font-medium">{row.label}:</span>
+            <span className="font-heading text-lg font-semibold">
+              {formatINR(row.price)}
+            </span>
+            <span className="text-sm text-muted-foreground line-through">
+              {formatINR(row.full)}
+            </span>
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              Save {formatINR(row.full - row.price)}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-5 text-sm text-muted-foreground">
+        Your selected seat stays reserved for all {totalMonths} months.
+      </p>
+      <p className="mt-3 font-semibold text-foreground">
+        Pay for {paidMonths}. Study for {totalMonths}. Save more.
+      </p>
+    </div>
   );
 }
 

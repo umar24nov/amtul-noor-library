@@ -100,9 +100,23 @@ export const LIBRARY_PREPAID_OFFER = {
   totalMonths: 4,
 } as const;
 
-/** What the prepaid offer costs, worked out rather than written by hand. */
-export const LIBRARY_PREPAID_PRICE =
-  LIBRARY_FEES.seat * LIBRARY_PREPAID_OFFER.paidMonths;
+/**
+ * What the prepaid offer costs for each plan, worked out rather than written
+ * by hand so a change to the monthly fee cannot leave the offer stale.
+ */
+export const LIBRARY_PREPAID_PRICES = {
+  seat: LIBRARY_FEES.seat * LIBRARY_PREPAID_OFFER.paidMonths,
+  seatWithLocker: LIBRARY_FEES.seatWithLocker * LIBRARY_PREPAID_OFFER.paidMonths,
+} as const;
+
+/**
+ * What the same four months would cost at the full monthly rate, for the
+ * struck-through "before" price beside the offer.
+ */
+export const LIBRARY_PREPAID_FULL_PRICES = {
+  seat: LIBRARY_FEES.seat * LIBRARY_PREPAID_OFFER.totalMonths,
+  seatWithLocker: LIBRARY_FEES.seatWithLocker * LIBRARY_PREPAID_OFFER.totalMonths,
+} as const;
 
 export const MEMBER_ID_PREFIX = "ATN";
 export const PAYMENT_ID_PREFIX = "PAY";
