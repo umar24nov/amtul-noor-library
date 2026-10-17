@@ -77,6 +77,10 @@ export function ApplicationForm({
   const selectedSeat = selectedRoom?.seats.find((seat) => String(seat.id) === seatId);
   const selectedLayout = selectedRoom?.layoutKey ? SEAT_LAYOUTS[selectedRoom.layoutKey] : null;
 
+  // True when the applicant reached the form by tapping a seat on the landing
+  // page, so the seat section can acknowledge the choice already carried over.
+  const arrivedWithSeat = Boolean(initialSeat);
+
   function chooseSeat(seat: SeatOption) {
     if (!seat.available) return;
     const seatKey = String(seat.id);
@@ -305,11 +309,13 @@ export function ApplicationForm({
 
           <div id="seat" className="grid scroll-mt-24 gap-3 border-t border-border pt-4">
             <div className="grid gap-1">
-              <SectionTitle>Choose your seat</SectionTitle>
+              <SectionTitle>
+                {arrivedWithSeat ? "You have already selected a seat" : "Choose your seat"}
+              </SectionTitle>
               <p className="text-xs text-muted-foreground">
-                Tap a free seat on the map. Only seats that are free right now
-                can be chosen; the owner confirms your seat when your
-                application is approved.
+                {arrivedWithSeat
+                  ? "We carried over the seat you tapped. You can pick a different free seat on the map if you change your mind."
+                  : "Tap a free seat on the map. Only seats that are free right now can be chosen; the owner confirms your seat when your application is approved."}
               </p>
             </div>
 
