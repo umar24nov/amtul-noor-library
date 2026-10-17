@@ -246,6 +246,8 @@ export function ApplicationForm({
                 placeholder="10-digit number"
                 autoComplete="tel"
                 required
+                maxLength={10}
+                pattern="[6-9][0-9]{9}"
                 aria-invalid={Boolean(state.fieldErrors?.mobile)}
                 className={cn(inputClass, "pl-12")}
               />
@@ -321,6 +323,8 @@ export function ApplicationForm({
                 type="tel"
                 inputMode="numeric"
                 placeholder="10-digit number"
+                maxLength={10}
+                pattern="[6-9][0-9]{9}"
                 aria-invalid={Boolean(state.fieldErrors?.guardianMobile)}
                 className={cn(inputClass, "pl-12")}
               />
