@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -216,7 +217,7 @@ function Hero({
             {LIBRARY_TAGLINE}
           </p>
 
-          <h1 className="font-heading mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          <h1 className="font-heading mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             A Quiet Place to Study. A Better Way to Succeed.
           </h1>
 
@@ -351,12 +352,9 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                 key={room.id}
                 className="rounded-xl border border-border bg-card p-4 sm:p-5"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <h3 className="font-heading text-lg font-semibold">{room.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {room.open} free of {room.total}
-                  </p>
-                </div>
+                <p className="text-center text-sm text-muted-foreground">
+                  {room.open} free of {room.total}
+                </p>
 
                 {layout ? (
                   <SeatMap
@@ -364,7 +362,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-4 max-w-sm"
+                    className="mx-auto mt-2 max-w-sm"
                   />
                 ) : (
                   <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
@@ -504,7 +502,7 @@ function Fees() {
           </p>
         </div>
 
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PriceCard
             name="Regular Seat"
             price={LIBRARY_FEES.seat}
@@ -528,9 +526,36 @@ function Fees() {
             ]}
             highlighted
           />
+          <PriceCard
+            name={`${LIBRARY_PREPAID_OFFER.totalMonths} Months for the Price of ${LIBRARY_PREPAID_OFFER.paidMonths}`}
+            price={LIBRARY_PREPAID_PRICES.seat}
+            unit={`/ ${LIBRARY_PREPAID_OFFER.totalMonths} months`}
+            points={[
+              `Pay for ${LIBRARY_PREPAID_OFFER.paidMonths} months. Get the ${LIBRARY_PREPAID_OFFER.totalMonths}th FREE.`,
+              <>
+                Regular Seat: {formatINR(LIBRARY_PREPAID_PRICES.seat)}{" "}
+                <s className="opacity-70">{formatINR(LIBRARY_PREPAID_FULL_PRICES.seat)}</s> —
+                save{" "}
+                {formatINR(
+                  LIBRARY_PREPAID_FULL_PRICES.seat - LIBRARY_PREPAID_PRICES.seat,
+                )}
+              </>,
+              <>
+                Seat with Locker:{" "}
+                {formatINR(LIBRARY_PREPAID_PRICES.seatWithLocker)}{" "}
+                <s className="opacity-70">
+                  {formatINR(LIBRARY_PREPAID_FULL_PRICES.seatWithLocker)}
+                </s>{" "}
+                — save{" "}
+                {formatINR(
+                  LIBRARY_PREPAID_FULL_PRICES.seatWithLocker -
+                    LIBRARY_PREPAID_PRICES.seatWithLocker,
+                )}
+              </>,
+              `Your selected seat stays reserved for all ${LIBRARY_PREPAID_OFFER.totalMonths} months.`,
+            ]}
+          />
         </ul>
-
-        <PrepaidOffer />
 
         <p className="text-sm text-muted-foreground">
           To join, message us on{" "}
@@ -549,65 +574,6 @@ function Fees() {
   );
 }
 
-/**
- * The pay-for-three, get-four offer. Kept beside the two monthly plans rather
- * than as a third card, because it is a way of paying for either of them.
- */
-function PrepaidOffer() {
-  const { paidMonths, totalMonths } = LIBRARY_PREPAID_OFFER;
-
-  const rows = [
-    {
-      label: "Regular Seat",
-      price: LIBRARY_PREPAID_PRICES.seat,
-      full: LIBRARY_PREPAID_FULL_PRICES.seat,
-    },
-    {
-      label: "Seat with Locker",
-      price: LIBRARY_PREPAID_PRICES.seatWithLocker,
-      full: LIBRARY_PREPAID_FULL_PRICES.seatWithLocker,
-    },
-  ];
-
-  return (
-    <div className="rounded-2xl border border-foreground/15 bg-card p-6 sm:p-8">
-      <h3 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-        {totalMonths} Months for the Price of {paidMonths}
-      </h3>
-      <p className="mt-1 font-medium text-foreground">
-        Pay for {paidMonths} months. Get the {totalMonths}th FREE.
-      </p>
-
-      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-        {rows.map((row) => (
-          <li
-            key={row.label}
-            className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-xl border border-border bg-background p-4"
-          >
-            <span className="font-medium">{row.label}:</span>
-            <span className="font-heading text-lg font-semibold">
-              {formatINR(row.price)}
-            </span>
-            <span className="text-sm text-muted-foreground line-through">
-              {formatINR(row.full)}
-            </span>
-            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              Save {formatINR(row.full - row.price)}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <p className="mt-5 text-sm text-muted-foreground">
-        Your selected seat stays reserved for all {totalMonths} months.
-      </p>
-      <p className="mt-3 font-semibold text-foreground">
-        Pay for {paidMonths}. Study for {totalMonths}. Save more.
-      </p>
-    </div>
-  );
-}
-
 function PriceCard({
   name,
   price,
@@ -618,7 +584,7 @@ function PriceCard({
   name: string;
   price: number;
   unit: string;
-  points: string[];
+  points: ReactNode[];
   highlighted?: boolean;
 }) {
   return (
@@ -635,8 +601,8 @@ function PriceCard({
         <span className="text-sm text-muted-foreground">{unit}</span>
       </p>
       <ul className="mt-5 flex-1 space-y-2.5 border-t border-border pt-5 text-sm text-muted-foreground">
-        {points.map((point) => (
-          <li key={point} className="flex gap-2">
+        {points.map((point, index) => (
+          <li key={index} className="flex gap-2">
             <span aria-hidden="true" className="text-foreground">
               &middot;
             </span>
@@ -747,7 +713,7 @@ function Visit() {
 
           <div id="faq" className="mt-8 scroll-mt-16 space-y-4 border-t border-border pt-6">
             <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Common questions
+              Frequently asked questions
             </h3>
             <dl className="space-y-4 text-sm">
               {FAQ.map((item) => (

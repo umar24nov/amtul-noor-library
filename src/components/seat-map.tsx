@@ -42,8 +42,6 @@ const SEAT_FILL = {
   missing: "fill-foreground/10",
 } as const;
 
-const COMPASS = "M 20 5 L 14 22 L 20 17 L 26 22 Z";
-
 function seatFill(
   status: "AVAILABLE" | "OCCUPIED" | "MISSING",
   selected: boolean,
@@ -76,7 +74,7 @@ export function SeatMap({
 
   return (
     <svg
-      viewBox="0 0 900 650"
+      viewBox="40 28 820 572"
       role="group"
       aria-label={ariaLabel}
       className={cn("h-auto w-full", className)}
@@ -91,6 +89,18 @@ export function SeatMap({
         className="fill-foreground/5 stroke-foreground/25"
         strokeWidth={4}
       />
+
+      {/* The room's name, centred across the top of the drawing. */}
+      <text
+        x="450"
+        y="75"
+        textAnchor="middle"
+        fontSize={22}
+        fontWeight={700}
+        className="fill-foreground/70"
+      >
+        {layout.label}
+      </text>
 
       {layout.windows.map((w) => (
         <rect
@@ -128,20 +138,6 @@ export function SeatMap({
       >
         {layout.door.label}
       </text>
-
-      <g transform="translate(50, 590)">
-        <path d={COMPASS} className="fill-foreground/70" />
-        <text
-          x={20}
-          y={35}
-          textAnchor="middle"
-          fontSize={11}
-          fontWeight={600}
-          className="fill-muted-foreground"
-        >
-          N
-        </text>
-      </g>
 
       {layout.desks.map((desk) => (
         <rect

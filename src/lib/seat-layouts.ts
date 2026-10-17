@@ -65,11 +65,6 @@ function buildLayout(
   };
 }
 
-const WINDOWS: Rect[] = [
-  { x: 240, y: 40, w: 90, h: 10 },
-  { x: 570, y: 40, w: 90, h: 10 },
-];
-
 const DOOR_ROOM_1: DoorSpec = {
   line: [410, 560, 490, 560],
   arc: "M 450 560 A 40 40 0 0 1 410 520",
@@ -89,7 +84,7 @@ const DOOR_ROOM_2: DoorSpec = {
 const ROOM_1 = buildLayout(
   "room-1",
   "Room 1",
-  WINDOWS,
+  [],
   DOOR_ROOM_1,
   [
     // Top row, right to left: 16 15 14 13 12 11.

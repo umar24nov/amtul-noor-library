@@ -14,6 +14,7 @@ import {
   LIBRARY_PHONE_ALT,
   LIBRARY_PHONE_ALT_URL,
   LIBRARY_PHONE_URL,
+  LIBRARY_TAGLINE,
   LIBRARY_WHATSAPP_URL,
 } from "@/lib/constants";
 
@@ -29,7 +30,6 @@ export function SiteFooter() {
   const companyLinks: { href: string; label: string; external?: boolean }[] = [
     { href: "/#visit", label: "Contact" },
     { href: LIBRARY_WHATSAPP_URL, label: "Help & support", external: true },
-    { href: LIBRARY_MAPS_URL, label: "Find us on Google Maps", external: true },
     { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
   ];
 
@@ -39,10 +39,17 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="space-y-4">
             <Brand />
+            <p className="max-w-sm text-sm font-semibold text-foreground">
+              A peaceful place to focus, learn, and achieve more.
+            </p>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A quiet place to study, a better way to succeed. A reading room in
-              Roorkee where your seat is yours while you are a member, and one
-              fixed monthly fee.
+              Looking for a quiet place to study? {LIBRARY_NAME} in Roorkee
+              offers a comfortable reading environment with your own reserved
+              seat, free Wi-Fi, and charging facilities — all at a simple, fixed
+              monthly fee with no hidden charges.
+            </p>
+            <p className="max-w-sm text-sm font-semibold text-foreground">
+              Your space to focus. Your journey to success.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
@@ -156,7 +163,7 @@ export function SiteFooter() {
           <p>
             &copy; {year} {LIBRARY_NAME} · {LIBRARY_ADDRESS}
           </p>
-          <p>A quiet place to study, a better way to succeed.</p>
+          <p>{LIBRARY_TAGLINE}</p>
         </div>
       </div>
     </footer>
