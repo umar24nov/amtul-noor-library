@@ -10,10 +10,16 @@
  * Seats are keyed by the number printed on them (1-22). The database stores the
  * same number, zero-padded ("01".."22"), so callers map between the two with
  * `Number(seatNumber)`.
+ *
+ * Both rooms share one set of desk positions (the tidier Room 2 drawing) and
+ * differ only in the number printed on each desk. Keeping a single grid of
+ * `CELLS` and renumbering it per room means the two maps can never drift apart
+ * in shape, which is what the owner asked for: "same layout, different numbers".
  */
 
-/** Gap between the edge of a desk and the seat drawn on top of it. */
-export const SEAT_INSET = 7;
+/** Gap between the edge of a desk and the seat drawn on top of it. Narrow, so
+ *  the seat fills most of its desk and reads clearly on a small screen. */
+export const SEAT_INSET = 4;
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -81,75 +87,75 @@ const DOOR_ROOM_2: DoorSpec = {
   labelY: 583,
 };
 
-const ROOM_1 = buildLayout(
-  "room-1",
-  "Room 1",
-  [],
-  DOOR_ROOM_1,
-  [
-    // Top row, right to left: 16 15 14 13 12 11.
-    { number: 16, x: 200, y: 95, w: 60, h: 50 },
-    { number: 15, x: 300, y: 95, w: 60, h: 50 },
-    { number: 14, x: 400, y: 95, w: 60, h: 50 },
-    { number: 13, x: 500, y: 95, w: 60, h: 50 },
-    { number: 12, x: 600, y: 95, w: 60, h: 50 },
-    { number: 11, x: 700, y: 95, w: 60, h: 50 },
-    // West wall, top to bottom: 17..22.
-    { number: 17, x: 65, y: 175, w: 50, h: 50 },
-    { number: 18, x: 65, y: 235, w: 50, h: 50 },
-    { number: 19, x: 65, y: 295, w: 50, h: 50 },
-    { number: 20, x: 65, y: 355, w: 50, h: 50 },
-    { number: 21, x: 65, y: 415, w: 50, h: 50 },
-    { number: 22, x: 65, y: 475, w: 50, h: 50 },
-    // Centre-left column, bottom to top: 1..5.
-    { number: 1, x: 390, y: 455, w: 50, h: 50 },
-    { number: 2, x: 390, y: 400, w: 50, h: 50 },
-    { number: 3, x: 390, y: 345, w: 50, h: 50 },
-    { number: 4, x: 390, y: 290, w: 50, h: 50 },
-    { number: 5, x: 390, y: 235, w: 50, h: 50 },
-    // Centre-right column, bottom to top: 6..10 (10 on top).
-    { number: 6, x: 450, y: 455, w: 50, h: 50 },
-    { number: 7, x: 450, y: 400, w: 50, h: 50 },
-    { number: 8, x: 450, y: 345, w: 50, h: 50 },
-    { number: 9, x: 450, y: 290, w: 50, h: 50 },
-    { number: 10, x: 450, y: 235, w: 50, h: 50 },
-  ],
-);
+/**
+ * The desk grid both rooms are drawn from, in a fixed order: the top row of
+ * six, the left column of six, then the two middle columns of five each. The
+ * coordinates are the Room 2 drawing, which the owner preferred because the
+ * desks line up with each other instead of hugging the walls.
+ */
+const CELLS: Rect[] = [
+  // Top row.
+  { x: 145, y: 95, w: 60, h: 50 },
+  { x: 250, y: 95, w: 60, h: 50 },
+  { x: 355, y: 95, w: 60, h: 50 },
+  { x: 460, y: 95, w: 60, h: 50 },
+  { x: 565, y: 95, w: 60, h: 50 },
+  { x: 670, y: 95, w: 60, h: 50 },
+  // Left column.
+  { x: 145, y: 175, w: 50, h: 50 },
+  { x: 145, y: 230, w: 50, h: 50 },
+  { x: 145, y: 285, w: 50, h: 50 },
+  { x: 145, y: 340, w: 50, h: 50 },
+  { x: 145, y: 395, w: 50, h: 50 },
+  { x: 145, y: 450, w: 50, h: 50 },
+  // Middle block, left sub-column.
+  { x: 390, y: 175, w: 50, h: 50 },
+  { x: 390, y: 230, w: 50, h: 50 },
+  { x: 390, y: 285, w: 50, h: 50 },
+  { x: 390, y: 340, w: 50, h: 50 },
+  { x: 390, y: 395, w: 50, h: 50 },
+  // Middle block, right sub-column.
+  { x: 450, y: 175, w: 50, h: 50 },
+  { x: 450, y: 230, w: 50, h: 50 },
+  { x: 450, y: 285, w: 50, h: 50 },
+  { x: 450, y: 340, w: 50, h: 50 },
+  { x: 450, y: 395, w: 50, h: 50 },
+];
 
-const ROOM_2 = buildLayout(
-  "room-2",
-  "Room 2",
-  [],
-  DOOR_ROOM_2,
-  [
-    // Top row, left to right: 17 18 19 20 21 22.
-    { number: 17, x: 145, y: 95, w: 60, h: 50 },
-    { number: 18, x: 250, y: 95, w: 60, h: 50 },
-    { number: 19, x: 355, y: 95, w: 60, h: 50 },
-    { number: 20, x: 460, y: 95, w: 60, h: 50 },
-    { number: 21, x: 565, y: 95, w: 60, h: 50 },
-    { number: 22, x: 670, y: 95, w: 60, h: 50 },
-    // Left column, top to bottom: 6 5 4 3 2 1.
-    { number: 6, x: 145, y: 175, w: 50, h: 50 },
-    { number: 5, x: 145, y: 230, w: 50, h: 50 },
-    { number: 4, x: 145, y: 285, w: 50, h: 50 },
-    { number: 3, x: 145, y: 340, w: 50, h: 50 },
-    { number: 2, x: 145, y: 395, w: 50, h: 50 },
-    { number: 1, x: 145, y: 450, w: 50, h: 50 },
-    // Middle block, left sub-column, top to bottom: 11..7.
-    { number: 11, x: 390, y: 175, w: 50, h: 50 },
-    { number: 10, x: 390, y: 230, w: 50, h: 50 },
-    { number: 9, x: 390, y: 285, w: 50, h: 50 },
-    { number: 8, x: 390, y: 340, w: 50, h: 50 },
-    { number: 7, x: 390, y: 395, w: 50, h: 50 },
-    // Middle block, right sub-column, top to bottom: 16..12.
-    { number: 16, x: 450, y: 175, w: 50, h: 50 },
-    { number: 15, x: 450, y: 230, w: 50, h: 50 },
-    { number: 14, x: 450, y: 285, w: 50, h: 50 },
-    { number: 13, x: 450, y: 340, w: 50, h: 50 },
-    { number: 12, x: 450, y: 395, w: 50, h: 50 },
-  ],
-);
+/**
+ * Which number sits on each cell, read off the two design files. The rooms have
+ * the same shape but their own numbering, so each list is a full permutation of
+ * 1-22 in cell order. Room 2 runs the top row and left column the other way
+ * round, which is the only visible difference between the two maps.
+ */
+const ROOM_1_NUMBERS = [
+  // Top row, right to left: 16..11.
+  16, 15, 14, 13, 12, 11,
+  // Left column, top to bottom: 17..22.
+  17, 18, 19, 20, 21, 22,
+  // Middle block, left sub-column, bottom to top: 1..5.
+  5, 4, 3, 2, 1,
+  // Middle block, right sub-column, bottom to top: 6..10.
+  10, 9, 8, 7, 6,
+];
+
+const ROOM_2_NUMBERS = [
+  // Top row, left to right: 17..22.
+  17, 18, 19, 20, 21, 22,
+  // Left column, top to bottom: 6..1.
+  6, 5, 4, 3, 2, 1,
+  // Middle block, left sub-column, top to bottom: 11..7.
+  11, 10, 9, 8, 7,
+  // Middle block, right sub-column, top to bottom: 16..12.
+  16, 15, 14, 13, 12,
+];
+
+function placements(numbers: number[]): SeatPlacement[] {
+  return numbers.map((number, index) => ({ number, ...CELLS[index] }));
+}
+
+const ROOM_1 = buildLayout("room-1", "Room 1", [], DOOR_ROOM_1, placements(ROOM_1_NUMBERS));
+const ROOM_2 = buildLayout("room-2", "Room 2", [], DOOR_ROOM_2, placements(ROOM_2_NUMBERS));
 
 export const SEAT_LAYOUTS: Record<string, SeatLayout> = {
   [ROOM_1.key]: ROOM_1,

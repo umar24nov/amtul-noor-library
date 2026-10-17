@@ -217,8 +217,9 @@ function Hero({
             {LIBRARY_TAGLINE}
           </p>
 
-          <h1 className="font-heading mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            A Quiet Place to Study. A Better Way to Succeed.
+          <h1 className="font-heading mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
+            <span className="block">A Quiet Place to Study.</span>
+            <span className="block">A Better Way to Succeed.</span>
           </h1>
 
           <p className="mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
@@ -339,7 +340,9 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
           </ul>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Side by side from `md`, not just `lg`, so the maps stay short on a
+            laptop whose window is narrower than the `lg` breakpoint. */}
+        <div className="grid gap-6 md:grid-cols-2">
           {withSeats.map((room) => {
             const layout = layoutForRoom(room.name);
             const seats: SeatMapSeat[] = room.seats.map((seat) => ({
@@ -362,7 +365,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-2 max-w-sm"
+                    className="mx-auto mt-2 max-w-xs"
                   />
                 ) : (
                   <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">

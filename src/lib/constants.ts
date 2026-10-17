@@ -168,6 +168,24 @@ export const PREPARATION_OPTIONS = [
  *  that a mobile or Aadhaar number stays tied to an open application. */
 export const APPLICATION_RATE_LIMIT = { perIpPerDay: 5, duplicateWindowDays: 30 } as const;
 
+/**
+ * The fixed topics on the public help & support form. "Something else" is
+ * deliberately last: it is the catch-all for anything that does not fit the
+ * three named reasons, so a visitor never has to guess which box to tick.
+ */
+export const SUPPORT_TOPICS = [
+  "A question about joining",
+  "A problem with the website",
+  "A question about my fee or seat",
+  "Something else",
+] as const;
+
+export type SupportTopic = (typeof SUPPORT_TOPICS)[number];
+
+/** How many support messages one IP may send in a day. Generous for a person,
+ *  tight for a script. */
+export const SUPPORT_RATE_LIMIT = { perIpPerDay: 5 } as const;
+
 export const MONTH_NAMES = [
   "January",
   "February",

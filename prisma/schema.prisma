@@ -249,3 +249,23 @@ model User {
   @@index([roleId])
   @@index([active])
 }
+
+/// A message sent from the public help & support page. Anyone can write in
+/// without an account, so this is deliberately separate from a membership
+/// application: it is a question, a bug report or a note for the owner rather
+/// than a request for a seat. Kept on record so nothing is lost if the
+/// notification email bounces, and so repeated spam from one address shows up.
+model SupportMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  /// The topic the visitor chose, from the fixed list on the form.
+  topic     String
+  message   String
+  /// Client address, kept so repeated spam from one source is visible.
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+  @@index([createdAt])
+}

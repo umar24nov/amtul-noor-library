@@ -29,7 +29,7 @@ export function SiteFooter() {
 
   const companyLinks: { href: string; label: string; external?: boolean }[] = [
     { href: "/#visit", label: "Contact" },
-    { href: LIBRARY_WHATSAPP_URL, label: "Help & support", external: true },
+    { href: "/support", label: "Help & support" },
     { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
   ];
 

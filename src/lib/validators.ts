@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SUPPORT_TOPICS } from "@/lib/constants";
 
 const emptyToUndefined = (value: unknown) => {
   if (value === null || value === undefined) return undefined;
@@ -173,6 +174,35 @@ export const applicationSchema = z.object({
 
 export type ApplicationFormValues = z.input<typeof applicationSchema>;
 export type ApplicationFormOutput = z.output<typeof applicationSchema>;
+
+/**
+ * The public help & support form. A visitor with no account writes in, so it
+ * asks only for a name, an address to reply to, a topic and the message. The
+ * email is required here, unlike the join form, because the whole point is a
+ * reply.
+ */
+export const supportMessageSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name is required")
+    .max(80, "Name must be 80 characters or fewer"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Email is required")
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address"),
+  topic: z.enum(SUPPORT_TOPICS, { message: "Choose a topic" }),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Please add a little more detail")
+    .max(2000, "Keep your message to 2000 characters or fewer"),
+});
+
+export type SupportMessageValues = z.input<typeof supportMessageSchema>;
 
 export const seatFormSchema = z.object({
   roomId: z.coerce.number().int().positive(),
