@@ -373,7 +373,12 @@ export function ApplicationForm({
                       const seat = selectedRoom.seats.find(
                         (candidate) => Number(candidate.seatNumber) === number,
                       );
-                      if (seat) chooseSeat(seat);
+                      if (!seat) return;
+                      if (!seat.available) {
+                        toast.error("This seat is already booked.");
+                        return;
+                      }
+                      chooseSeat(seat);
                     }}
                     ariaLabel={`${selectedRoom.name} seat map. Tap a free seat to choose it.`}
                     className="mx-auto max-w-lg rounded-xl border border-border bg-card p-3"
@@ -387,7 +392,13 @@ export function ApplicationForm({
                           <button
                             type="button"
                             disabled={!seat.available}
-                            onClick={() => chooseSeat(seat)}
+                            onClick={() => {
+                              if (!seat.available) {
+                                toast.error("This seat is already booked.");
+                                return;
+                              }
+                              chooseSeat(seat);
+                            }}
                             aria-pressed={isSelected}
                             className={cn(
                               "w-full rounded-md border px-2 py-2.5 text-center font-mono text-xs font-medium transition-colors",

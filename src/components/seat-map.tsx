@@ -232,21 +232,26 @@ export function SeatMap({
           );
         }
 
-        if (interactive && onSelectSeat) {
-          return (
-            <g
-              key={seat.number}
-              role="button"
-              tabIndex={0}
-              aria-label={label}
-              aria-pressed={isSelected}
-              onClick={() => onSelectSeat(seat.number)}
-              onKeyDown={onKeyDown}
-              className="cursor-pointer outline-none focus-visible:opacity-70"
-            >
-              {content}
-            </g>
-          );
+        if (onSelectSeat) {
+          const clickable =
+            !disabled &&
+            (status === "AVAILABLE" || (status === "OCCUPIED" && isSelected));
+          if (clickable) {
+            return (
+              <g
+                key={seat.number}
+                role="button"
+                tabIndex={0}
+                aria-label={label}
+                aria-pressed={isSelected}
+                onClick={() => onSelectSeat(seat.number)}
+                onKeyDown={onKeyDown}
+                className="cursor-pointer outline-none focus-visible:opacity-70"
+              >
+                {content}
+              </g>
+            );
+          }
         }
 
         return <g key={seat.number}>{content}</g>;
