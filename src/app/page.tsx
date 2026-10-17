@@ -353,7 +353,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
             return (
               <div
                 key={room.id}
-                className="rounded-xl border border-border bg-card p-4 sm:p-5"
+                className="flex flex-col rounded-xl border border-border bg-card p-4 sm:p-5"
               >
                 <p className="text-center text-sm text-muted-foreground">
                   {room.open} free of {room.total}
@@ -365,7 +365,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-2 max-w-xs"
+                    className="mx-auto mt-3 w-full max-w-lg"
                   />
                 ) : (
                   <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
