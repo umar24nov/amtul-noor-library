@@ -234,17 +234,22 @@ export function ApplicationForm({
             <Label htmlFor={`${id}-mobile`}>
               Mobile number <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id={`${id}-mobile`}
-              name="mobile"
-              type="tel"
-              inputMode="numeric"
-              placeholder="10 digit number"
-              autoComplete="tel"
-              required
-              aria-invalid={Boolean(state.fieldErrors?.mobile)}
-              className={inputClass}
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-medium text-muted-foreground">
+                +91
+              </span>
+              <Input
+                id={`${id}-mobile`}
+                name="mobile"
+                type="tel"
+                inputMode="numeric"
+                placeholder="10-digit number"
+                autoComplete="tel"
+                required
+                aria-invalid={Boolean(state.fieldErrors?.mobile)}
+                className={cn(inputClass, "pl-12")}
+              />
+            </div>
             <FieldError message={state.fieldErrors?.mobile} />
           </div>
 
@@ -306,15 +311,20 @@ export function ApplicationForm({
 
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-guardianMobile`}>Father / Guardian contact</Label>
-            <Input
-              id={`${id}-guardianMobile`}
-              name="guardianMobile"
-              type="tel"
-              inputMode="numeric"
-              placeholder="10 digit number"
-              aria-invalid={Boolean(state.fieldErrors?.guardianMobile)}
-              className={inputClass}
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-medium text-muted-foreground">
+                +91
+              </span>
+              <Input
+                id={`${id}-guardianMobile`}
+                name="guardianMobile"
+                type="tel"
+                inputMode="numeric"
+                placeholder="10-digit number"
+                aria-invalid={Boolean(state.fieldErrors?.guardianMobile)}
+                className={cn(inputClass, "pl-12")}
+              />
+            </div>
             <FieldError message={state.fieldErrors?.guardianMobile} />
           </div>
         </CardContent>
