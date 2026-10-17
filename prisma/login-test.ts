@@ -116,18 +116,17 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
     return false;
   }
 
-  // The reviews page is a public page too, reached from the header nav. A
-  // signed out visitor must be able to read it rather than being bounced to
-  // the login page.
-  const reviews = await fetch(`${BASE}/reviews`, { redirect: "manual" });
-  console.log(`GET /reviews (signed out) -> ${reviews.status}`);
-  if (reviews.status !== 200) {
-    console.log("the reviews page is not public, a signed out visitor cannot see it");
+  // The join form is a public page too, reached from the header. A signed out
+  // visitor must be able to open it rather than being bounced to the login page.
+  const join = await fetch(`${BASE}/join`, { redirect: "manual" });
+  console.log(`GET /join (signed out) -> ${join.status}`);
+  if (join.status !== 200) {
+    console.log("the join page is not public, a signed out visitor cannot see it");
     return false;
   }
-  const reviewsBody = await reviews.text();
-  if (!reviewsBody.includes("Reviews members left on Google")) {
-    console.log("the reviews page header is missing from /reviews");
+  const joinBody = await join.text();
+  if (!joinBody.includes("Apply for a seat")) {
+    console.log("the join page header is missing from /join");
     return false;
   }
 

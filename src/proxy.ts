@@ -32,14 +32,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn) {
-    // The landing page, the reviews page, the join form, receipt downloads and
-    // the per-member /pay pages are the public face of the library, so those
-    // are the paths a signed out visitor is allowed to see. Receipts and pay
-    // pages are addressed by unguessable tokens, so they stay private even
-    // though their routes need no session. Everything else requires one.
+    // The landing page, the join form, receipt downloads and the per-member
+    // /pay pages are the public face of the library, so those are the paths a
+    // signed out visitor is allowed to see. Receipts and pay pages are addressed
+    // by unguessable tokens, so they stay private even though their routes need
+    // no session. Everything else requires one.
     if (
       pathname === "/" ||
-      pathname === "/reviews" ||
       pathname === "/join" ||
       pathname.startsWith("/receipts/") ||
       pathname.startsWith("/pay/")

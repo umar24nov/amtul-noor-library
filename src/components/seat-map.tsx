@@ -29,15 +29,16 @@ type SeatMapProps = {
 };
 
 /**
- * Seat fills. Available/selected/occupied use the site's accent colours so they
- * read the same as the legend beside the map; the room, desks and empty seats
- * are drawn from `foreground` at low opacity, which means the whole drawing
- * follows the light/dark theme without a second palette.
+ * Seat fills. Free is green, taken is a quiet grey, and the visitor's pick is
+ * blue — deliberately not red, so a taken seat reads as "unavailable" rather
+ * than as an error. The room, desks and empty seats are drawn from `foreground`
+ * at low opacity, which means the whole drawing follows the light/dark theme
+ * without a second palette.
  */
 const SEAT_FILL = {
-  available: "fill-sky-600",
-  selected: "fill-emerald-500",
-  occupied: "fill-red-500",
+  available: "fill-emerald-500",
+  selected: "fill-blue-600",
+  occupied: "fill-muted-foreground/40",
   missing: "fill-foreground/10",
 } as const;
 
@@ -106,7 +107,7 @@ export function SeatMap({
       {/* Door threshold and swing. */}
       <path
         d={`M ${layout.door.line[0]} ${layout.door.line[1]} L ${layout.door.line[2]} ${layout.door.line[3]}`}
-        className="stroke-sky-600"
+        className="stroke-foreground/40"
         strokeWidth={4}
         strokeLinecap="round"
       />
@@ -193,7 +194,13 @@ export function SeatMap({
             fontSize={15}
             fontWeight={700}
             pointerEvents="none"
-            className={status === "MISSING" ? "fill-muted-foreground" : "fill-white"}
+            className={
+              status === "MISSING"
+                ? "fill-muted-foreground"
+                : status === "OCCUPIED"
+                  ? "fill-foreground"
+                  : "fill-white"
+            }
           >
             {seat.number}
           </text>

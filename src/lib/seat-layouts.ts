@@ -81,7 +81,7 @@ const DOOR_ROOM_1: DoorSpec = {
 const DOOR_ROOM_2: DoorSpec = {
   line: [390, 560, 510, 560],
   arc: "M 450 560 A 40 40 0 0 1 390 520",
-  label: "GATE",
+  label: "Door",
   labelX: 450,
   labelY: 583,
 };

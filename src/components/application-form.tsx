@@ -120,6 +120,35 @@ export function ApplicationForm({
         </p>
       )}
 
+      {/* The chosen seat, kept at the top so someone who arrived by tapping a
+          seat on the map can see it was carried over rather than having to
+          scroll to the seat section to check. */}
+      {rooms.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Your seat
+            </p>
+            <p
+              className={cn(
+                "mt-0.5 font-medium",
+                selectedSeat ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {selectedSeat && selectedRoom
+                ? `${selectedRoom.name} · Seat ${Number(selectedSeat.seatNumber)}`
+                : "No seat chosen yet"}
+            </p>
+          </div>
+          <a
+            href="#seat"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            {selectedSeat ? "Change seat" : "Choose a seat"}
+          </a>
+        </div>
+      )}
+
       <Card>
         <CardContent className="grid gap-4">
           <SectionTitle>About you</SectionTitle>
@@ -282,9 +311,9 @@ export function ApplicationForm({
             <FieldError message={state.fieldErrors?.joiningDate} />
           </div>
 
-          <div className="grid gap-3 border-t border-border pt-4">
+          <div id="seat" className="grid scroll-mt-24 gap-3 border-t border-border pt-4">
             <div className="grid gap-1">
-              <SectionTitle>Your seat</SectionTitle>
+              <SectionTitle>Choose your seat</SectionTitle>
               <p className="text-xs text-muted-foreground">
                 Tap a free seat on the map. Only seats that are free right now
                 can be chosen; the owner confirms your seat when your
@@ -357,7 +386,7 @@ export function ApplicationForm({
                       if (seat) chooseSeat(seat);
                     }}
                     ariaLabel={`${selectedRoom.name} seat map. Tap a free seat to choose it.`}
-                    className="mx-auto max-w-3xl rounded-xl border border-border bg-card p-2"
+                    className="mx-auto max-w-lg rounded-xl border border-border bg-card p-3"
                   />
                 ) : selectedRoom ? (
                   <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
@@ -375,8 +404,8 @@ export function ApplicationForm({
                               !seat.available
                                 ? "cursor-not-allowed border-border bg-muted-foreground/30 text-muted-foreground line-through"
                                 : isSelected
-                                  ? "border-emerald-600 bg-emerald-500 text-white"
-                                  : "border-sky-700/30 bg-sky-600 text-white hover:brightness-110",
+                                  ? "border-blue-700/40 bg-blue-600 text-white"
+                                  : "border-emerald-600/40 bg-emerald-500 text-white hover:brightness-110",
                             )}
                           >
                             {seat.seatNumber}
@@ -389,15 +418,15 @@ export function ApplicationForm({
 
                 <ul className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <li className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-sm border border-sky-700/30 bg-sky-600" />
+                    <span className="size-3 rounded-sm border border-emerald-600/40 bg-emerald-500" />
                     Free
                   </li>
                   <li className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-sm border border-emerald-600/30 bg-emerald-500" />
+                    <span className="size-3 rounded-sm border border-blue-700/40 bg-blue-600" />
                     Your pick
                   </li>
                   <li className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-sm border border-red-700/30 bg-red-500" />
+                    <span className="size-3 rounded-sm border border-border bg-muted-foreground/40" />
                     Taken
                   </li>
                 </ul>

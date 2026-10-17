@@ -10,9 +10,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
-      url: `${origin}/reviews`,
+      url: `${origin}/join`,
       changeFrequency: "monthly",
-      priority: 0.5,
+      priority: 0.8,
     },
   ];
 }

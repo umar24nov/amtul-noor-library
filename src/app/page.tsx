@@ -160,7 +160,6 @@ export default async function LandingPage() {
         <Gallery />
         <Amenities />
         <Fees />
-        <ReviewCta />
         <Visit />
       </main>
 
@@ -302,26 +301,31 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
   const withSeats = rooms.filter((room) => room.total > 0);
   if (withSeats.length === 0) return null;
 
+  const totals = withSeats.reduce(
+    (sum, room) => ({ seats: sum.seats + room.total, open: sum.open + room.open }),
+    { seats: 0, open: 0 },
+  );
+
   return (
     <section id="seats" className="border-y border-border bg-muted/40 px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-              Which seats are free
+              Check seat availability
             </h2>
             <p className="mt-2 max-w-prose text-muted-foreground">
-              Taken at the moment. Tap a free seat to apply for it, or ask on
-              WhatsApp before you set off.
+              {totals.open} of {totals.seats} seats free right now. Tap a free
+              seat to apply for it, or ask on WhatsApp before you set off.
             </p>
           </div>
           <ul className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
             <li className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-sky-700/30 bg-sky-600" />
+              <span className="size-3 rounded-sm border border-emerald-600/40 bg-emerald-500" />
               Available
             </li>
             <li className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-red-700/30 bg-red-500" />
+              <span className="size-3 rounded-sm border border-border bg-muted-foreground/40" />
               Booked
             </li>
           </ul>
@@ -350,7 +354,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-3 max-w-3xl rounded-xl border border-border bg-card p-3"
+                    className="mx-auto mt-3 max-w-lg rounded-xl border border-border bg-card p-3"
                   />
                 ) : (
                   <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
@@ -586,30 +590,6 @@ function PriceCard({
   );
 }
 
-/** A quiet pointer to the reviews, which live on their own page. */
-function ReviewCta() {
-  return (
-    <section className="border-t border-border bg-muted/40 px-4 py-10 sm:px-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
-        <div className="max-w-prose">
-          <h2 className="font-heading text-xl font-semibold tracking-tight">
-            Check out our reviews
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            What members have left for us on Google.
-          </p>
-        </div>
-        <Button asChild size="lg" className="h-11 shrink-0 px-5">
-          <Link href="/reviews">
-            Read the reviews
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 const FAQ = [
   {
     q: "Can I move to a different seat later?",
@@ -638,8 +618,12 @@ function Visit() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-2 lg:gap-12">
         <div>
           <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-            Come and see it
+            Visit Amtul Noor Library
           </h2>
+          <p className="mt-2 max-w-prose text-muted-foreground">
+            Find the location, check opening hours, and contact us about
+            membership.
+          </p>
 
           <dl className="mt-6 space-y-4 text-sm">
             <div className="flex gap-3">
@@ -681,16 +665,22 @@ function Visit() {
           </dl>
 
           <div className="mt-6 flex flex-wrap gap-3">
+            <Button asChild variant="outline" size="lg" className="h-11 px-5">
+              <a href={LIBRARY_PHONE_URL}>
+                <Phone className="size-4" />
+                Call now
+              </a>
+            </Button>
             <Button asChild size="lg" className="h-11 px-5">
               <a href={LIBRARY_WHATSAPP_URL} target="_blank" rel="noreferrer">
                 <MessageCircle className="size-4" />
-                Message on WhatsApp
+                Chat on WhatsApp
               </a>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11 px-5">
               <Link href={LIBRARY_MAPS_URL} target="_blank" rel="noreferrer">
                 <MapPin className="size-4" />
-                Directions
+                Get directions
               </Link>
             </Button>
           </div>

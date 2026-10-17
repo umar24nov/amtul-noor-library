@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
 import {
@@ -24,13 +24,13 @@ export function SiteFooter() {
     { href: "/#amenities", label: "Features" },
     { href: "/#plans", label: "Pricing" },
     { href: "/#faq", label: "FAQ" },
-    { href: "/reviews", label: "Reviews" },
   ];
 
   const companyLinks: { href: string; label: string; external?: boolean }[] = [
     { href: "/#visit", label: "Contact" },
     { href: LIBRARY_WHATSAPP_URL, label: "Help & support", external: true },
     { href: LIBRARY_MAPS_URL, label: "Find us on Google Maps", external: true },
+    { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
   ];
 
   return (
@@ -113,12 +113,14 @@ export function SiteFooter() {
                 <span className="flex flex-col gap-1">
                   <a
                     href={LIBRARY_PHONE_URL}
+                    aria-label={`Call ${LIBRARY_PHONE}`}
                     className="text-foreground underline underline-offset-4"
                   >
                     {LIBRARY_PHONE}
                   </a>
                   <a
                     href={LIBRARY_PHONE_ALT_URL}
+                    aria-label={`Call ${LIBRARY_PHONE_ALT}`}
                     className="text-foreground underline underline-offset-4"
                   >
                     {LIBRARY_PHONE_ALT}
@@ -126,9 +128,7 @@ export function SiteFooter() {
                 </span>
               </li>
               <li className="flex gap-2">
-                <span aria-hidden="true" className="mt-0.5 text-muted-foreground">
-                  @
-                </span>
+                <Mail className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <a
                   href={LIBRARY_EMAIL_URL}
                   className="text-foreground underline underline-offset-4"
