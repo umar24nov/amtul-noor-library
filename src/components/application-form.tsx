@@ -34,6 +34,24 @@ const selectClass = cn(
   "w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
 );
 
+/** Friendly names for the fields a validation error can point at, so the error
+ *  summary reads like a sentence instead of a key. */
+const FIELD_LABELS: Record<string, string> = {
+  name: "Full name",
+  mobile: "Mobile number",
+  email: "Email address",
+  address: "Address",
+  guardianName: "Father / Guardian name",
+  guardianMobile: "Father / Guardian contact",
+  aadhaarNumber: "Aadhaar number",
+  preparingFor: "What you are preparing for",
+  joiningDate: "Date of joining",
+  roomId: "Room",
+  seatId: "Seat",
+  agreed: "Rules agreement",
+  aadhaarFront: "Aadhaar upload",
+};
+
 export type SeatOption = { id: number; seatNumber: string; available: boolean };
 export type RoomOption = {
   id: number;
@@ -81,6 +99,14 @@ export function ApplicationForm({
   // page, so the seat section can acknowledge the choice already carried over.
   const arrivedWithSeat = Boolean(initialSeat);
 
+  // Flattened field errors for the error summary, with the seat and rules
+  // problems spelled out because those controls carry no visible input of their
+  // own to highlight.
+  const fieldErrorList = Object.entries(state.fieldErrors ?? {}).map(
+    ([key, message]) => ({ key, label: FIELD_LABELS[key] ?? key, message }),
+  );
+  const seatError = Boolean(state.fieldErrors?.roomId || state.fieldErrors?.seatId);
+
   function chooseSeat(seat: SeatOption) {
     if (!seat.available) return;
     const seatKey = String(seat.id);
@@ -94,6 +120,19 @@ export function ApplicationForm({
   useEffect(() => {
     if (state.status === "success" && state.message) toast.success(state.message);
     if (state.status === "error" && state.message) toast.error(state.message);
+  }, [state]);
+
+  // A failed submit should not leave the applicant hunting for the problem: pull
+  // the first offending control into view and focus it. Fields with no real
+  // input (the seat, the rules checkbox) are targeted through their section.
+  useEffect(() => {
+    if (state.status !== "error") return;
+    const target =
+      document.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+      document.getElementById("seat");
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof target.focus === "function" && target.tabIndex >= 0) target.focus();
   }, [state]);
 
   // The form is intentionally never shown again after a successful submit, so a
@@ -125,10 +164,21 @@ export function ApplicationForm({
       />
 
       {state.status === "error" && state.message && (
-        <p className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          {state.message}
-        </p>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <span>{state.message}</span>
+          </p>
+          {fieldErrorList.length > 0 && (
+            <ul className="mt-2 grid list-disc gap-1 pl-8">
+              {fieldErrorList.map((item) => (
+                <li key={item.key}>
+                  <span className="font-medium">{item.label}:</span> {item.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* The chosen seat, kept at the top so someone who arrived by tapping a
@@ -307,7 +357,13 @@ export function ApplicationForm({
             <FieldError message={state.fieldErrors?.joiningDate} />
           </div>
 
-          <div id="seat" className="grid scroll-mt-24 gap-3 border-t border-border pt-4">
+          <div
+            id="seat"
+            className={cn(
+              "grid scroll-mt-24 gap-3 border-t border-border pt-4",
+              seatError && "rounded-lg bg-destructive/5 px-3 pb-3 ring-1 ring-destructive/30",
+            )}
+          >
             <div className="grid gap-1">
               <SectionTitle>
                 {arrivedWithSeat ? "You have already selected a seat" : "Choose your seat"}
@@ -317,6 +373,15 @@ export function ApplicationForm({
                   ? "We carried over the seat you tapped. You can pick a different free seat on the map if you change your mind."
                   : "Tap a free seat on the map. Only seats that are free right now can be chosen; the owner confirms your seat when your application is approved."}
               </p>
+              {seatError && (
+                <FieldError
+                  message={
+                    state.fieldErrors?.seatId ??
+                    state.fieldErrors?.roomId ??
+                    "Please choose a seat"
+                  }
+                />
+              )}
             </div>
 
             {rooms.length === 0 ? (
@@ -441,9 +506,6 @@ export function ApplicationForm({
                     Taken
                   </li>
                 </ul>
-
-                <FieldError message={state.fieldErrors?.roomId} />
-                <FieldError message={state.fieldErrors?.seatId} />
               </>
             )}
           </div>
