@@ -159,13 +159,22 @@ export const applicationSchema = z.object({
     .min(2, "Name is required")
     .max(80, "Name must be 80 characters or fewer"),
   mobile: mobileSchema,
-  email: optionalEmailSchema,
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Email is required")
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address"),
   address: optionalText(200),
-  guardianName: optionalText(80),
+  guardianName: z
+    .string()
+    .trim()
+    .min(2, "Father / Guardian name is required")
+    .max(80, "Father / Guardian name must be 80 characters or fewer"),
   guardianMobile: optionalMobileSchema,
   aadhaarNumber: aadhaarNumberSchema,
-  preparingFor: z.string().trim().min(1, "Choose what you are preparing for"),
-  otherPreparation: optionalText(80),
+  preparingFor: z.string().trim().min(1, "Enter what you are preparing for"),
   joiningDate: dateInputSchema,
   roomId: z.coerce.number("Choose a room").int("Choose a room").positive("Choose a room"),
   seatId: z.coerce.number("Choose a seat").int("Choose a seat").positive("Choose a seat"),

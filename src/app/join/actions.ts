@@ -118,12 +118,8 @@ export async function submitApplicationAction(
         aadhaarNumber: data.aadhaarNumber,
         aadhaarFrontUrl: storedFront.ok ? storedFront.url : null,
         aadhaarBackUrl: null,
-        preparingFor:
-          data.preparingFor === "Other" && data.otherPreparation
-            ? data.otherPreparation
-            : data.preparingFor,
-        otherPreparation:
-          data.preparingFor === "Other" ? (data.otherPreparation ?? null) : null,
+        preparingFor: data.preparingFor,
+        otherPreparation: null,
         desiredJoiningDate: parseInputDate(data.joiningDate),
         preferredSeatId: seat.id,
         agreed: true,

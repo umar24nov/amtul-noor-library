@@ -77,7 +77,13 @@ export function ApplicationForm({
   const selectedLayout = selectedRoom?.layoutKey ? SEAT_LAYOUTS[selectedRoom.layoutKey] : null;
 
   function chooseSeat(seat: SeatOption) {
-    if (seat.available) setSeatId(String(seat.id));
+    if (!seat.available) return;
+    const seatKey = String(seat.id);
+    if (seatId === seatKey) {
+      setSeatId("");
+      return;
+    }
+    setSeatId(seatKey);
   }
 
   useEffect(() => {
@@ -188,12 +194,15 @@ export function ApplicationForm({
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-email`}>Email address</Label>
+            <Label htmlFor={`${id}-email`}>
+              Email address <span className="text-destructive">*</span>
+            </Label>
             <Input
               id={`${id}-email`}
               name="email"
               type="email"
               autoComplete="email"
+              required
               placeholder="name@example.com"
               aria-invalid={Boolean(state.fieldErrors?.email)}
               className={inputClass}
@@ -222,11 +231,14 @@ export function ApplicationForm({
           <SectionTitle>Guardian details</SectionTitle>
 
           <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-guardianName`}>Father / Guardian name</Label>
+            <Label htmlFor={`${id}-guardianName`}>
+              Father / Guardian name <span className="text-destructive">*</span>
+            </Label>
             <Input
               id={`${id}-guardianName`}
               name="guardianName"
               autoComplete="family-name"
+              required
               placeholder="e.g. Mubassir Hussain"
               aria-invalid={Boolean(state.fieldErrors?.guardianName)}
               className={inputClass}
@@ -259,42 +271,18 @@ export function ApplicationForm({
               What are you currently preparing for?{" "}
               <span className="text-destructive">*</span>
             </Label>
-            <select
+            <Input
               id={`${id}-preparingFor`}
               name="preparingFor"
-              value={preparingFor}
-              onChange={(event) => setPreparingFor(event.target.value)}
               required
+              placeholder="e.g. SSC, HSSC, NEET, JEE, other..."
               aria-invalid={Boolean(state.fieldErrors?.preparingFor)}
-              className={cn(selectClass, !preparingFor && "text-muted-foreground")}
-            >
-              <option value="" disabled>
-                Choose your preparation
-              </option>
-              {PREPARATION_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              className={inputClass}
+            />
             <FieldError message={state.fieldErrors?.preparingFor} />
           </div>
 
-          {preparingFor === "Other" && (
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-otherPreparation`}>
-                Tell us what you are preparing for
-              </Label>
-              <Input
-                id={`${id}-otherPreparation`}
-                name="otherPreparation"
-                placeholder="e.g. Journalism entrance"
-                aria-invalid={Boolean(state.fieldErrors?.otherPreparation)}
-                className={inputClass}
-              />
-              <FieldError message={state.fieldErrors?.otherPreparation} />
-            </div>
-          )}
+          {/* "Other" preparation handled as text input above */}
 
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-joiningDate`}>
@@ -360,16 +348,18 @@ export function ApplicationForm({
                   </div>
                 )}
 
-                <p
-                  className={cn(
-                    "text-sm font-medium",
-                    selectedSeat ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
+                <div className="flex w-full items-center justify-center">
+                  <p
+                    className={cn(
+                      "text-sm font-medium text-center",
+                      selectedSeat ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
                   {selectedSeat && selectedRoom
                     ? `${selectedRoom.name} · Seat ${Number(selectedSeat.seatNumber)}`
                     : "No seat chosen yet — tap a free seat."}
-                </p>
+                  </p>
+                </div>
 
                 {selectedRoom && selectedLayout ? (
                   <SeatMap
@@ -469,7 +459,7 @@ export function ApplicationForm({
               type="file"
               accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
               aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
-              className="h-11 cursor-pointer"
+              className="h-11 cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground file:transition-colors hover:file:bg-primary/90"
             />
             <FieldError message={state.fieldErrors?.aadhaarFront} />
             <p className="text-xs text-muted-foreground">

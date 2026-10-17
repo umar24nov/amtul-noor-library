@@ -106,8 +106,6 @@ export default async function JoinPage({
           />
         </section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 }
