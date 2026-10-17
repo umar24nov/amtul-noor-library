@@ -211,11 +211,14 @@ export function ApplicationForm({
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-address`}>Address</Label>
+            <Label htmlFor={`${id}-address`}>
+              Address <span className="text-destructive">*</span>
+            </Label>
             <Textarea
               id={`${id}-address`}
               name="address"
               rows={2}
+              required
               placeholder="Street, area, city"
               autoComplete="street-address"
               aria-invalid={Boolean(state.fieldErrors?.address)}
@@ -320,7 +323,7 @@ export function ApplicationForm({
                 <input type="hidden" name="seatId" value={seatId} />
 
                 {rooms.length > 1 && (
-                  <div className="flex flex-wrap gap-2" role="group" aria-label="Choose a room">
+                  <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Choose a room">
                     {rooms.map((room) => {
                       const active = String(room.id) === roomId;
                       const open = room.seats.filter((seat) => seat.available).length;
@@ -470,7 +473,7 @@ export function ApplicationForm({
               type="file"
               accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
               aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
-              className="h-11 cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground file:transition-colors hover:file:bg-primary/90"
+              className="h-11 cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-foreground file:px-4 file:py-2 file:text-sm file:font-medium file:text-background file:transition-colors hover:file:bg-foreground/90"
             />
             <FieldError message={state.fieldErrors?.aadhaarFront} />
             <p className="text-xs text-muted-foreground">

@@ -166,7 +166,11 @@ export const applicationSchema = z.object({
     .min(1, "Email is required")
     .max(120, "Email must be 120 characters or fewer")
     .email("Enter a valid email address"),
-  address: optionalText(200),
+  address: z
+    .string()
+    .trim()
+    .min(1, "Address is required")
+    .max(200, "Address must be 200 characters or fewer"),
   guardianName: z
     .string()
     .trim()
