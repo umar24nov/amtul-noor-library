@@ -58,6 +58,7 @@ export function ApplicationForm({
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
   const id = useId();
   const [preparingFor, setPreparingFor] = useState("");
+  const [aadhaarFileName, setAadhaarFileName] = useState("");
 
   const initialRoom =
     (defaultRoomId != null ? rooms.find((room) => room.id === defaultRoomId) : undefined) ??
@@ -464,17 +465,38 @@ export function ApplicationForm({
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-aadhaarFront`}>
+            <Label htmlFor={`${id}-aadhaarFrontFile`}>
               Upload Aadhaar <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id={`${id}-aadhaarFrontFile`}
-              name="aadhaarFront"
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-              aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
-              className="h-11 cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-foreground file:px-4 file:py-2 file:text-sm file:font-medium file:text-background file:transition-colors hover:file:bg-foreground/90"
-            />
+            <div
+              className={cn(
+                "flex h-11 items-center gap-3 rounded-lg border border-input px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+                state.fieldErrors?.aadhaarFront &&
+                  "border-destructive ring-3 ring-destructive/20",
+              )}
+            >
+              <label
+                htmlFor={`${id}-aadhaarFrontFile`}
+                className="inline-flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+              >
+                Choose file
+              </label>
+              <span className="truncate text-sm text-muted-foreground">
+                {aadhaarFileName || "No file chosen"}
+              </span>
+              <input
+                id={`${id}-aadhaarFrontFile`}
+                name="aadhaarFront"
+                type="file"
+                required
+                accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
+                className="sr-only"
+                onChange={(event) =>
+                  setAadhaarFileName(event.target.files?.[0]?.name ?? "")
+                }
+              />
+            </div>
             <FieldError message={state.fieldErrors?.aadhaarFront} />
             <p className="text-xs text-muted-foreground">
               JPG, PNG or PDF, up to 3 MB. One attachment is enough; your scan is
