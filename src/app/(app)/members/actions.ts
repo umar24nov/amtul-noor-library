@@ -28,6 +28,7 @@ function revalidateAll() {
   revalidatePath("/members/[id]", "page");
   revalidatePath("/payments");
   revalidatePath("/seats");
+  revalidatePath("/");
 }
 
 /**

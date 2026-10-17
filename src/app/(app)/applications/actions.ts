@@ -69,6 +69,7 @@ export async function approveApplicationAction(formData: FormData): Promise<void
     revalidatePath("/applications");
     revalidatePath("/members");
     revalidatePath("/seats");
+    revalidatePath("/");
     redirect(`/members/${member.id}?joined=1&from=application`);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;

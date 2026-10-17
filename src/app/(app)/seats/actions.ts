@@ -18,6 +18,7 @@ function revalidateSeats() {
   revalidatePath("/seats");
   revalidatePath("/dashboard");
   revalidatePath("/members");
+  revalidatePath("/");
 }
 
 const releaseSeatSchema = z.object({ seatId: z.coerce.number().int().positive() });
