@@ -57,13 +57,16 @@ function AadhaarFile({ url, label }: { url: string | null; label: string }) {
 
 export default async function ApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const status: ApplicationStatus =
-    params.status === "PENDING" || params.status === "APPROVED" || params.status === "REJECTED"
-      ? params.status
-      : "PENDING";
+  const status = params.status;
+  const where: any = {};
+  if (status === "PENDING" || status === "APPROVED" || status === "REJECTED") {
+    where.status = status as ApplicationStatus;
+  } else {
+    // "All" (or any other value) — don't filter by status
+  }
 
   const applications = await prisma.application.findMany({
-    where: { status },
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       member: { select: { id: true, memberId: true } },
@@ -86,13 +89,14 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
             <FilterField label="Status" className="sm:w-56">
               <FilterSelect
                 name="status"
-                value={status}
-                ariaLabel="Filter applications by status"
+                value={status ?? ""}
                 options={[
+                  { value: "", label: "All" },
                   { value: "PENDING", label: "Awaiting review" },
                   { value: "APPROVED", label: "Approved" },
                   { value: "REJECTED", label: "Rejected" },
                 ]}
+                ariaLabel="Filter applications by status"
               />
             </FilterField>
           </form>
@@ -103,11 +107,11 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         <Card>
           <CardContent className="grid place-items-center gap-2 py-12 text-center">
             <Inbox className="size-6 text-muted-foreground" />
-            <p className="font-medium">No applications {status === "PENDING" ? "awaiting review" : "here"}</p>
+            <p className="font-medium">No applications found</p>
             <p className="max-w-sm text-sm text-muted-foreground">
-              {status === "PENDING"
-                ? "Applications submitted on the public join page appear here once someone fills the form."
-                : `No ${STATUS_LABEL[status].toLowerCase()} application matches right now.`}
+              {status
+                ? `No ${STATUS_LABEL[status as ApplicationStatus]?.toLowerCase() ?? "matching"} application matches right now.`
+                : "No applications to display."}
             </p>
           </CardContent>
         </Card>
@@ -180,7 +184,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
                 {(application.aadhaarFrontUrl || application.aadhaarBackUrl) && (
                   <div className="flex flex-wrap gap-3">
-                    <AadhaarFile url={application.aadhaarFrontUrl} label="Front side" />
+                    <AadhaarFile url={application.aadhaarFrontUrl} label="Aadhaar PDF" />
                     <AadhaarFile url={application.aadhaarBackUrl} label="Back side" />
                   </div>
                 )}
