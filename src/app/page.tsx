@@ -211,30 +211,32 @@ function Hero({
 }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-6 sm:pt-14">
-      <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
-        <div>
+      <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+        <div className="flex flex-col">
           <p className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             <BookOpen className="size-3.5" aria-hidden="true" />
             {LIBRARY_TAGLINE}
           </p>
 
-          <h1 className="font-heading mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="font-heading mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
             <span className="block">A Quiet Place to Study.</span>
             <span className="block">A Better Way to Succeed.</span>
           </h1>
 
-          <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {LIBRARY_NAME} is a peaceful reading room in Roorkee for focused study.
-            Every member gets their own reserved seat, Wi-Fi, charging, and a
-            distraction-free space.
+          <p className="mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
+            {LIBRARY_NAME} is a peaceful reading room in Roorkee, designed for
+            students and anyone who needs a quiet, comfortable space to focus on
+            their studies or work. Every member gets their own reserved study
+            seat, along with Wi-Fi, charging facilities, and a distraction-free
+            environment.
           </p>
 
-          <p className="mt-4 max-w-prose text-sm font-semibold text-foreground">
-            Simple monthly fees. No hidden charges. Learn and focus without
-            distractions.
+          <p className="mt-4 max-w-prose font-semibold text-foreground">
+            Simple monthly fees. No hidden charges. Just a peaceful place to
+            focus, learn, and move closer to your goals.
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
             <Button asChild size="lg" className="h-11 px-5">
               <Link href="/join">
                 Apply to join
@@ -259,21 +261,9 @@ function Hero({
               </a>
             </Button>
           </div>
-
-          {/* The mockup had a row of figures here. These are read from the
-              database rather than written into the page, so they cannot drift
-              away from what is actually true of the room. */}
-          {totals.seats > 0 && (
-            <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm transition-shadow duration-300 hover:shadow-md sm:grid-cols-4">
-              <Metric label="Seats" value={formatNumber(totals.seats)} />
-              <Metric label="Free right now" value={formatNumber(totals.open)} />
-              <Metric label="Reading rooms" value={formatNumber(roomCount)} />
-              <Metric label="Open daily" value={LIBRARY_HOURS} />
-            </dl>
-          )}
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-muted shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">
+        <div className="relative flex h-full overflow-hidden rounded-2xl border border-border bg-muted shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">
           <Image
             src={`/images/${HERO_PHOTO.src}`}
             alt={HERO_PHOTO.alt}
@@ -285,6 +275,20 @@ function Hero({
           />
         </div>
       </div>
+
+      {/* The mockup had a row of figures here. These are read from the
+          database rather than written into the page, so they cannot drift
+          away from what is actually true of the room. */}
+      {totals.seats > 0 && (
+        <div className="mt-8 flex justify-center">
+          <dl className="grid w-full max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm transition-shadow duration-300 hover:shadow-md sm:grid-cols-4">
+            <Metric label="Seats" value={formatNumber(totals.seats)} />
+            <Metric label="Free right now" value={formatNumber(totals.open)} />
+            <Metric label="Reading rooms" value={formatNumber(roomCount)} />
+            <Metric label="Open daily" value={LIBRARY_HOURS} />
+          </dl>
+        </div>
+      )}
     </section>
   );
 }
