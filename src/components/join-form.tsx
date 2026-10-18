@@ -28,7 +28,7 @@ export function JoinForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-8 rounded-2xl border border-border bg-muted/40 p-5"
+      className="flex flex-col rounded-2xl border border-border bg-muted/40 p-6"
       aria-label="Ask about joining on WhatsApp"
     >
       <div className="grid gap-4 sm:grid-cols-2">

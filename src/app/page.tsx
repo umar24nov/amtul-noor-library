@@ -642,8 +642,8 @@ function Visit() {
 
   return (
     <section id="visit" className="scroll-mt-16 border-t border-border px-4 py-12 sm:px-6 sm:py-16">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-2 lg:gap-12">
-        <div>
+      <div className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-6 lg:grid-cols-2">
+        <div className="flex flex-col rounded-2xl border border-border bg-muted/40 p-6">
           <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
             Visit Amtul Noor Library
           </h2>
@@ -711,29 +711,13 @@ function Visit() {
               </Link>
             </Button>
           </div>
-
-          <JoinForm />
-
-          <div id="faq" className="mt-8 scroll-mt-16 space-y-4 border-t border-border pt-6">
-            <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Frequently asked questions
-            </h3>
-            <dl className="space-y-4 text-sm">
-              {FAQ.map((item) => (
-                <div key={item.q}>
-                  <dt className="font-medium">{item.q}</dt>
-                  <dd className="mt-1 text-muted-foreground">{item.a}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
         </div>
 
         <a
           href={LIBRARY_MAPS_URL}
           target="_blank"
           rel="noreferrer"
-          className="block overflow-hidden rounded-2xl border border-border bg-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="relative block min-h-64 overflow-hidden rounded-2xl border border-border bg-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-h-80 lg:min-h-0"
           aria-label={`Open ${LIBRARY_NAME} in Google Maps`}
         >
           <iframe
@@ -741,9 +725,28 @@ function Visit() {
             title={`Map showing ${LIBRARY_NAME}`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            className="h-64 w-full border-0 sm:h-80 lg:h-full lg:min-h-96"
+            className="absolute inset-0 h-full w-full border-0"
           />
         </a>
+
+        <JoinForm />
+
+        <div
+          id="faq"
+          className="scroll-mt-16 rounded-2xl border border-border bg-muted/40 p-6"
+        >
+          <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Frequently asked questions
+          </h3>
+          <dl className="mt-4 space-y-4 text-sm">
+            {FAQ.map((item) => (
+              <div key={item.q}>
+                <dt className="font-medium">{item.q}</dt>
+                <dd className="mt-1 text-muted-foreground">{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </div>
     </section>
   );
