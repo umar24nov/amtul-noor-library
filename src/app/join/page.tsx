@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
-import { SiteFooter } from "@/components/site-footer";
 import { ApplicationForm, type RoomOption } from "@/components/application-form";
 import { SITE_NAV } from "@/lib/site-nav";
 import { LIBRARY_NAME } from "@/lib/constants";

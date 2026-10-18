@@ -12,7 +12,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { SeatMap } from "@/components/seat-map";
 import { submitApplicationAction } from "@/app/join/actions";
 import { IDLE_STATE } from "@/lib/action-result";
-import { LIBRARY_RULES, PREPARATION_OPTIONS } from "@/lib/constants";
+import { LIBRARY_RULES } from "@/lib/constants";
 import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 
 function FieldError({ message }: { message?: string }) {
@@ -28,11 +28,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 const inputClass =
   "h-11 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
-
-const selectClass = cn(
-  inputClass,
-  "w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-);
 
 /** Friendly names for the fields a validation error can point at, so the error
  *  summary reads like a sentence instead of a key. */
@@ -75,7 +70,6 @@ export function ApplicationForm({
 }) {
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
   const id = useId();
-  const [preparingFor, setPreparingFor] = useState("");
   const [aadhaarFileName, setAadhaarFileName] = useState("");
 
   const initialRoom =
@@ -353,8 +347,6 @@ export function ApplicationForm({
             />
             <FieldError message={state.fieldErrors?.preparingFor} />
           </div>
-
-          {/* "Other" preparation handled as text input above */}
 
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-joiningDate`}>

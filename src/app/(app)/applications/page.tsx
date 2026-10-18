@@ -58,9 +58,9 @@ function AadhaarFile({ url, label }: { url: string | null; label: string }) {
 export default async function ApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const status = params.status;
-  const where: any = {};
+  const where: { status?: ApplicationStatus } = {};
   if (status === "PENDING" || status === "APPROVED" || status === "REJECTED") {
-    where.status = status as ApplicationStatus;
+    where.status = status;
   } else {
     // "All" (or any other value) — don't filter by status
   }
