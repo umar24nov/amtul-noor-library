@@ -692,16 +692,10 @@ function Visit() {
           </dl>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild variant="outline" size="lg" className="h-11 px-5">
+            <Button asChild size="lg" className="h-11 px-5">
               <a href={LIBRARY_PHONE_URL}>
                 <Phone className="size-4" />
                 Call now
-              </a>
-            </Button>
-            <Button asChild size="lg" className="h-11 px-5">
-              <a href={LIBRARY_WHATSAPP_URL} target="_blank" rel="noreferrer">
-                <MessageCircle className="size-4" />
-                Chat on WhatsApp
               </a>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11 px-5">
@@ -738,9 +732,9 @@ function Visit() {
           <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Frequently asked questions
           </h3>
-          <dl className="mt-4 space-y-4 text-sm">
+          <dl className="mt-3 divide-y divide-border text-sm">
             {FAQ.map((item) => (
-              <div key={item.q}>
+              <div key={item.q} className="py-3 first:pt-0 last:pb-0">
                 <dt className="font-medium">{item.q}</dt>
                 <dd className="mt-1 text-muted-foreground">{item.a}</dd>
               </div>

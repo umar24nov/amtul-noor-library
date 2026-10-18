@@ -39,17 +39,9 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="space-y-4">
             <Brand />
-            <p className="max-w-sm text-sm font-semibold text-foreground">
-              A peaceful place to focus, learn, and achieve more.
-            </p>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Looking for a quiet place to study? {LIBRARY_NAME} in Roorkee
-              offers a comfortable reading environment with your own reserved
-              seat, free Wi-Fi, and charging facilities — all at a simple, fixed
-              monthly fee with no hidden charges.
-            </p>
-            <p className="max-w-sm text-sm font-semibold text-foreground">
-              Your space to focus. Your journey to success.
+              A quiet reading room in Roorkee with your own reserved seat, free
+              Wi-Fi and charging — on one simple monthly fee.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
