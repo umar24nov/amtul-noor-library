@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Armchair,
   BookOpen,
+  ChevronDown,
   Clock,
   Lock,
   MapPin,
@@ -727,19 +728,36 @@ function Visit() {
 
         <div
           id="faq"
-          className="scroll-mt-16 rounded-2xl border border-border bg-muted/40 p-6"
+          className="scroll-mt-16 flex flex-col rounded-2xl border border-border bg-muted/40 p-6"
         >
           <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Frequently asked questions
           </h3>
-          <dl className="mt-3 divide-y divide-border text-sm">
-            {FAQ.map((item) => (
-              <div key={item.q} className="py-3 first:pt-0 last:pb-0">
-                <dt className="font-medium">{item.q}</dt>
-                <dd className="mt-1 text-muted-foreground">{item.a}</dd>
-              </div>
+          <div className="mt-3 divide-y divide-border text-sm">
+            {FAQ.map((item, index) => (
+              <details
+                key={item.q}
+                open={index === 0}
+                className="group py-3 first:pt-0 last:pb-0"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-medium transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 text-muted-foreground">{item.a}</p>
+              </details>
             ))}
-          </dl>
+          </div>
+          <p className="mt-auto pt-4 text-xs text-muted-foreground">
+            Still have a question? Call{" "}
+            <a
+              href={LIBRARY_PHONE_URL}
+              className="text-foreground underline underline-offset-4"
+            >
+              {LIBRARY_PHONE}
+            </a>
+            .
+          </p>
         </div>
       </div>
     </section>

@@ -31,7 +31,15 @@ export function JoinForm() {
       className="flex flex-col rounded-2xl border border-border bg-muted/40 p-6"
       aria-label="Ask about joining on WhatsApp"
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Ask about a seat
+      </h3>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Send your name and question, and we will reply on WhatsApp during opening
+        hours.
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <label htmlFor="join-name" className="text-sm font-medium">
             Your name
@@ -61,14 +69,16 @@ export function JoinForm() {
           />
         </div>
       </div>
-      <Button type="submit" size="lg" className="mt-4 h-11">
-        <MessageCircle className="size-4" />
-        Ask on WhatsApp
-      </Button>
-      <p className="mt-2 text-xs text-muted-foreground">
-        This opens WhatsApp with your message ready. We answer during the library&apos;s
-        opening hours.
-      </p>
+
+      <div className="mt-auto pt-5">
+        <Button type="submit" size="lg" className="h-11">
+          <MessageCircle className="size-4" />
+          Ask on WhatsApp
+        </Button>
+        <p className="mt-2 text-xs text-muted-foreground">
+          This opens WhatsApp with your message already written.
+        </p>
+      </div>
     </form>
   );
 }
