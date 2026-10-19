@@ -40,7 +40,7 @@ export function LoginForm({ next }: { next?: string }) {
           type="email"
           inputMode="email"
           autoComplete="username"
-          placeholder="owner@amtulnoorlibrary.com"
+          placeholder="admin@amtulnoorlibrary.com"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
           className="h-11"

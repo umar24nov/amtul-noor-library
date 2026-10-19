@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import { getSession } from "@/lib/auth";
 import { normalizeSeatNumber } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import {
@@ -28,6 +29,7 @@ export async function assignSeatAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = assignSeatSchema.safeParse({
     seatId: formData.get("seatId"),
     memberId: formData.get("memberId"),
@@ -92,6 +94,7 @@ export async function releaseSeatAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = releaseSeatSchema.safeParse({ seatId: formData.get("seatId") });
   if (!parsed.success) return errorState("That seat no longer exists.");
 
@@ -121,6 +124,7 @@ export async function addRoomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = roomFormSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) {
     return errorState("Please check the room name.", fieldErrors(parsed.error));
@@ -147,6 +151,7 @@ export async function updateRoomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = roomEditSchema.safeParse({
     roomId: formData.get("roomId"),
     name: formData.get("name"),
@@ -182,6 +187,7 @@ export async function addSeatAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = seatFormSchema.safeParse({
     roomId: formData.get("roomId"),
     seatNumber: formData.get("seatNumber"),
@@ -211,6 +217,7 @@ export async function addSeatRangeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = seatRangeFormSchema.safeParse({
     roomId: formData.get("roomId"),
     from: formData.get("from"),
@@ -265,6 +272,7 @@ export async function deleteSeatAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = releaseSeatSchema.safeParse({ seatId: formData.get("seatId") });
   if (!parsed.success) return errorState("That seat no longer exists.");
 
@@ -292,6 +300,7 @@ export async function deleteRoomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = z.coerce.number().int().positive().safeParse(formData.get("roomId"));
   if (!parsed.success) return errorState("That room no longer exists.");
 

@@ -38,6 +38,7 @@ export async function loadMorePaymentsAction(filters: {
   status?: string;
   page?: number;
 }) {
+  if (!(await getSession())) return { payments: [], total: 0 };
   const result = await listPayments({
     month: filters.month,
     memberId: filters.memberId,
@@ -64,6 +65,7 @@ export async function recordPaymentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = paymentFormSchema.safeParse({
     memberId: formData.get("memberId"),
     month: formData.get("month"),
@@ -122,6 +124,7 @@ export async function updatePaymentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const id = Number(formData.get("recordId"));
   if (!Number.isInteger(id) || id <= 0) return errorState("Payment not found.");
 
@@ -174,6 +177,7 @@ export async function generatePendingAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const parsed = monthKeySchema.safeParse(formData.get("month"));
   if (!parsed.success) {
     return errorState("Choose a valid month.", { month: "Choose a valid month" });
@@ -246,6 +250,7 @@ export async function updateFeeAction(
  * identical receipt.
  */
 export async function sendReceiptEmailAction(paymentPk: number): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   if (!Number.isInteger(paymentPk) || paymentPk <= 0) {
     return errorState("That receipt is not available.");
   }
@@ -275,6 +280,7 @@ export async function sendReceiptEmailAction(paymentPk: number): Promise<ActionS
 export async function searchMembersAction(): Promise<
   { id: number; label: string; hint: string | null }[]
 > {
+  if (!(await getSession())) return [];
   const members = await prisma.member.findMany({
     where: { status: "ACTIVE" },
     include: { seat: { include: { room: true } } },

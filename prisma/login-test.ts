@@ -13,7 +13,7 @@ import { createInterface } from "node:readline/promises";
 
 const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
-const EMAIL = process.env.TEST_ADMIN_EMAIL ?? "owner@amtulnoorlibrary.com";
+const EMAIL = process.env.TEST_ADMIN_EMAIL ?? "admin@amtulnoorlibrary.com";
 
 type LoginTestOptions = {
   /** The .env values, already parsed by check-login.ts the way Next.js sees them. */

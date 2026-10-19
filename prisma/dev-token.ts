@@ -33,7 +33,7 @@ async function main() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET is not set.");
 
-  const email = argValue("email") ?? process.env.ADMIN_EMAIL ?? "owner@amtulnoorlibrary.com";
+  const email = argValue("email") ?? process.env.ADMIN_EMAIL ?? "admin@amtulnoorlibrary.com";
   const level = levelFromArgs();
   const roleId = Number(argValue("roleId") ?? 0);
   const userId = Number(argValue("userId") ?? 0);

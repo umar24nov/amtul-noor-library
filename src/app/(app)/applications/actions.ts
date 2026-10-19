@@ -9,6 +9,7 @@ import {
   type ActionState,
 } from "@/lib/action-result";
 import { sendApplicationDecisionEmail } from "@/lib/application-email";
+import { getSession } from "@/lib/auth";
 import { parseInputDate } from "@/lib/format";
 import { nextMemberId, newPayToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -30,6 +31,7 @@ function revalidateAll() {
  * welcome email goes out afterwards; a mail failure never undoes the approval.
  */
 export async function approveApplicationAction(formData: FormData): Promise<void> {
+  if (!(await getSession())) redirect("/login");
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id) || id <= 0) redirect("/applications?error=invalid");
 
@@ -122,6 +124,7 @@ export async function approveApplicationAction(formData: FormData): Promise<void
  * on the card, and included in the email to the applicant.
  */
 export async function rejectApplicationAction(formData: FormData): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
 
@@ -174,6 +177,7 @@ export async function updateApplicationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
 
@@ -252,6 +256,7 @@ export async function updateApplicationAction(
  * went wrong so the problem is visible instead of silent.
  */
 export async function sendApplicationEmailAction(applicationId: number): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   if (!Number.isInteger(applicationId) || applicationId <= 0) {
     return errorState("Application not found.");
   }
@@ -315,6 +320,7 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
  * lost — only the seat is released.
  */
 export async function releaseApplicationSeatAction(id: number): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
 
   try {
@@ -359,6 +365,7 @@ export async function releaseApplicationSeatAction(id: number): Promise<ActionSt
  * applications simply disappear.
  */
 export async function deleteApplicationAction(id: number): Promise<ActionState> {
+  if (!(await getSession())) return errorState("Please sign in to continue.");
   if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
 
   try {
