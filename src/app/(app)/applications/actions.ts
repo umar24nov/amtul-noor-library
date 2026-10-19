@@ -305,6 +305,50 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
 }
 
 /**
+ * Frees the seat held by an approved application's member, without deleting
+ * anything.
+ *
+ * This is for the member who studies for a while and then leaves: the seat goes
+ * back into the pool so it can be booked again, the member is marked as left
+ * (their payments and personal record are kept, and they drop off the active
+ * list), and the application stays on this page as the paper trail. Nothing is
+ * lost — only the seat is released.
+ */
+export async function releaseApplicationSeatAction(id: number): Promise<ActionState> {
+  if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
+
+  try {
+    const application = await prisma.application.findUnique({
+      where: { id },
+      select: { id: true, member: { select: { id: true, seatId: true } } },
+    });
+    if (!application) return errorState("Application not found.");
+
+    const member = application.member;
+    if (!member) {
+      return errorState("This application has no member, so there is no seat to release.");
+    }
+    if (!member.seatId) {
+      return errorState("This member's seat is already free.");
+    }
+
+    const seatId = member.seatId;
+    await prisma.$transaction(async (tx) => {
+      await tx.member.update({
+        where: { id: member.id },
+        data: { status: "LEFT", leavingDate: new Date(), seatId: null },
+      });
+      await tx.seat.update({ where: { id: seatId }, data: { status: "AVAILABLE" } });
+    });
+
+    revalidateAll();
+    return successState("Seat released. The member is marked as left and their records are kept.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
  * Deletes an application for good.
  *
  * When it was approved, the member it created is kept but marked as having

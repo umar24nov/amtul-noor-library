@@ -73,6 +73,10 @@ function toEditableApplication(application: {
   otherPreparation: string | null;
   desiredJoiningDate: Date;
   notes: string | null;
+  member: {
+    id: number;
+    seat: { seatNumber: string; room: { name: string } } | null;
+  } | null;
 }): EditableApplication {
   return {
     id: application.id,
@@ -88,6 +92,10 @@ function toEditableApplication(application: {
     otherPreparation: application.otherPreparation,
     desiredJoiningDate: application.desiredJoiningDate.toISOString().slice(0, 10),
     notes: application.notes,
+    memberId: application.member?.id ?? null,
+    memberSeatLabel: application.member?.seat
+      ? `${application.member.seat.room.name} · Seat ${application.member.seat.seatNumber}`
+      : null,
   };
 }
 
@@ -105,7 +113,13 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
     where,
     orderBy: { createdAt: "desc" },
     include: {
-      member: { select: { id: true, memberId: true } },
+      member: {
+        select: {
+          id: true,
+          memberId: true,
+          seat: { select: { seatNumber: true, room: { select: { name: true } } } },
+        },
+      },
       preferredSeat: {
         select: { seatNumber: true, room: { select: { name: true } } },
       },
@@ -258,6 +272,15 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                           {application.member.memberId}
                         </Link>
                         .
+                        {application.member.seat ? (
+                          <>
+                            {" "}
+                            Seat: {application.member.seat.room.name} · Seat{" "}
+                            {application.member.seat.seatNumber}.
+                          </>
+                        ) : (
+                          <> Seat released — member marked as left.</>
+                        )}
                       </>
                     )}
                   </p>

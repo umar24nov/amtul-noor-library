@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Mail, Pencil, Trash2, X } from "lucide-react";
+import { Armchair, Check, Mail, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ import {
   approveApplicationAction,
   deleteApplicationAction,
   rejectApplicationAction,
+  releaseApplicationSeatAction,
   sendApplicationEmailAction,
   updateApplicationAction,
 } from "@/app/(app)/applications/actions";
@@ -49,6 +50,9 @@ export type EditableApplication = {
   otherPreparation: string | null;
   desiredJoiningDate: string;
   notes: string | null;
+  memberId: number | null;
+  /** "Room 1 · Seat 03" while the linked member still holds a seat, else null. */
+  memberSeatLabel: string | null;
 };
 
 const inputClass = "h-11 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
@@ -417,9 +421,58 @@ export function ApplicationActions({
       {application.status !== "PENDING" && (
         <SendEmailDialog application={application} />
       )}
+      {application.memberSeatLabel && (
+        <ReleaseSeatDialog application={application} />
+      )}
       <EditApplicationDialog application={application} />
       <DeleteApplicationDialog application={application} />
     </div>
+  );
+}
+
+function ReleaseSeatDialog({ application }: { application: EditableApplication }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const release = () => {
+    startTransition(async () => {
+      const result = await releaseApplicationSeatAction(application.id);
+      if (result.status === "error") {
+        toast.error(result.message ?? "Could not release the seat.");
+        return;
+      }
+      toast.success(result.message ?? "Seat released.");
+      setOpen(false);
+      router.refresh();
+    });
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10">
+          <Armchair className="size-4" />
+          Release seat
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Release this seat?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {application.memberSeatLabel} becomes available to book again, and{" "}
+            {application.name} is marked as left. Their application, member record
+            and past payments are all kept — only the seat is freed.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="h-10">Cancel</AlertDialogCancel>
+          <Button type="button" className="h-10" onClick={release} disabled={pending}>
+            {pending ? "Releasing…" : "Yes, release seat"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
