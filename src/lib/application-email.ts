@@ -3,7 +3,6 @@ import {
   LIBRARY_ADDRESS,
   LIBRARY_EMAIL,
   LIBRARY_HOURS,
-  LIBRARY_HOURS_DAYS,
   LIBRARY_NAME,
   LIBRARY_PHONE,
 } from "@/lib/constants";
@@ -55,14 +54,13 @@ export async function sendApplicationDecisionEmail(input: {
   const paragraphs = input.approved
     ? [
         `<p>Dear ${name},</p>`,
-        `<p>Welcome to <strong>${LIBRARY_NAME}</strong>! Your application has been approved, and we are glad to have you with us.</p>`,
+        `<p>Welcome to <strong>${LIBRARY_NAME}</strong> — we&apos;re glad to have you with us.</p>`,
         seat
-          ? `<p>Your reserved seat is <strong>${seat}</strong>. It is yours for as long as your membership continues.</p>`
-          : `<p>We will assign your seat when you visit; please ask at the desk.</p>`,
-        `<p>You can study with us ${LIBRARY_HOURS}, ${LIBRARY_HOURS_DAYS.toLowerCase()}. Wi-Fi and charging are included.</p>`,
+          ? `<p>Your seat is reserved: <strong>${seat}</strong>.</p>`
+          : `<p>We&apos;ll assign your seat when you visit; please ask at the desk.</p>`,
+        `<p>We&apos;re open ${LIBRARY_HOURS}.</p>`,
         `<p>Our address: ${escapeHtml(LIBRARY_ADDRESS)}</p>`,
-        `<p>If you have any questions, reply to this email or call ${LIBRARY_PHONE}.</p>`,
-        `<p>We look forward to seeing you.</p>`,
+        `<p>If you have any questions, reply to this email or call ${LIBRARY_PHONE}. We look forward to seeing you.</p>`,
         `<p>— ${LIBRARY_NAME}</p>`,
       ]
     : [
