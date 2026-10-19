@@ -85,7 +85,7 @@ export const memberFormSchema = z.object({
     z.coerce
       .number("Fee must be a number")
       .int("Fee must be a whole amount")
-      .min(1, "Fee must be greater than 0")
+      .min(0, "Fee cannot be negative")
       .max(100000, "Fee looks too large")
       .optional(),
   ),

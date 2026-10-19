@@ -220,7 +220,7 @@ export function MemberForm({
             name="monthlyFee"
             type="number"
             inputMode="numeric"
-            min="1"
+            min="0"
             step="1"
             defaultValue={defaultFee?.toString() ?? ""}
             required
@@ -229,7 +229,8 @@ export function MemberForm({
           />
           <p className="text-xs text-muted-foreground">
             What this member pays each month. Change it if this member&apos;s fee
-            differs from the standard.
+            differs from the standard. Enter 0 for someone with no fee (they still
+            hold their seat).
           </p>
           <FieldError message={state.fieldErrors?.monthlyFee} />
         </div>

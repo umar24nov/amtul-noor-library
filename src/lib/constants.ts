@@ -247,7 +247,6 @@ export const NAV_ITEMS = [
   { href: "/reminders", label: "Reminders", adminOnly: false },
   { href: "/seats", label: "Seats", adminOnly: false },
   { href: "/users", label: "Users", adminOnly: true },
-  { href: "/profile", label: "Profile", adminOnly: false },
 ] as const;
 
 /**

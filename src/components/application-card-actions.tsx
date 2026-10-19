@@ -368,8 +368,9 @@ function DeleteApplicationDialog({ application }: { application: EditableApplica
             {application.status === "APPROVED" ? (
               <>
                 {" "}
-                The member created from it, their payment history, and their seat
-                assignment are deleted too, and the seat becomes available again.
+                The member created from it is marked as left and their seat
+                becomes available again. Their past payments are kept so the
+                library&apos;s collection totals stay correct.
               </>
             ) : (
               " This cannot be undone."

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Maximize2 } from "lucide-react";
+import { Download, FileText, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,15 @@ import {
 
 function isPdf(url: string) {
   return /\.pdf($|\?)/i.test(url) || url.startsWith("blob:");
+}
+
+/**
+ * Vercel Blob serves a stored file inline. Adding `download=1` makes it come
+ * back as an attachment so the browser saves it instead of opening a tab.
+ */
+function downloadUrl(url: string) {
+  if (url.startsWith("blob:")) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}download=1`;
 }
 
 /**
@@ -56,7 +65,7 @@ export function AadhaarPreview({
             )}
           </div>
           <a
-            href={url}
+            href={downloadUrl(url)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
@@ -66,6 +75,12 @@ export function AadhaarPreview({
           </a>
         </DialogContent>
       </Dialog>
+      <Button asChild variant="outline" size="sm" className="h-8">
+        <a href={downloadUrl(url)} download rel="noopener noreferrer">
+          <Download className="size-3.5" />
+          Download
+        </a>
+      </Button>
     </div>
   );
 }

@@ -238,10 +238,12 @@ export async function updateApplicationAction(
 /**
  * Deletes an application for good.
  *
- * When it was approved, the member it created is deleted too (and with them
- * their payments), and the seat they held is released. This is the "remove
- * this person completely" action; pending or rejected applications simply
- * disappear.
+ * When it was approved, the member it created is kept but marked as having
+ * left: their seat is released so it can be taken again, they drop off the
+ * active members list, and — crucially — their payment history stays. Deleting
+ * the member would cascade away every payment they ever made, which would
+ * change the library's collected totals for past months. Pending or rejected
+ * applications simply disappear.
  */
 export async function deleteApplicationAction(id: number): Promise<ActionState> {
   if (!Number.isInteger(id) || id <= 0) return errorState("Application not found.");
@@ -261,15 +263,19 @@ export async function deleteApplicationAction(id: number): Promise<ActionState> 
         });
 
         if (member) {
+          // Keep the member and their payments; just release the seat and take
+          // them off the active list.
+          await tx.member.update({
+            where: { id: member.id },
+            data: { status: "LEFT", leavingDate: new Date(), seatId: null },
+          });
+
           if (member.seatId) {
             await tx.seat.update({
               where: { id: member.seatId },
               data: { status: "AVAILABLE" },
             });
           }
-          // Payments cascade with the member; any other application pointing at
-          // them is unlinked by its onDelete: SetNull relation.
-          await tx.member.delete({ where: { id: member.id } });
         }
       }
 
@@ -277,7 +283,7 @@ export async function deleteApplicationAction(id: number): Promise<ActionState> 
     });
 
     revalidateAll();
-    return successState("Application deleted.");
+    return successState("Application deleted. Their seat is free again and past payments are kept.");
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

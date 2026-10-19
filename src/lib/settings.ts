@@ -25,7 +25,9 @@ export const memberFeeKey = (memberId: number) => `${MEMBER_FEE_PREFIX}${memberI
 
 /**
  * A member's own monthly fee, stored per member because the standard fee
- * changes over time and not every member moves with it.
+ * changes over time and not every member moves with it. A zero is a real
+ * setting (someone who uses a seat with no fee), so it is kept as 0 rather
+ * than falling back to the standard.
  *
  * `null` (or a member who has no row) means "use the standard fee".
  */
@@ -33,8 +35,9 @@ export async function getMemberFee(memberId: number): Promise<number | null> {
   const setting = await prisma.setting.findUnique({
     where: { key: memberFeeKey(memberId) },
   });
-  const value = Number(setting?.value);
-  return Number.isFinite(value) && value > 0 ? value : null;
+  if (!setting) return null;
+  const value = Number(setting.value);
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 /**
@@ -49,7 +52,7 @@ export async function memberFeesByMemberId(): Promise<Map<number, number>> {
   for (const setting of settings) {
     const memberId = Number(setting.key.slice(MEMBER_FEE_PREFIX.length));
     const value = Number(setting.value);
-    if (Number.isInteger(memberId) && Number.isFinite(value) && value > 0) {
+    if (Number.isInteger(memberId) && Number.isFinite(value) && value >= 0) {
       fees.set(memberId, value);
     }
   }
