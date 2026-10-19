@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import { sendNewApplicationNotice } from "@/lib/application-email";
 import { APPLICATION_RATE_LIMIT } from "@/lib/constants";
-import { parseInputDate } from "@/lib/format";
+import { formatDate, parseInputDate } from "@/lib/format";
 import { getClientIp } from "@/lib/login-rate-limit";
 import { prisma } from "@/lib/prisma";
+import { siteOrigin } from "@/lib/site";
 import { storeAadhaarFile } from "@/lib/aadhaar-storage";
 import { applicationSchema, fieldErrors } from "@/lib/validators";
 
@@ -83,7 +85,13 @@ export async function submitApplicationAction(
     // until the owner approves the application and it is assigned.
     const seat = await prisma.seat.findUnique({
       where: { id: data.seatId },
-      select: { id: true, roomId: true, status: true },
+      select: {
+        id: true,
+        roomId: true,
+        status: true,
+        seatNumber: true,
+        room: { select: { name: true } },
+      },
     });
 
     if (!seat || seat.roomId !== data.roomId || seat.status !== "AVAILABLE") {
@@ -107,6 +115,8 @@ export async function submitApplicationAction(
       });
     }
 
+    const joiningDate = parseInputDate(data.joiningDate);
+
     await prisma.application.create({
       data: {
         name: data.name,
@@ -120,12 +130,28 @@ export async function submitApplicationAction(
         aadhaarBackUrl: null,
         preparingFor: data.preparingFor,
         otherPreparation: null,
-        desiredJoiningDate: parseInputDate(data.joiningDate),
+        desiredJoiningDate: joiningDate,
         preferredSeatId: seat.id,
         agreed: true,
         ip,
       },
     });
+
+    // Notify the library inbox. Best-effort: a mail failure must never stop the
+    // applicant from seeing their confirmation.
+    await sendNewApplicationNotice({
+      name: data.name,
+      mobile: data.mobile,
+      email: data.email ?? null,
+      address: data.address ?? null,
+      guardianName: data.guardianName ?? null,
+      guardianMobile: data.guardianMobile ?? null,
+      aadhaarNumber: data.aadhaarNumber,
+      preparingFor: data.preparingFor,
+      desiredJoiningDate: formatDate(joiningDate),
+      seatLabel: `${seat.room.name} · Seat ${seat.seatNumber}`,
+      adminUrl: `${await siteOrigin()}/applications`,
+    }).catch(() => undefined);
 
     revalidatePath("/applications");
     return successState("Application received. We will get back to you after reviewing it.");
