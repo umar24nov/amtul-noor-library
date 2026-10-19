@@ -52,7 +52,7 @@ export async function sendApplicationDecisionEmail(input: {
     ? `Welcome to ${LIBRARY_NAME}`
     : `About your application to ${LIBRARY_NAME}`;
 
-  const html = input.approved
+  const paragraphs = input.approved
     ? [
         `<p>Dear ${name},</p>`,
         `<p>Welcome to <strong>${LIBRARY_NAME}</strong>! Your application has been approved, and we are glad to have you with us.</p>`,
@@ -73,9 +73,9 @@ export async function sendApplicationDecisionEmail(input: {
           : "",
         `<p>If you would like to discuss this, please contact the library manager at ${LIBRARY_PHONE} or reply to this email (${escapeHtml(LIBRARY_EMAIL)}). We will be happy to help.</p>`,
         `<p>— ${LIBRARY_NAME}</p>`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      ];
+
+  const html = paragraphs.filter(Boolean).join("\n");
 
   let response: Response;
   try {
