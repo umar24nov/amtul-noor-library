@@ -1,8 +1,11 @@
 "use client";
 
 import { type KeyboardEvent } from "react";
+import { toast } from "sonner";
 import { cn } from "cn";
 import type { SeatLayout } from "@/lib/seat-layouts";
+
+const OCCUPIED_MESSAGE = "This seat is already booked. Please choose a different seat.";
 
 export type SeatMapSeat = {
   number: number;
@@ -202,14 +205,16 @@ export function SeatMap({
           </text>
         );
 
-        const onKeyDown = onSelectSeat
-          ? (event: KeyboardEvent<SVGGElement>) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelectSeat(seat.number);
-              }
-            }
-          : undefined;
+        const activate = () => {
+          if (onSelectSeat) onSelectSeat(seat.number);
+          else toast.error(OCCUPIED_MESSAGE);
+        };
+        const onKeyDown = (event: KeyboardEvent<SVGGElement>) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        };
 
         const content = (
           <>
@@ -232,10 +237,26 @@ export function SeatMap({
           );
         }
 
+        // A booked seat is still worth a tap: it explains why nothing happened
+        // instead of being a dead shape on the map.
+        if (!disabled && !onSelectSeat && seatHrefTemplate && status === "OCCUPIED") {
+          return (
+            <g
+              key={seat.number}
+              role="button"
+              tabIndex={0}
+              aria-label={`${label}. Already booked.`}
+              onClick={() => toast.error(OCCUPIED_MESSAGE)}
+              onKeyDown={onKeyDown}
+              className="cursor-pointer outline-none focus-visible:opacity-70"
+            >
+              {content}
+            </g>
+          );
+        }
+
         if (onSelectSeat) {
-          const clickable =
-            !disabled &&
-            (status === "AVAILABLE" || (status === "OCCUPIED" && isSelected));
+          const clickable = !disabled && status !== "MISSING";
           if (clickable) {
             return (
               <g

@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FilterField } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
-import { PendingApplicationActions } from "@/components/application-card-actions";
+import {
+  ApplicationActions,
+  type EditableApplication,
+} from "@/components/application-card-actions";
+import { AadhaarPreview } from "@/components/aadhaar-preview";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { cn } from "cn";
@@ -53,6 +57,38 @@ function AadhaarFile({ url, label }: { url: string | null; label: string }) {
       )}
     </Link>
   );
+}
+
+function toEditableApplication(application: {
+  id: number;
+  status: ApplicationStatus;
+  name: string;
+  mobile: string;
+  email: string | null;
+  address: string | null;
+  guardianName: string | null;
+  guardianMobile: string | null;
+  aadhaarNumber: string;
+  preparingFor: string;
+  otherPreparation: string | null;
+  desiredJoiningDate: Date;
+  notes: string | null;
+}): EditableApplication {
+  return {
+    id: application.id,
+    status: application.status,
+    name: application.name,
+    mobile: application.mobile,
+    email: application.email,
+    address: application.address,
+    guardianName: application.guardianName,
+    guardianMobile: application.guardianMobile,
+    aadhaarNumber: application.aadhaarNumber,
+    preparingFor: application.preparingFor,
+    otherPreparation: application.otherPreparation,
+    desiredJoiningDate: application.desiredJoiningDate.toISOString().slice(0, 10),
+    notes: application.notes,
+  };
 }
 
 export default async function ApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -148,7 +184,15 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                   </div>
                   <div className="flex justify-between gap-2 sm:block">
                     <dt className="text-muted-foreground">Aadhaar</dt>
-                    <dd>{application.aadhaarNumber}</dd>
+                    <dd className="flex flex-wrap items-center gap-2">
+                      <span>{application.aadhaarNumber}</span>
+                      {application.aadhaarFrontUrl && (
+                        <AadhaarPreview
+                          url={application.aadhaarFrontUrl}
+                          label={`Aadhaar scan — ${application.name}`}
+                        />
+                      )}
+                    </dd>
                   </div>
                   {application.preferredSeat && (
                     <div className="flex justify-between gap-2 sm:block">
@@ -182,16 +226,23 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                   )}
                 </dl>
 
-                {(application.aadhaarFrontUrl || application.aadhaarBackUrl) && (
+                {application.aadhaarBackUrl && (
                   <div className="flex flex-wrap gap-3">
-                    <AadhaarFile url={application.aadhaarFrontUrl} label="Aadhaar PDF" />
                     <AadhaarFile url={application.aadhaarBackUrl} label="Back side" />
                   </div>
                 )}
 
-                {application.status === "PENDING" && (
-                  <PendingApplicationActions id={application.id} />
+                {application.notes && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Internal notes
+                    </p>
+                    <p className="mt-0.5 text-sm">{application.notes}</p>
+                  </div>
                 )}
+
+                <ApplicationActions application={toEditableApplication(application)} />
+
 
                 {application.status === "APPROVED" && (
                   <p className="text-sm text-muted-foreground">
@@ -213,9 +264,15 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                 )}
 
                 {application.status === "REJECTED" && (
-                  <p className="text-sm text-muted-foreground">
-                    Rejected {formatDate(application.decidedAt)}.
-                  </p>
+                  <div className="grid gap-1 text-sm text-muted-foreground">
+                    <p>Rejected {formatDate(application.decidedAt)}.</p>
+                    {application.rejectionReason && (
+                      <p>
+                        <span className="font-medium text-foreground">Reason:</span>{" "}
+                        {application.rejectionReason}
+                      </p>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

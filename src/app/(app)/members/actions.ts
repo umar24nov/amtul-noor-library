@@ -298,6 +298,8 @@ export async function updateMemberAction(
       // join-date order.
       const rejoining = existing.status === "LEFT" && seatId !== null;
 
+      const email = formData.has("email") ? (data.email ?? null) : undefined;
+
       await tx.member.update({
         where: { id: existing.id },
         data: {
@@ -305,7 +307,7 @@ export async function updateMemberAction(
           mobile: data.mobile,
           // Only touch the email when the form carried the field, so an older
           // form can never blank a saved address by omitting it.
-          email: formData.has("email") ? (data.email ?? null) : undefined,
+          email,
           guardianName: data.guardianName ?? null,
           guardianMobile: data.guardianMobile ?? null,
           joiningDate: parseInputDate(data.joiningDate),
@@ -313,6 +315,21 @@ export async function updateMemberAction(
           seatId: existing.status === "ACTIVE" || rejoining ? seatId : existing.seatId,
           status: rejoining ? "ACTIVE" : undefined,
           leavingDate: rejoining ? null : undefined,
+        },
+      });
+
+      // The application that produced this member keeps its own copy of the
+      // personal details. Copy the corrected values across so the two screens
+      // never disagree about the same person.
+      await tx.application.updateMany({
+        where: { memberId: existing.id },
+        data: {
+          name: data.name,
+          mobile: data.mobile,
+          email,
+          guardianName: data.guardianName ?? null,
+          guardianMobile: data.guardianMobile ?? null,
+          desiredJoiningDate: parseInputDate(data.joiningDate),
         },
       });
 
@@ -378,6 +395,43 @@ export async function markMemberLeftAction(formData: FormData): Promise<void> {
   });
 
   revalidateAll();
+}
+
+/**
+ * Permanently removes a member.
+ *
+ * This is the destructive option the owner asked for: their payment history is
+ * deleted with them (by the cascade) and their seat is released and marked
+ * available. Applications they came from are unlinked but kept.
+ */
+export async function deleteMemberAction(memberId: number): Promise<ActionState> {
+  if (!Number.isInteger(memberId) || memberId <= 0) {
+    return errorState("Member not found.");
+  }
+
+  try {
+    const member = await prisma.member.findUnique({
+      where: { id: memberId },
+      select: { id: true, seatId: true },
+    });
+    if (!member) return errorState("Member not found.");
+
+    await prisma.$transaction(async (tx) => {
+      if (member.seatId) {
+        await tx.seat.update({
+          where: { id: member.seatId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+      await tx.setting.deleteMany({ where: { key: memberFeeKey(member.id) } });
+      await tx.member.delete({ where: { id: member.id } });
+    });
+
+    revalidateAll();
+    return successState("Member deleted.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
 }
 
 /** Seat search used by the "Mark as Left" and edit dialogs. */

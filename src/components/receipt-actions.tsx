@@ -1,9 +1,34 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Download, Link2, Loader2, Mail, MessageCircle } from "lucide-react";
+import {
+  Download,
+  Link2,
+  Loader2,
+  Mail,
+  MessageCircle,
+  MoreHorizontal,
+} from "lucide-react";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { sendReceiptEmailAction } from "@/app/(app)/payments/actions";
 
 /**
@@ -11,6 +36,9 @@ import { sendReceiptEmailAction } from "@/app/(app)/payments/actions";
  * email, open WhatsApp with the receipt text (and its public download link), or
  * copy that same link so it can be sent wherever the member will see it. The
  * link needs no login, so it is how a member gets their own copy.
+ *
+ * They live behind a single "…" button so the payments table stays readable,
+ * and emailing asks for confirmation before anything is sent.
  */
 export function ReceiptActions({
   paymentPk,
@@ -27,6 +55,7 @@ export function ReceiptActions({
   publicUrl?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const emailReceipt = () => {
     startTransition(async () => {
@@ -36,6 +65,7 @@ export function ReceiptActions({
       } else {
         toast.success(result.message ?? "Receipt sent.");
       }
+      setConfirmOpen(false);
     });
   };
 
@@ -49,65 +79,101 @@ export function ReceiptActions({
     }
   };
 
-  const iconClass = cn(
-    "inline-flex items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
-    compact ? "size-9" : "size-10",
-  );
-
   return (
-    <div className={cn("flex items-center", compact ? "justify-end gap-1.5" : "gap-2")}>
-      <a
-        href={`/api/receipts/${paymentPk}`}
-        className={iconClass}
-        aria-label="Download the receipt PDF"
-        title="Download PDF"
-      >
-        <Download className="size-4" />
-      </a>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(compact ? "size-9" : "size-10", "text-muted-foreground")}
+            aria-label="Receipt actions"
+            title="Receipt actions"
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuLabel>Receipt</DropdownMenuLabel>
+          <DropdownMenuItem asChild>
+            <a href={`/api/receipts/${paymentPk}`}>
+              <Download className="size-4" />
+              Download PDF
+            </a>
+          </DropdownMenuItem>
 
-      <button
-        type="button"
-        onClick={emailReceipt}
-        disabled={pending || !hasEmail}
-        className={cn(iconClass, "disabled:opacity-40")}
-        aria-label={
-          hasEmail
-            ? "Email the receipt PDF"
-            : "No email on record for this member yet"
-        }
-        title={hasEmail ? "Email PDF" : "No email on record — add one on the member's page"}
-      >
-        {pending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Mail className="size-4" />
-        )}
-      </button>
+          <DropdownMenuItem
+            disabled={!hasEmail || pending}
+            onSelect={(event) => {
+              event.preventDefault();
+              if (!hasEmail) return;
+              setConfirmOpen(true);
+            }}
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Mail className="size-4" />
+            )}
+            {pending ? "Sending…" : "Email receipt"}
+          </DropdownMenuItem>
 
-      {whatsappHref && (
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noreferrer"
-          className={iconClass}
-          aria-label="Send the receipt on WhatsApp"
-          title="Send on WhatsApp"
-        >
-          <MessageCircle className="size-4" />
-        </a>
-      )}
+          {whatsappHref && (
+            <DropdownMenuItem asChild>
+              <a href={whatsappHref} target="_blank" rel="noreferrer">
+                <MessageCircle className="size-4" />
+                Send on WhatsApp
+              </a>
+            </DropdownMenuItem>
+          )}
 
-      {publicUrl && (
-        <button
-          type="button"
-          onClick={copyLink}
-          className={iconClass}
-          aria-label="Copy the member's receipt link"
-          title="Copy receipt link"
-        >
-          <Link2 className="size-4" />
-        </button>
-      )}
-    </div>
+          {publicUrl && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={copyLink}>
+                <Link2 className="size-4" />
+                Copy receipt link
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {!hasEmail && (
+            <>
+              <DropdownMenuSeparator />
+              <p className="px-1.5 py-1 text-xs text-muted-foreground">
+                Add an email on the member&apos;s page to email receipts.
+              </p>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send this receipt by email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The PDF receipt will be emailed to the address on the member&apos;s
+              record. Are you sure you want to send it now?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-10" disabled={pending}>
+              Cancel
+            </AlertDialogCancel>
+            <Button type="button" className="h-10" onClick={emailReceipt} disabled={pending}>
+              {pending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                "Yes, send it"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

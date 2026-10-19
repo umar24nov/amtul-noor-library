@@ -189,6 +189,32 @@ export type ApplicationFormValues = z.input<typeof applicationSchema>;
 export type ApplicationFormOutput = z.output<typeof applicationSchema>;
 
 /**
+ * The owner editing an application from the admin panel. Unlike the public
+ * form it does not require a seat or the rules checkbox, and the optional
+ * blocks may be left blank.
+ */
+export const applicationEditSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name is required")
+    .max(80, "Name must be 80 characters or fewer"),
+  mobile: mobileSchema,
+  email: optionalEmailSchema,
+  address: optionalText(200),
+  guardianName: optionalText(80),
+  guardianMobile: optionalMobileSchema,
+  aadhaarNumber: aadhaarNumberSchema,
+  preparingFor: z.string().trim().min(1, "Enter what they are preparing for"),
+  otherPreparation: optionalText(80),
+  joiningDate: dateInputSchema,
+  notes: optionalText(500),
+});
+
+/** A rejection may be sent without a reason; the default wording is used then. */
+export const rejectionReasonSchema = optionalText(500);
+
+/**
  * The public help & support form. A visitor with no account writes in, so it
  * asks only for a name, an address to reply to, a topic and the message. The
  * email is required here, unlike the join form, because the whole point is a

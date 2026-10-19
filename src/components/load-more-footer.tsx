@@ -45,9 +45,10 @@ export function LoadMoreFooter({
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) loadMore.current();
       },
-      // Start fetching before the sentinel is actually on screen, so rows are
-      // usually already there by the time the reader gets to the bottom.
-      { rootMargin: "600px 0px" },
+      // Only fetch once the sentinel is genuinely on screen. A large margin
+      // made the sentinel stay inside the trigger area batch after batch, so
+      // the list kept auto-loading and the spinner never settled.
+      { rootMargin: "0px" },
     );
 
     observer.observe(node);

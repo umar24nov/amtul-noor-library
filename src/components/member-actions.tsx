@@ -26,8 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
-import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";
-import { todayInputValue } from "@/lib/format";
+import { DeleteMemberButton } from "@/components/delete-member-button";
+import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";import { todayInputValue } from "@/lib/format";
 
 export type MemberActionTarget = {
   id: number;
@@ -169,6 +169,12 @@ export function MemberActions({
       ) : (
         <span className="text-sm text-muted-foreground">This member has left</span>
       )}
+
+      <DeleteMemberButton
+        memberId={member.id}
+        name={member.name}
+        memberIdCode={member.memberId}
+      />
     </div>
   );
 }

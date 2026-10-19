@@ -28,6 +28,7 @@ import {
 import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
 import { MemberStatusBadge } from "@/components/status-badges";
+import { DeleteMemberButton } from "@/components/delete-member-button";
 import { formatDate, todayInputValue } from "@/lib/format";
 import { markMemberLeftAction, updateMemberAction, loadMoreMembersAction, getMemberForEdit } from "@/app/(app)/members/actions";
 import type { MemberWithSeat } from "@/lib/queries";
@@ -224,6 +225,12 @@ function RowActions({
       ) : (
         <span className="px-2 text-xs text-muted-foreground">No seat</span>
       )}
+      <DeleteMemberButton
+        memberId={member.id}
+        name={member.name}
+        memberIdCode={member.memberId}
+        compact
+      />
     </div>
   );
 }

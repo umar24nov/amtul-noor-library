@@ -4,7 +4,7 @@ import { Brand } from "@/components/brand";
 import { DatabaseUnavailable } from "@/components/database-unavailable";
 import { DesktopNav } from "@/components/app-nav";
 import { MobileMenu } from "@/components/mobile-menu";
-import { LogoutButton } from "@/components/logout-button";
+import { ProfileMenu } from "@/components/profile-menu";
 import { getSession } from "@/lib/auth";
 import { isDatabaseReachable } from "@/lib/db-status";
 import { prisma } from "@/lib/prisma";
@@ -14,10 +14,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect("/login");
 
   const databaseIsUp = await isDatabaseReachable();
-  // The role name is read fresh so a rename shows up without signing in again.
-  const role = session.roleId
-    ? await prisma.role.findUnique({ where: { id: session.roleId }, select: { name: true } })
-    : null;
+  // The name and role name are read fresh so a rename shows up without signing
+  // in again.
+  const [role, user] = await Promise.all([
+    session.roleId
+      ? prisma.role.findUnique({ where: { id: session.roleId }, select: { name: true } })
+      : Promise.resolve(null),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
+  ]);
   const roleLabel = role?.name ?? (session.level === "ADMIN" ? "Admin" : "Day-to-day");
 
   return (
@@ -37,13 +41,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex-1 overflow-y-auto py-3">
           <DesktopNav level={session.level} />
         </div>
-        <div className="border-t border-sidebar-border p-3">
-          <p className="truncate px-1 text-xs font-medium text-foreground">
-            {session.email}
-          </p>
-          <p className="mb-2 truncate px-1 text-xs text-muted-foreground">{roleLabel}</p>
-          <LogoutButton />
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 xl:pl-64">
@@ -57,8 +54,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Brand compact />
           </Link>
           <div className="ml-auto">
-            <LogoutButton compact />
+            <ProfileMenu name={user?.name ?? null} email={session.email} roleLabel={roleLabel} />
           </div>
+        </header>
+
+        <header className="sticky top-0 z-20 hidden h-14 items-center justify-end border-b border-border bg-background/95 px-5 backdrop-blur lg:flex">
+          <ProfileMenu name={user?.name ?? null} email={session.email} roleLabel={roleLabel} />
         </header>
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">

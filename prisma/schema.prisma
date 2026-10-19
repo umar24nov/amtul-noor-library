@@ -63,17 +63,17 @@ model Room {
 /// A single study desk. Seats are never deleted implicitly; a seat keeps its
 /// identity so historic member -> seat links stay meaningful.
 model Seat {
-  id         Int        @id @default(autoincrement())
-  roomId     Int
-  seatNumber String
-  status     SeatStatus @default(AVAILABLE)
-  room       Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  occupants  Member[]
+  id           Int           @id @default(autoincrement())
+  roomId       Int
+  seatNumber   String
+  status       SeatStatus    @default(AVAILABLE)
+  room         Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  occupants    Member[]
   /// Applications that asked for this seat. A request, not a reservation:
   /// the seat stays free until the owner approves and it is assigned.
   applications Application[] @relation("ApplicationPreferredSeat")
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@unique([roomId, seatNumber])
   @@index([status])
@@ -82,8 +82,8 @@ model Seat {
 /// Permanent personal record of a person who joined the library.
 /// Rows are never deleted; a person who leaves is kept with status LEFT.
 model Member {
-  id             Int          @id @default(autoincrement())
-  memberId       String       @unique
+  id             Int           @id @default(autoincrement())
+  memberId       String        @unique
   name           String
   mobile         String?
   /// Optional. Used to email fee receipts; not every member has one yet.
@@ -93,17 +93,17 @@ model Member {
   joiningDate    DateTime
   /// Current seat. Cleared when the member is marked Left.
   seatId         Int?
-  status         MemberStatus @default(ACTIVE)
+  status         MemberStatus  @default(ACTIVE)
   leavingDate    DateTime?
   remarks        String?
   /// A secret, unguessable token that gives this member a permanent, reusable
   /// link (/pay/<token>) for paying their fee and downloading their receipts.
-  payToken       String?      @unique
-  seat           Seat?        @relation(fields: [seatId], references: [id], onDelete: SetNull)
+  payToken       String?       @unique
+  seat           Seat?         @relation(fields: [seatId], references: [id], onDelete: SetNull)
   payments       Payment[]
   applications   Application[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([name])
   @@index([mobile])
@@ -114,22 +114,22 @@ model Member {
 /// One financial transaction for one member for one month.
 /// A member can have many rows; nothing is ever overwritten.
 model Payment {
-  id          Int           @id @default(autoincrement())
-  paymentId   String        @unique
-  memberId    Int
+  id           Int           @id @default(autoincrement())
+  paymentId    String        @unique
+  memberId     Int
   /// Calendar month in `YYYY-MM` form.
-  month       String
-  amount      Decimal       @db.Decimal(10, 2)
-  paymentMode PaymentMode
-  paymentDate DateTime
+  month        String
+  amount       Decimal       @db.Decimal(10, 2)
+  paymentMode  PaymentMode
+  paymentDate  DateTime
   status       PaymentStatus @default(PAID)
   remarks      String?
   /// A secret, unguessable token that lets a member download their own
   /// receipt without logging in (see the public /receipts/<token> route).
   receiptToken String?       @unique
   member       Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([month])
   @@index([status])
@@ -147,45 +147,48 @@ model Setting {
 /// makes the person a member; the owner approves it and the member is created
 /// from the details, so the same fields are never typed twice.
 model Application {
-  id        Int               @id @default(autoincrement())
-  name      String
-  mobile    String
-  email     String?
-  address   String?
+  id                 Int               @id @default(autoincrement())
+  name               String
+  mobile             String
+  email              String?
+  address            String?
   /// The father / guardian, and their number, exactly as the applicant wrote
   /// them on the form.
-  guardianName   String?
-  guardianMobile String?
+  guardianName       String?
+  guardianMobile     String?
   /// Aadhaar number as entered. Kept as text so leading zeroes are not lost.
-  aadhaarNumber String
+  aadhaarNumber      String
   /// Where the scanned sides ended up (a local path in dev, a Blob URL on
   /// Vercel). Null when the applicant did not attach a side.
-  aadhaarFrontUrl  String?
-  aadhaarBackUrl   String?
+  aadhaarFrontUrl    String?
+  aadhaarBackUrl     String?
   /// The exam or stream from the form's fixed options.
-  preparingFor     String
+  preparingFor       String
   /// Filled when `preparingFor` was "Other".
-  otherPreparation String?
+  otherPreparation   String?
   /// The day the applicant hopes to join, from the "Date of joining" field.
   desiredJoiningDate DateTime
   /// The seat the applicant chose (a room + seat, from the seats that were
   /// free at the time). The public form requires it, so new applications
   /// always carry one; nullable so applications made before this existed, and
   /// rows whose seat was later removed, stay valid.
-  preferredSeatId Int?
-  preferredSeat   Seat? @relation("ApplicationPreferredSeat", fields: [preferredSeatId], references: [id], onDelete: SetNull)
+  preferredSeatId    Int?
+  preferredSeat      Seat?             @relation("ApplicationPreferredSeat", fields: [preferredSeatId], references: [id], onDelete: SetNull)
   /// The "I have read and understood the rules" checkbox.
-  agreed    Boolean @default(false)
+  agreed             Boolean           @default(false)
   /// Client address, kept so repeated spam from one source is visible.
-  ip        String  @default("")
-  status    ApplicationStatus @default(PENDING)
-  notes     String?
+  ip                 String            @default("")
+  status             ApplicationStatus @default(PENDING)
+  notes              String?
+  /// The owner's explanation, set when the application is rejected and only
+  /// when they chose to write one. Shown on the card and sent in the email.
+  rejectionReason    String?
   /// Set when an application is approved; points at the member it created.
-  memberId  Int?
-  member    Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  decidedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  memberId           Int?
+  member             Member?           @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  decidedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   @@index([status, createdAt])
   @@index([mobile, createdAt])
@@ -231,20 +234,20 @@ model Role {
 /// text. Accounts are deactivated rather than deleted so the audit trail of
 /// who worked here stays intact.
 model User {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   /// The address they type on the login form. Unique across the app.
-  email        String   @unique
+  email        String    @unique
   /// Display name, shown in the sidebar. Optional: the login form has no name.
   name         String?
   passwordHash String
   /// The named role this person signs in with. Every account has one.
   roleId       Int
-  role         Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  role         Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
   /// A deactivated account cannot sign in, but its row is kept.
-  active       Boolean  @default(true)
+  active       Boolean   @default(true)
   lastLoginAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([roleId])
   @@index([active])
