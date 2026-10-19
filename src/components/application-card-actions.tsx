@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import { Check, Mail, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ import {
   approveApplicationAction,
   deleteApplicationAction,
   rejectApplicationAction,
+  sendApplicationEmailAction,
   updateApplicationAction,
 } from "@/app/(app)/applications/actions";
 
@@ -413,9 +414,61 @@ export function ApplicationActions({
           <RejectApplicationDialog application={application} />
         </>
       )}
+      {application.status !== "PENDING" && (
+        <SendEmailDialog application={application} />
+      )}
       <EditApplicationDialog application={application} />
       <DeleteApplicationDialog application={application} />
     </div>
+  );
+}
+
+function SendEmailDialog({ application }: { application: EditableApplication }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const approved = application.status === "APPROVED";
+
+  const send = () => {
+    startTransition(async () => {
+      const result = await sendApplicationEmailAction(application.id);
+      if (result.status === "error") {
+        toast.error(result.message ?? "Could not send the email.");
+        return;
+      }
+      toast.success(result.message ?? "Email sent.");
+      setOpen(false);
+      router.refresh();
+    });
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10">
+          <Mail className="size-4" />
+          {approved ? "Send welcome email" : "Send email"}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {approved ? "Send the welcome email?" : "Send the decision email?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {approved
+              ? `This emails ${application.name} a welcome message with their seat and library details. They may have received one when you approved — sending it again is safe.`
+              : `This emails ${application.name} the message explaining that their application was not accepted. Sending it again is safe.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="h-10">Cancel</AlertDialogCancel>
+          <Button type="button" className="h-10" onClick={send} disabled={pending}>
+            {pending ? "Sending…" : "Yes, send"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

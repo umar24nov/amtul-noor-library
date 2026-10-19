@@ -97,17 +97,19 @@ export async function approveApplicationAction(formData: FormData): Promise<void
       };
     });
 
+    let emailStatus = "none";
     if (result.email) {
-      await sendApplicationDecisionEmail({
+      const email = await sendApplicationDecisionEmail({
         to: result.email,
         applicantName: result.applicantName,
         approved: true,
         seatLabel: result.seatLabel,
-      }).catch(() => undefined);
+      });
+      emailStatus = email.ok ? "sent" : "failed";
     }
 
     revalidateAll();
-    redirect(`/members/${result.member.id}?joined=1&from=application`);
+    redirect(`/members/${result.member.id}?joined=1&email=${emailStatus}`);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
     redirect("/applications?error=failed");
@@ -142,16 +144,22 @@ export async function rejectApplicationAction(formData: FormData): Promise<Actio
     });
 
     if (application.email) {
-      await sendApplicationDecisionEmail({
+      const email = await sendApplicationDecisionEmail({
         to: application.email,
         applicantName: application.name,
         approved: false,
         reason,
-      }).catch(() => undefined);
+      });
+      revalidateAll();
+      return successState(
+        email.ok
+          ? `Application rejected. Email sent to ${application.email}.`
+          : `Application rejected, but the email could not be sent: ${email.error}`,
+      );
     }
 
     revalidateAll();
-    return successState("Application rejected.");
+    return successState("Application rejected. No email address was on file.");
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
@@ -230,6 +238,67 @@ export async function updateApplicationAction(
 
     revalidateAll();
     return successState("Application updated.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Sends (or re-sends) the decision email by hand.
+ *
+ * Auto-sending on approve/reject is best-effort and can quietly fail (no key,
+ * an unverified sending domain, or a bounce). This lets the owner push the same
+ * email again on demand and, unlike the automatic path, it reports exactly what
+ * went wrong so the problem is visible instead of silent.
+ */
+export async function sendApplicationEmailAction(applicationId: number): Promise<ActionState> {
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return errorState("Application not found.");
+  }
+
+  try {
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        status: true,
+        email: true,
+        name: true,
+        rejectionReason: true,
+        member: {
+          select: {
+            seat: { select: { seatNumber: true, room: { select: { name: true } } } },
+          },
+        },
+      },
+    });
+    if (!application) return errorState("Application not found.");
+    if (application.status === "PENDING") {
+      return errorState("Approve or reject the application before emailing the applicant.");
+    }
+    if (!application.email) {
+      return errorState("This application has no email address on file.");
+    }
+
+    const seatLabel = application.member?.seat
+      ? `${application.member.seat.room.name} · Seat ${application.member.seat.seatNumber}`
+      : null;
+
+    const result = await sendApplicationDecisionEmail({
+      to: application.email,
+      applicantName: application.name,
+      approved: application.status === "APPROVED",
+      seatLabel,
+      reason: application.rejectionReason,
+    });
+
+    if (!result.ok) return errorState(result.error);
+
+    return successState(
+      application.status === "APPROVED"
+        ? `Welcome email sent to ${application.email}.`
+        : `Email sent to ${application.email}.`,
+    );
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

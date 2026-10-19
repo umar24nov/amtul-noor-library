@@ -47,10 +47,10 @@ export default async function MemberDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ joined?: string }>;
+  searchParams: Promise<{ joined?: string; email?: string }>;
 }) {
   const { id } = await params;
-  const { joined } = await searchParams;
+  const { joined, email } = await searchParams;
   const memberId = Number(id);
   if (!Number.isInteger(memberId)) notFound();
 
@@ -153,6 +153,13 @@ export default async function MemberDetailPage({
         <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2.5 text-sm text-success">
           {member.name} has been added as {member.memberId}
           {member.seat ? ` and assigned to seat ${member.seat.seatNumber}` : ""}.
+        </p>
+      )}
+
+      {joined && email === "failed" && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          The welcome email could not be sent. Open the application and use{" "}
+          <span className="font-medium">Send welcome email</span> to try again.
         </p>
       )}
 
