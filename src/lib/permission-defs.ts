@@ -33,7 +33,7 @@ export const PERMISSION_GROUPS: {
 }[] = [
   {
     title: "Library",
-    description: "The day-to-day running of the library.",
+    description: "The everyday running of the library.",
     options: [
       { key: "MEMBERS", label: "Members", hint: "Add members and change their details" },
       { key: "APPLICATIONS", label: "Applications", hint: "Approve or reject join requests" },

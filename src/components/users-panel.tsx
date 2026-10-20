@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { KeyRound, Mail, Power, UserPlus, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +66,7 @@ function RoleOptions({ roles }: { roles: PanelRole[] }) {
     <>
       {roles.map((role) => (
         <SelectItem key={role.id} value={String(role.id)}>
-          {role.name} — {role.level === "ADMIN" ? "full admin" : "day-to-day"}
+          {role.name} — {role.level === "ADMIN" ? "full access" : "standard"}
         </SelectItem>
       ))}
     </>
@@ -99,7 +99,7 @@ function AddUserDialog({
         <DialogHeader>
           <DialogTitle>Add a user</DialogTitle>
           <DialogDescription>
-            They sign in with this email and password. You can change either later.
+            They sign in with this email and password. You can change either one later.
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} className="grid gap-4">
@@ -200,7 +200,7 @@ function RoleSelect({ user, roles }: { user: PanelUser; roles: PanelRole[] }) {
         });
       }}
     >
-      <SelectTrigger size="sm" className="w-40" aria-label={`Role for ${user.email}`}>
+      <SelectTrigger size="sm" className="w-full" aria-label={`Role for ${user.email}`}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -302,6 +302,83 @@ function ToggleActiveDialog({
   );
 }
 
+/** One account as a card: who it is, its role, when it last signed in, and the
+ *  row actions. Works the same on a phone and a wide screen. */
+function UserCard({
+  user,
+  roles,
+  isSelf,
+  onReset,
+  onToggle,
+}: {
+  user: PanelUser;
+  roles: PanelRole[];
+  isSelf: boolean;
+  onReset: () => void;
+  onToggle: () => void;
+}) {
+  const isAdmin = user.level === "ADMIN";
+  return (
+    <div
+      className={
+        user.active
+          ? "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20"
+          : "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 opacity-70 transition-colors hover:opacity-100"
+      }
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={
+            isAdmin
+              ? "flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              : "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+          }
+        >
+          <UserRound className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="font-heading truncate text-sm font-semibold tracking-tight">
+              {user.name ?? user.email.split("@")[0]}
+            </h3>
+            {isSelf && <Badge variant="outline">You</Badge>}
+          </div>
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{user.email}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Last signed in: {user.lastLoginAt ?? "Never"}
+          </p>
+        </div>
+        <Badge variant={user.active ? "outline" : "destructive"} className="shrink-0">
+          {user.active ? "Active" : "Off"}
+        </Badge>
+      </div>
+
+      <RoleSelect user={user} roles={roles} />
+
+      <div className="mt-auto flex items-center gap-1.5 border-t border-border pt-3">
+        <Button type="button" variant="outline" size="sm" onClick={onReset}>
+          <KeyRound className="size-3.5" />
+          Reset password
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onToggle}
+          disabled={isSelf}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Power className="size-3.5" />
+          {user.active ? "Deactivate" : "Activate"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function UsersPanel({
   users,
   roles,
@@ -317,81 +394,40 @@ export function UsersPanel({
 
   return (
     <section className="grid gap-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setAddOpen(true)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <UserRound className="size-4.5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="font-heading text-base font-semibold tracking-tight">People</h2>
+            <p className="text-sm text-muted-foreground">
+              Everyone who can sign in, and the role each one uses.
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => setAddOpen(true)} className="sm:shrink-0">
           <UserPlus className="size-4" />
           Add user
         </Button>
         <AddUserDialog open={addOpen} onOpenChange={setAddOpen} roles={roles} />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-background">
-        <table className="w-full min-w-[40rem] text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted text-left">
-              <th className="px-3 py-2.5 font-medium">Name</th>
-              <th className="px-3 py-2.5 font-medium">Email</th>
-              <th className="px-3 py-2.5 font-medium">Role</th>
-              <th className="px-3 py-2.5 font-medium">Status</th>
-              <th className="px-3 py-2.5 font-medium">Last signed in</th>
-              <th className="px-3 py-2.5 text-right font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {users.map((user) => (
-              <tr key={user.id} className={user.active ? undefined : "opacity-60"}>
-                <td className="px-3 py-2.5 font-medium">
-                  {user.name ?? "—"}
-                  {user.id === currentUserId && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>
-                  )}
-                </td>
-                <td className="px-3 py-2.5">{user.email}</td>
-                <td className="px-3 py-2.5">
-                  <RoleSelect user={user} roles={roles} />
-                </td>
-                <td className="px-3 py-2.5">
-                  {user.active ? (
-                    <Badge variant="outline">Active</Badge>
-                  ) : (
-                    <Badge variant="destructive">Deactivated</Badge>
-                  )}
-                </td>
-                <td className="px-3 py-2.5 text-muted-foreground">{user.lastLoginAt ?? "Never"}</td>
-                <td className="px-3 py-2.5">
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setResetTarget(user)}
-                    >
-                      Reset password
-                    </Button>
-                    {user.id === currentUserId ? (
-                      <Button type="button" variant="outline" size="sm" disabled>
-                        {user.active ? "Deactivate" : "Activate"}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setToggleTarget(user)}
-                      >
-                        {user.active ? "Deactivate" : "Activate"}
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {users.map((user) => (
+          <UserCard
+            key={user.id}
+            user={user}
+            roles={roles}
+            isSelf={user.id === currentUserId}
+            onReset={() => setResetTarget(user)}
+            onToggle={() => setToggleTarget(user)}
+          />
+        ))}
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Pick a role from the list to move someone between roles. A deactivated account keeps its
+        Pick a role to move someone between roles right away. A deactivated account keeps its
         history but cannot sign in.
       </p>
 

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Upload } from "lucide-react";
 import { cn } from "cn";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -551,8 +551,9 @@ export function ApplicationForm({
             >
               <label
                 htmlFor={`${id}-aadhaarFrontFile`}
-                className="inline-flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+                className="inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
               >
+                <Upload className="size-3.5" aria-hidden="true" />
                 Choose file
               </label>
               <span className="truncate text-sm text-muted-foreground">
