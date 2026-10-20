@@ -20,6 +20,49 @@ function acceptedExtension(file: File): string | null {
 }
 
 /**
+ * Reads the first bytes of a file and returns its real type, or null when they
+ * match none of the accepted kinds.
+ *
+ * The extension and the browser's `file.type` are both supplied by the client,
+ * so a file can claim to be a JPG while holding anything at all. The leading
+ * bytes ("magic numbers") are written by whatever produced the file and are far
+ * harder to fake than a name, so they are what we trust before storing a scan.
+ * The signatures: JPEG starts FF D8 FF, PNG starts 89 50 4E 47, and PDF starts
+ * "%PDF" (25 50 44 46).
+ */
+function sniffType(bytes: Uint8Array): "jpg" | "png" | "pdf" | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "jpg";
+  }
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return "png";
+  }
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  ) {
+    return "pdf";
+  }
+  return null;
+}
+
+/** Whether a sniffed kind matches the extension the file arrived under. jpeg and
+ *  jpg are the same picture, so either extension accepts a JPEG. */
+function kindMatchesExtension(kind: "jpg" | "png" | "pdf", extension: string): boolean {
+  if (kind === "jpg") return extension === "jpg" || extension === "jpeg";
+  return kind === extension;
+}
+
+/**
  * Saves one Aadhaar scan and returns its URL so the application row can point
  * at it.
  *
@@ -44,6 +87,15 @@ export async function storeAadhaarFile(
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
+
+  // The name is a claim, the leading bytes are the file really being what it
+  // says. Reject anything whose contents do not match an accepted kind, so a
+  // renamed script cannot be stored and later served from the blob store.
+  const kind = sniffType(bytes);
+  if (!kind || !kindMatchesExtension(kind, extension)) {
+    return { ok: false, message: "That file is not a real JPG, PNG or PDF. Please upload the scan again." };
+  }
+
   const filename = `${Date.now()}-${side}.${extension}`;
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
