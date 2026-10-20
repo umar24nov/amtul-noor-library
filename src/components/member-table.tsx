@@ -190,7 +190,13 @@ function EditDialog({
             email: member.email ?? undefined,
             guardianName: member.guardianName ?? undefined,
             guardianMobile: member.guardianMobile ?? undefined,
-            joiningDate: member.joiningDate.toISOString().slice(0, 10),
+            // A LEFT member being brought back starts a fresh term, so the field
+            // opens on today. Saving with a seat marks the away months as not
+            // applicable, matching the member detail page.
+            joiningDate:
+              member.status === "LEFT"
+                ? todayInputValue()
+                : member.joiningDate.toISOString().slice(0, 10),
             remarks: member.remarks ?? undefined,
             seatId: member.seatId,
           }}

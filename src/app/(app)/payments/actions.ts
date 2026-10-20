@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
 import { parseInputDate } from "@/lib/format";
-import { nextPaymentId, newReceiptToken } from "@/lib/ids";
-import { PAYMENT_ID_PREFIX } from "@/lib/constants";
+import { nextPaymentId, newReceiptToken, bumpPaymentId } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
 import { feeFormSchema, fieldErrors, monthKeySchema, paymentFormSchema } from "@/lib/validators";
@@ -49,11 +48,6 @@ export async function loadMorePaymentsAction(filters: {
   });
 
   return { payments: result.payments, total: result.total };
-}
-
-function bumpPaymentId(paymentId: string, offset: number): string {
-  const number = Number(paymentId.slice(PAYMENT_ID_PREFIX.length)) + offset;
-  return `${PAYMENT_ID_PREFIX}${String(number).padStart(4, "0")}`;
 }
 
 function joinedMonthOf(joiningDate: Date): string {

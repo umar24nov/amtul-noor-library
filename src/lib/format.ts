@@ -143,6 +143,25 @@ export function shiftMonthKey(month: string, delta: number): string {
   return toMonthKey(shifted);
 }
 
+/**
+ * Every whole month strictly between two months, oldest first.
+ *
+ * Used when a member rejoins after a break: the months from just after the one
+ * they left in, up to just before the one they came back in, are months they
+ * were not a member for. `gapMonthsBetween("2026-07", "2026-10")` is
+ * ["2026-08", "2026-09"]; a same-month or backwards range yields none.
+ */
+export function gapMonthsBetween(afterMonth: string, beforeMonth: string): string[] {
+  if (!MONTH_KEY_PATTERN.test(afterMonth) || !MONTH_KEY_PATTERN.test(beforeMonth)) return [];
+  const months: string[] = [];
+  let cursor = shiftMonthKey(afterMonth, 1);
+  while (cursor < beforeMonth) {
+    months.push(cursor);
+    cursor = shiftMonthKey(cursor, 1);
+  }
+  return months;
+}
+
 /** Matches a `YYYY-MM` month key with a real month number. */
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 

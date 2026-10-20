@@ -30,6 +30,16 @@ export async function nextPaymentId(db: Db = prisma): Promise<string> {
 }
 
 /**
+ * The payment id `offset` places after the given one, e.g. PAY0001 + 2 ->
+ * PAY0003. Lets a batch created together take a run of sequential ids from the
+ * single "last id" read, instead of querying for each row.
+ */
+export function bumpPaymentId(paymentId: string, offset: number): string {
+  const number = Number(paymentId.slice(PAYMENT_ID_PREFIX.length)) + offset;
+  return `${PAYMENT_ID_PREFIX}${String(number).padStart(4, "0")}`;
+}
+
+/**
  * A fresh, unguessable token used to retrieve a payment's receipt via the
  * public /receipts/<token> route without a session. 144 bits of randomness is
  * far more than a guesser can search, and each token only reveals one receipt.

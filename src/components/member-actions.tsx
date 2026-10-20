@@ -27,7 +27,8 @@ import {
 import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
 import { DeleteMemberButton } from "@/components/delete-member-button";
-import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";import { todayInputValue } from "@/lib/format";
+import { markMemberLeftAction, updateMemberAction } from "@/app/(app)/members/actions";
+import { todayInputValue } from "@/lib/format";
 
 export type MemberActionTarget = {
   id: number;
@@ -110,7 +111,10 @@ export function MemberActions({
               email: member.email ?? undefined,
               guardianName: member.guardianName ?? undefined,
               guardianMobile: member.guardianMobile ?? undefined,
-              joiningDate: member.joiningDate,
+              // A member who left and is being brought back starts a fresh term,
+              // so the field opens on today for them. Saving with a seat marks
+              // the months between the old leaving date and this date as away.
+              joiningDate: member.status === "LEFT" ? todayInputValue() : member.joiningDate,
               remarks: member.remarks,
               seatId: member.seatId,
             }}

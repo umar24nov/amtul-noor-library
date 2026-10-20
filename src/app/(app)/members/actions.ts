@@ -6,9 +6,9 @@ import { errorState, prismaErrorMessage, successState, type ActionState } from "
 import { getSession } from "@/lib/auth";
 import { parseInputDate, shiftMonthKey } from "@/lib/format";
 import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
+import { markGapMonthsNotApplicable, syncPendingAmounts } from "@/lib/membership";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 import {
   effectiveMemberFee,
   getMemberFee,
@@ -33,25 +33,6 @@ function revalidateAll() {
   revalidatePath("/reminders");
   revalidatePath("/seats");
   revalidatePath("/");
-}
-
-/**
- * Rewrites every unpaid month for one member to their current fee.
- *
- * A pending row stores the amount at the moment it was generated, so changing a
- * member's fee afterwards would leave the row showing the old figure — the
- * "member pays 500 but the list still says 700" inconsistency. Paid and waived
- * rows are historical and never touched; only PENDING rows follow the fee.
- */
-async function syncPendingAmounts(
-  tx: Prisma.TransactionClient,
-  memberId: number,
-  fee: number,
-): Promise<void> {
-  await tx.payment.updateMany({
-    where: { memberId, status: "PENDING" },
-    data: { amount: fee },
-  });
 }
 
 /**
@@ -287,7 +268,7 @@ export async function updateMemberAction(
   try {
     const existing = await prisma.member.findUnique({
       where: { memberId: memberCode },
-      select: { id: true, seatId: true, status: true },
+      select: { id: true, seatId: true, status: true, leavingDate: true },
     });
     if (!existing) return errorState("Member not found.");
 
@@ -379,6 +360,19 @@ export async function updateMemberAction(
         });
       } else {
         await tx.setting.deleteMany({ where: { key: memberFeeKey(existing.id) } });
+      }
+
+      // A returning member was away for the months between the one they left in
+      // and the one they come back in; mark those so they are never billed. This
+      // runs before the fee sync below, so a stale PENDING row in the gap is
+      // turned into NOT_APPLICABLE rather than re-priced as a real month.
+      if (rejoining) {
+        await markGapMonthsNotApplicable(
+          tx,
+          existing.id,
+          existing.leavingDate,
+          parseInputDate(data.joiningDate),
+        );
       }
 
       // The fee the member now pays: the values above leave the stored fee unset
