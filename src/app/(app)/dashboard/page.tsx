@@ -104,6 +104,7 @@ export default async function DashboardPage({
               href={`/api/export/payments?month=${month}`}
               label="Export"
               description={`Download ${formatMonth(month)} payments as an Excel sheet`}
+              variant="default"
               className="h-11 flex-1 sm:flex-none sm:w-44"
             />
           </div>

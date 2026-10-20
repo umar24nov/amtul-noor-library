@@ -85,7 +85,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
               href="/api/export/members"
               label="Export"
               description="Download every member as an Excel sheet"
-              className="w-full sm:w-auto"
+              className="h-11 w-full sm:w-auto"
             />
             <Button asChild size="lg" className="h-11 w-full sm:w-auto">
               <Link href="/members/new">
