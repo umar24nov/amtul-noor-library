@@ -41,7 +41,8 @@ const DEVELOPER = {
   phoneUrl: "tel:+918273306126",
   location: "Roorkee, Uttarakhand, India",
   github: "https://github.com/umar24nov",
-  linkedin: "https://www.linkedin.com/in/mohammad-umar",
+  linkedin: "https://linkedin.com/in/mohammadumarfarook",
+  leetcode: "https://leetcode.com/u/umar24nov/",
   portfolio: "https://www.mohammadumarportfoloi.online/",
   university: "COER University",
   degree: "B.Tech in Computer Science and Engineering",
@@ -210,6 +211,12 @@ export default function DeveloperPage() {
                   <a href={DEVELOPER.linkedin} target="_blank" rel="noreferrer">
                     <Link2 className="size-4" aria-hidden="true" />
                     LinkedIn
+                  </a>
+                </Button>
+                <Button asChild variant="outline">
+                  <a href={DEVELOPER.leetcode} target="_blank" rel="noreferrer">
+                    <Braces className="size-4" aria-hidden="true" />
+                    LeetCode
                   </a>
                 </Button>
               </div>

@@ -21,7 +21,8 @@ import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { UpiPayCard } from "@/components/upi-pay-card";
-import { requirePermission } from "@/lib/permissions";
+import { can, requirePermission } from "@/lib/permissions";
+import { getSession } from "@/lib/auth";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
 export async function generateMetadata({
@@ -29,6 +30,12 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
+  // The title carries the member's name, so it is only produced for someone who
+  // may open the page at all. Without this the name would leak into the tab
+  // title (and any link preview) before the page itself redirects.
+  const session = await getSession();
+  if (!session || !can(session, "MEMBERS")) return { title: "Member" };
+
   const { id } = await params;
   const member = await getMemberDetail(Number(id));
   return { title: member ? member.name : "Member" };

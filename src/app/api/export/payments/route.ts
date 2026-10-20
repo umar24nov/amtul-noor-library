@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     ? `${formatMonth(month)}${memberId ? ` · ${memberId}` : ""}`
     : `All months${memberId ? ` · ${memberId}` : ""}`;
 
-  const workbook = buildPaymentsWorkbook(data, scopeLabel);
+  const workbook = await buildPaymentsWorkbook(data, scopeLabel);
 
   return workbookResponse(workbook, exportFilename(parts));
 }

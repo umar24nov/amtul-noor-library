@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { ExportResult } from "@/lib/export";
@@ -9,17 +9,41 @@ const RUPEE_FORMAT = "#,##0";
 
 type Sheet = { name: string; rows: Record<string, unknown>[]; widths?: number[] };
 
-function toWorkbook(sheets: Sheet[]): Buffer {
-  const book = XLSX.utils.book_new();
+/**
+ * Builds the workbook and returns it as a Buffer.
+ *
+ * Columns are taken from the first row's keys, so every row must carry the same
+ * keys in the same order — which the callers below do by building each row from
+ * one object literal. Amounts are written as numbers with a thousands format so
+ * Excel treats them as figures rather than text.
+ */
+async function toWorkbook(sheets: Sheet[]): Promise<Buffer> {
+  const book = new ExcelJS.Workbook();
 
   for (const sheet of sheets) {
-    const worksheet = XLSX.utils.json_to_sheet(sheet.rows);
-    worksheet["!cols"] = (sheet.widths ?? []).map((wch) => ({ wch }));
-    XLSX.utils.book_append_sheet(book, worksheet, sheet.name);
+    const worksheet = book.addWorksheet(sheet.name);
+    const headers = sheet.rows.length > 0 ? Object.keys(sheet.rows[0]) : [];
+
+    worksheet.columns = headers.map((header, index) => ({
+      header,
+      key: header,
+      width: sheet.widths?.[index] ?? 14,
+    }));
+    worksheet.getRow(1).font = { bold: true };
+
+    for (const row of sheet.rows) {
+      const added = worksheet.addRow(headers.map((header) => row[header]));
+      headers.forEach((header, index) => {
+        const value = row[header];
+        if (header === "Amount" && typeof value === "number") {
+          added.getCell(index + 1).numFmt = RUPEE_FORMAT;
+        }
+      });
+    }
   }
 
-  const data = XLSX.write(book, { type: "buffer", bookType: "xlsx" }) as Buffer;
-  return data;
+  const data = await book.xlsx.writeBuffer();
+  return Buffer.from(data);
 }
 
 function paymentSheets(data: ExportResult, scopeLabel: string): Sheet[] {
@@ -83,11 +107,11 @@ function paymentSheets(data: ExportResult, scopeLabel: string): Sheet[] {
   return [payments, summary];
 }
 
-export function buildPaymentsWorkbook(data: ExportResult, scopeLabel: string): Buffer {
+export async function buildPaymentsWorkbook(data: ExportResult, scopeLabel: string): Promise<Buffer> {
   return toWorkbook(paymentSheets(data, scopeLabel));
 }
 
-export function buildMembersWorkbook(rows: MemberExportRow[]): Buffer {
+export async function buildMembersWorkbook(rows: MemberExportRow[]): Promise<Buffer> {
   const sheet: Sheet = {
     name: "Members",
     widths: [10, 24, 14, 10, 10, 8, 12, 12, 10, 14],
@@ -123,7 +147,7 @@ export function buildMembersWorkbook(rows: MemberExportRow[]): Buffer {
   return toWorkbook([sheet, totals]);
 }
 
-export function buildSeatsWorkbook(rows: SeatExportRow[]): Buffer {
+export async function buildSeatsWorkbook(rows: SeatExportRow[]): Promise<Buffer> {
   const sheet: Sheet = {
     name: "Seats",
     widths: [12, 8, 12, 10, 24, 14, 12],
@@ -152,5 +176,3 @@ export function buildSeatsWorkbook(rows: SeatExportRow[]): Buffer {
 
   return toWorkbook([sheet, totals]);
 }
-
-export { RUPEE_FORMAT };

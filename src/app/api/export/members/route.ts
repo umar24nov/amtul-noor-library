@@ -9,7 +9,7 @@ export async function GET() {
   if (denied) return denied;
 
   const rows = await getMembersForExport();
-  const workbook = buildMembersWorkbook(rows);
+  const workbook = await buildMembersWorkbook(rows);
 
   return workbookResponse(workbook, exportFilename(["amtul-noor-library", "members"]));
 }
