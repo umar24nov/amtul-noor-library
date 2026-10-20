@@ -252,16 +252,14 @@ export const NAV_ITEMS = [
 /**
  * The tabs shown under the Payments heading.
  *
- * The payments area does a few different jobs — looking at what was collected,
- * chasing money from months that have already ended, and the rare housekeeping
- * tasks (the standard fee, generating pending rows) — and cramming them all onto
- * one screen was overwhelming. Each tab is now its own page. "Collect" is the
- * href that also matches the list in the sidebar so the tab strip can live
- * outside /payments.
+ * The payments area does a few different jobs — looking at what was collected
+ * and the rare housekeeping tasks (the standard fee, generating pending rows) —
+ * and cramming them all onto one screen was overwhelming. Each tab is now its
+ * own page. "Collect" is the href that also matches the list in the sidebar so
+ * the tab strip can live outside /payments.
  *
- * Reminders are deliberately absent: "who still owes the current month" is its
- * own sidebar page (/reminders), not a Payments tab, so it is not duplicated
- * here. The Overdue tab only covers finished months.
+ * Reminders are deliberately absent: "who still owes a month" is its own
+ * sidebar page (/reminders), not a Payments tab, so it is not duplicated here.
  */
 export const PAYMENT_TABS = [
   { href: "/payments", label: "Collect", description: "Every record and what came in", adminOnly: false },

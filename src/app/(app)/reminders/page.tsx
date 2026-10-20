@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CalendarClock, CheckCircle2, ReceiptIndianRupee, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -18,8 +17,7 @@ type SearchParams = Promise<{ month?: string }>;
 
 /**
  * The dedicated Reminders page: who still owes the chosen month, each with a
- * one-tap WhatsApp reminder. This is the month-in-progress view; months that
- * have already ended are followed up on the Payments > Overdue tab instead.
+ * one-tap WhatsApp reminder. Any month can be checked with the picker above.
  */
 export default async function RemindersPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -65,8 +63,10 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
         />
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* overflow-visible so the month picker's dropdown is not clipped by the
+          Card's own overflow-hidden. */}
+      <Card className="overflow-visible">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-end">
           <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <FilterField label="Month" className="sm:w-64">
               <MonthStepper value={month} months={months} />
@@ -75,11 +75,6 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
               Show dues
             </Button>
           </form>
-          <Button asChild variant="ghost" size="sm" className="h-9 self-start">
-          {/*
-            <Link href="/payments/overdue">Older months overdue &rarr;</Link>
-          */}
-          </Button>
         </CardContent>
       </Card>
 
@@ -89,8 +84,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
             <CheckCircle2 className="size-7 text-success" />
             <p className="font-medium">Everyone is settled for {formatMonth(month)}</p>
             <p className="max-w-sm text-sm text-muted-foreground">
-              No active member owes this month. Any month that has already ended with money still
-              out lives on the Overdue tab.
+              No active member owes this month. Check another month with the picker above.
             </p>
           </CardContent>
         </Card>

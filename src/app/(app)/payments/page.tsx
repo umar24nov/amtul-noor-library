@@ -131,14 +131,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         />
       </div>
 
-      <Card>
+      {/* overflow-visible so the month picker's dropdown is not clipped by the
+          Card's own overflow-hidden. */}
+      <Card className="overflow-visible">
         <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle className="text-sm">Filter payments</CardTitle>
-          <Button asChild variant="ghost" size="sm" className="h-8">
-          {/*
-            <Link href="/payments/overdue">Who owes what &rarr;</Link>
-          */}
-          </Button>
         </CardHeader>
         <CardContent>
           <form method="get" className="grid gap-3">

@@ -30,10 +30,10 @@ export type MonthStepperProps = {
  * month at a time and the grid jumps straight to one, so the size of the range
  * stops being something the user has to look at.
  *
- * Every control is a real submit button carrying `name={name}`, so choosing a
- * month submits the surrounding GET form. That means the other filters in the
- * same form are submitted alongside it and are never reset, and the arrows
- * still work with scripting unavailable.
+ * A hidden input carries the selected month, so any submit button in the same
+ * GET form ("Show dues", "Apply filters") filters by the month shown, and the
+ * other filters are submitted alongside it and never reset. The arrows and the
+ * month grid update that input and submit the form straight away.
  */
 export function MonthStepper({
   value,
@@ -44,6 +44,7 @@ export function MonthStepper({
 }: MonthStepperProps) {
   const [open, setOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
+  const hidden = useRef<HTMLInputElement>(null);
 
   // Ascending, so "previous" and "next" are simply the neighbours of the
   // current month rather than positions in a list that may arrive reversed.
@@ -101,16 +102,25 @@ export function MonthStepper({
     [grid.shown],
   );
 
+  // Move to another month and apply it: set the hidden field the surrounding
+  // form submits, close the picker, then submit so the page (and the other
+  // filters in the same form) reload for that month.
+  const pick = (key: string) => {
+    if (hidden.current) hidden.current.value = key;
+    setOpen(false);
+    hidden.current?.form?.requestSubmit();
+  };
+
   const shell =
     "flex h-11 items-center justify-between gap-1 rounded-lg border border-input bg-background";
 
   return (
     <div ref={wrapper} className={cn("relative min-w-0", className)}>
+      <input ref={hidden} type="hidden" name={name} value={value} readOnly />
       <div className={shell}>
         <button
-          type="submit"
-          name={name}
-          value={previous}
+          type="button"
+          onClick={() => pick(previous)}
           disabled={!canGoBack}
           aria-label="Previous month"
           className="flex size-11 shrink-0 items-center justify-center rounded-l-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
@@ -133,9 +143,8 @@ export function MonthStepper({
         </button>
 
         <button
-          type="submit"
-          name={name}
-          value={next}
+          type="button"
+          onClick={() => pick(next)}
           disabled={!canGoForward}
           aria-label="Next month"
           className="flex size-11 shrink-0 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
@@ -177,9 +186,8 @@ export function MonthStepper({
               return (
                 <button
                   key={key}
-                  type="submit"
-                  name={name}
-                  value={key}
+                  type="button"
+                  onClick={() => pick(key)}
                   disabled={outside}
                   aria-current={isSelected ? "true" : undefined}
                   className={cn(

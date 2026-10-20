@@ -61,9 +61,8 @@ export default async function PaymentSettingsPage() {
 
       <p className="text-xs text-muted-foreground">
         Recording a single payment lives on the{" "}
-        <span className="font-medium text-foreground">Collect</span> tab; chasing what is owed is on
-        the <span className="font-medium text-foreground">Overdue</span> and{" "}
-        <span className="font-medium text-foreground">This month</span> tabs.
+        <span className="font-medium text-foreground">Collect</span> tab; chasing what is owed lives
+        on the <span className="font-medium text-foreground">Reminders</span> page.
       </p>
     </div>
   );
