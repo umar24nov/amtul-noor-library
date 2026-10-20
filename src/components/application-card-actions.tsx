@@ -93,8 +93,8 @@ function EditApplicationDialog({ application }: { application: EditableApplicati
           Edit
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader className="sticky top-0">
           <DialogTitle>Edit application</DialogTitle>
           <DialogDescription>
             Correct the details on file. Changes to shared details are copied to

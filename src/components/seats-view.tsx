@@ -136,7 +136,7 @@ function ManageSeatsDialog({ rooms }: { rooms: RoomData[] }) {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="sticky top-0">
           <DialogTitle>Rooms and seats</DialogTitle>
           <DialogDescription>
             Add, rename or remove rooms and seats as the library changes. Renaming keeps every seat

@@ -95,7 +95,7 @@ export function AssignSeatDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="sticky top-0">
           <DialogTitle>Assign {seat.label}</DialogTitle>
           <DialogDescription>
             Pick an active member without a seat. A seat can only belong to one active member.

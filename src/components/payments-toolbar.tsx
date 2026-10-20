@@ -41,7 +41,7 @@ export function PaymentsToolbar({
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
+        <DialogHeader className="sticky top-0">
           <DialogTitle>Record payment</DialogTitle>
           <DialogDescription>
             Each payment is saved as its own record. Previous months are never changed.

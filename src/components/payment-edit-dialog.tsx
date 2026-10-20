@@ -43,7 +43,7 @@ export function PaymentEditDialog({
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
+        <DialogHeader className="sticky top-0">
           <DialogTitle>Edit payment</DialogTitle>
           <DialogDescription>
             {payment.paymentId} · {member.name} ({member.memberId})
