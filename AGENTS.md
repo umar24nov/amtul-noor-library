@@ -7,3 +7,55 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Security notes
+
+What is already in place, so it is not re-litigated as a gap. Each item names
+the file that holds it, because most of these are easy to undo by accident.
+
+## Authentication and authorization
+
+- Sessions are a signed JWT cookie (`jose`, 12h) but the identity is **re-read
+  from the database on every request** (`src/lib/auth.ts`). A role change or a
+  deactivated account takes effect on the next request, not at token expiry.
+  Do not move permissions into the token; that reintroduces the stale-token
+  window this was written to close.
+- Passwords are bcrypt hashes from an env var (`ADMIN_PASSWORD_HASH`), never in
+  the repo.
+- Authorization is a per-role permission list (`src/lib/permission-defs.ts`)
+  checked on the server in three places, and all three matter: the sidebar only
+  *hides* links, it is not a control. Pages call `requirePermission`, server
+  actions call `actionPermission`, and the export/receipt routes call
+  `requireExport`. A new action must add its own check.
+- A real `CSP` is deliberately absent (`next.config.ts` explains why: Aadhaar
+  scans are embedded from Vercel Blob in an iframe). The other headers are set.
+
+## Input, uploads, abuse
+
+- Every form and action validates with Zod (`src/lib/validators.ts`). React
+  escapes all rendered output; the only `dangerouslySetInnerHTML` is a JSON-LD
+  block built from trusted local data. Emails HTML-escape their fields
+  (`application-email.ts`, `support-email.ts`).
+- Aadhaar scans are checked by **content, not name**: `sniffType` in
+  `src/lib/aadhaar-storage.ts` reads the leading bytes (JPEG `FF D8 FF`, PNG
+  `89 50 4E 47`, PDF `%PDF`) and rejects anything whose contents do not match
+  its extension. Keep this ahead of the Blob write; a renamed file would
+  otherwise be stored and served. Size is capped at 3 MB per scan, and the
+  action body limit is raised to 12 MB for that reason (`next.config.ts`).
+- Sign-in failures are rate limited by email **and** IP
+  (`src/lib/login-rate-limit.ts`), reused by the join and support forms. The
+  limiter fails *open* on a database error so the owner is never locked out by
+  it.
+- Public, unauthenticated links use unguessable tokens, not row ids:
+  `/pay/[payToken]` and `/receipts/[receiptToken]`. Member pages (`/members/[id]`)
+  are sequential ids, which is fine — they sit behind the MEMBERS permission and
+  every member is visible to anyone who holds it.
+
+## Dependencies
+
+- `.env*` is gitignored; only `.env.example` is tracked.
+- `npm audit` reports high advisories in `xlsx`, `eslint-config-next` and
+  `shadcn`. None is reachable at runtime: `xlsx` is **write-only** here
+  (`XLSX.write` in `src/lib/export-workbook.ts`; the advisories are parse-side),
+  and the other two are dev/build tooling. `npm audit fix` cannot clear them.
+  Replacing `xlsx` with `exceljs` is the clean fix if that ever matters.
