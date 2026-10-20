@@ -184,6 +184,19 @@ export type DashboardData = {
   summary: MonthSummaryRow[];
 };
 
+/**
+ * Display order for the dashboard fee-status table: pending fees first, then
+ * months with no record at all, and paid members at the bottom.
+ */
+const DASHBOARD_STATUS_RANK: Record<MonthStatus, number> = {
+  PENDING: 0,
+  NONE: 1,
+  NOT_APPLICABLE: 2,
+  WAIVED: 3,
+  ON_HOLD: 4,
+  PAID: 5,
+};
+
 export const getDashboardData = cache(
   async (
     month: string,
@@ -227,10 +240,17 @@ export const getDashboardData = cache(
       monthCollection,
       pendingCount: pendingRows.length,
       pendingAmount: pendingRows.reduce((total, row) => total + row.due, 0),
-      summary:
-        scope === "ALL"
-          ? monthSummary
-          : monthSummary.filter((row) => row.memberStatus === scope),
+      summary: (scope === "ALL"
+        ? monthSummary
+        : monthSummary.filter((row) => row.memberStatus === scope)
+      )
+        // Who needs attention first: fees still pending, then months nobody has
+        // recorded yet, with paid members last. Sorted within getDashboardData
+        // so the table always opens on work to do instead of scanning past
+        // settled members. Ties keep the seat/name order from getMonthSummary
+        // (Array.prototype.sort is stable).
+        .slice()
+        .sort((a, b) => DASHBOARD_STATUS_RANK[a.status] - DASHBOARD_STATUS_RANK[b.status]),
     };
   },
 );
@@ -454,6 +474,27 @@ export const listActiveMembers = cache(async () => {
     include: { seat: { include: { room: true } } },
     orderBy: { name: "asc" },
   });
+});
+
+/**
+ * Everyone on record — active and left — for the payment pickers.
+ *
+ * The payments screens need to resolve *any* member a payment belongs to,
+ * including people who have left, so an old record still shows its member's
+ * name when edited. Recording for a just-left member's final month works too.
+ */
+export const listMemberOptions = cache(async () => {
+  const members = await prisma.member.findMany({
+    include: { seat: { include: { room: true } } },
+    orderBy: { name: "asc" },
+  });
+  return members.map((member) => ({
+    id: member.id,
+    name: member.name,
+    memberId: member.memberId,
+    mobile: member.mobile,
+    seatLabel: member.seat ? `${member.seat.room.name} · Seat ${member.seat.seatNumber}` : null,
+  }));
 });
 
 export type SeatWithOccupant = Seat & {

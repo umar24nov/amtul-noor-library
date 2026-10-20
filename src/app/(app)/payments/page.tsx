@@ -20,7 +20,7 @@ import {
 import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
 import {
   getPaymentStats,
-  listActiveMembers,
+  listMemberOptions,
   listPayments,
   listSelectableMonthOptions,
   listSelectableMonths,
@@ -37,6 +37,8 @@ type SearchParams = Promise<{
   q?: string;
   mode?: string;
   status?: string;
+  /** Numeric member id from a member page's "Record payment" button. */
+  record?: string;
 }>;
 
 const ALL = "ALL";
@@ -55,25 +57,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const search = params.q ?? "";
   const mode = (params.mode as PaymentMode | undefined) ?? ALL;
   const status = (params.status as PaymentStatus | undefined) ?? ALL;
+  // "Record payment" on a member page lands here; the dialog opens with that
+  // member already selected so the fee can be collected without searching.
+  const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : null;
 
-  const [result, stats, fee, activeMembers, months, monthOptions] = await Promise.all([
+  const [result, stats, fee, members, months, monthOptions] = await Promise.all([
     listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
     getPaymentStats(month),
     getMonthlyFee(),
-    listActiveMembers(),
+    listMemberOptions(),
     listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
     listSelectableMonthOptions(),
   ]);
-
-  const members = activeMembers.map((member) => ({
-    id: member.id,
-    name: member.name,
-    memberId: member.memberId,
-    mobile: member.mobile,
-    seatLabel: member.seat
-      ? `${member.seat.room.name} · Seat ${member.seat.seatNumber}`
-      : null,
-  }));
 
   // Export mirrors the filters above, so the spreadsheet matches what is on screen.
   const exportQuery = new URLSearchParams();
@@ -91,7 +86,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         below={<SubNav items={PAYMENT_TABS} level={session?.level ?? "DAY_TO_DAY"} />}
         actions={
           <div className="grid w-full gap-2 sm:w-auto">
-            <PaymentsToolbar members={members} fee={fee} months={monthOptions} />
+            <PaymentsToolbar
+              members={members}
+              fee={fee}
+              months={monthOptions}
+              autoOpenMemberId={recordMemberId}
+            />
             <ExportButton
               href={exportHref}
               label="Export to Excel"

@@ -42,8 +42,8 @@ export function PaymentEditDialog({
           {!compact && <span className="sr-only">Edit payment</span>}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader className="sticky top-0">
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
           <DialogTitle>Edit payment</DialogTitle>
           <DialogDescription>
             {payment.paymentId} · {member.name} ({member.memberId})

@@ -69,9 +69,9 @@ export function MemberActions({
       </Button>
 
       <Button asChild variant="outline" size="lg" className="h-11 flex-1 sm:flex-none">
-        <a href={`/payments?memberId=${member.id}`}>
+        <a href={`/payments?record=${member.id}`}>
           <ReceiptIndianRupee className="size-4" />
-          Payment
+          Record payment
         </a>
       </Button>
 
@@ -82,9 +82,9 @@ export function MemberActions({
             Edit
           </Button>
         </DialogTrigger>
-<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader className="sticky top-0">
-          <DialogTitle>Edit member</DialogTitle>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit member</DialogTitle>
             <DialogDescription>
               Update the permanent record for {member.name} ({member.memberId}).
             </DialogDescription>

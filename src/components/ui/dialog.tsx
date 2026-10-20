@@ -61,17 +61,26 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[90dvh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-hidden rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
       >
-        {children}
+        {/* Scrolling happens here, inside the box, so the close button below
+            stays pinned to the top-right corner no matter how far the content
+            is scrolled. The negative margins let footers that bleed to the
+            dialog edge (DialogFooter's -mx-4/-mb-4) keep reaching it. */}
+        <div
+          data-slot="dialog-scroll"
+          className="grid min-h-0 -mx-4 -mb-4 gap-4 overflow-y-auto px-4 pb-4"
+        >
+          {children}
+        </div>
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2 z-50"
+              className="absolute top-2 right-2 z-50 bg-popover"
               size="icon-sm"
             >
               <XIcon
