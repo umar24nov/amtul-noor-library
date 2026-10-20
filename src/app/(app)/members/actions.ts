@@ -8,6 +8,7 @@ import { parseInputDate, shiftMonthKey } from "@/lib/format";
 import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   effectiveMemberFee,
   getMemberFee,
@@ -28,8 +29,29 @@ function revalidateAll() {
   // manual reload — the "edit only seems to save after refresh" report.
   revalidatePath("/members/[id]", "page");
   revalidatePath("/payments");
+  revalidatePath("/payments/overdue");
+  revalidatePath("/reminders");
   revalidatePath("/seats");
   revalidatePath("/");
+}
+
+/**
+ * Rewrites every unpaid month for one member to their current fee.
+ *
+ * A pending row stores the amount at the moment it was generated, so changing a
+ * member's fee afterwards would leave the row showing the old figure — the
+ * "member pays 500 but the list still says 700" inconsistency. Paid and waived
+ * rows are historical and never touched; only PENDING rows follow the fee.
+ */
+async function syncPendingAmounts(
+  tx: Prisma.TransactionClient,
+  memberId: number,
+  fee: number,
+): Promise<void> {
+  await tx.payment.updateMany({
+    where: { memberId, status: "PENDING" },
+    data: { amount: fee },
+  });
 }
 
 /**
@@ -358,6 +380,11 @@ export async function updateMemberAction(
       } else {
         await tx.setting.deleteMany({ where: { key: memberFeeKey(existing.id) } });
       }
+
+      // The fee the member now pays: the values above leave the stored fee unset
+      // when it matches the standard, so fall back to the standard for the
+      // rewrite. Unpaid months then follow the new fee instead of the old one.
+      await syncPendingAmounts(tx, existing.id, data.monthlyFee ?? standardFee);
     });
 
     revalidateAll();

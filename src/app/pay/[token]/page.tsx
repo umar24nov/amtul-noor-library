@@ -13,7 +13,6 @@ import {
   LIBRARY_UPI_QR_PATH,
 } from "@/lib/constants";
 import { currentMonthKey, formatDate, formatINR, formatMonth, shiftMonthKey } from "@/lib/format";
-import { toNumber } from "@/lib/ids";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { upiIsConfigured, upiPayLink } from "@/lib/upi";
@@ -59,10 +58,9 @@ export default async function MemberPayPage({
     .filter((payment) => payment.status === "PENDING")
     .sort((a, b) => a.month.localeCompare(b.month))[0];
   const dueMonth = soonestPending?.month ?? shiftMonthKey(currentMonthKey(), 1);
-  const dueAmount =
-    soonestPending && toNumber(soonestPending.amount) > 0
-      ? toNumber(soonestPending.amount)
-      : monthlyFee;
+  // Always the member's own fee, so this page can never quote a stale amount
+  // that a pending row was generated with before the fee was last changed.
+  const dueAmount = monthlyFee;
 
   const paidReceipts = member.payments
     .filter((payment) => payment.status === "PAID" && payment.receiptToken)

@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { sendReceiptEmailAction } from "@/app/(app)/payments/actions";
+import type { PaymentStatus } from "@/generated/prisma/enums";
 
 /**
  * The ways one receipt can leave the app: download the PDF, send the PDF by
@@ -42,12 +43,15 @@ import { sendReceiptEmailAction } from "@/app/(app)/payments/actions";
  */
 export function ReceiptActions({
   paymentPk,
+  status,
   whatsappHref,
   hasEmail,
   compact = false,
   publicUrl = null,
 }: {
   paymentPk: number;
+  /** Only a PAID record has a receipt; anything else explains why instead. */
+  status: PaymentStatus;
   whatsappHref: string | null;
   hasEmail: boolean;
   compact?: boolean;
@@ -56,6 +60,9 @@ export function ReceiptActions({
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [unpaidOpen, setUnpaidOpen] = useState(false);
+
+  const isPaid = status === "PAID";
 
   const emailReceipt = () => {
     startTransition(async () => {
@@ -95,18 +102,33 @@ export function ReceiptActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuLabel>Receipt</DropdownMenuLabel>
-          <DropdownMenuItem asChild>
-            <a href={`/api/receipts/${paymentPk}`}>
+
+          {isPaid ? (
+            <DropdownMenuItem asChild>
+              <a href={`/api/receipts/${paymentPk}`}>
+                <Download className="size-4" />
+                Download PDF
+              </a>
+            </DropdownMenuItem>
+          ) : (
+            // A month that has not been paid has no receipt yet. Rather than
+            // hand over a link that would 404, open a short explanation.
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault();
+                setUnpaidOpen(true);
+              }}
+            >
               <Download className="size-4" />
-              Download PDF
-            </a>
-          </DropdownMenuItem>
+              Download receipt
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
-            disabled={!hasEmail || pending}
+            disabled={!isPaid || !hasEmail || pending}
             onSelect={(event) => {
               event.preventDefault();
-              if (!hasEmail) return;
+              if (!isPaid || !hasEmail) return;
               setConfirmOpen(true);
             }}
           >
@@ -118,7 +140,7 @@ export function ReceiptActions({
             {pending ? "Sending…" : "Email receipt"}
           </DropdownMenuItem>
 
-          {whatsappHref && (
+          {isPaid && whatsappHref && (
             <DropdownMenuItem asChild>
               <a href={whatsappHref} target="_blank" rel="noreferrer">
                 <MessageCircle className="size-4" />
@@ -127,7 +149,7 @@ export function ReceiptActions({
             </DropdownMenuItem>
           )}
 
-          {publicUrl && (
+          {isPaid && publicUrl && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={copyLink}>
@@ -137,7 +159,7 @@ export function ReceiptActions({
             </>
           )}
 
-          {!hasEmail && (
+          {isPaid && !hasEmail && (
             <>
               <DropdownMenuSeparator />
               <p className="px-1.5 py-1 text-xs text-muted-foreground">
@@ -147,6 +169,21 @@ export function ReceiptActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={unpaidOpen} onOpenChange={setUnpaidOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fee yet to be paid</AlertDialogTitle>
+            <AlertDialogDescription>
+              This month has not been paid, so there is no receipt to download
+              yet. The receipt appears here as soon as the payment is recorded.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-10">Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

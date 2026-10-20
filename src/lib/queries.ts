@@ -159,7 +159,11 @@ function buildSummaryRow(
     memberStatus: member.status,
     fee: memberFee,
     collected,
-    due: isDue ? (pendingAmount > 0 ? pendingAmount : memberFee) : pendingAmount,
+    // A month still owed is always the member's own fee, never the amount a
+    // stale row happened to be generated with. Unpaid months are rewritten when
+    // the fee changes (see syncPendingAmounts), and this keeps the figure right
+    // even for a row created before that change.
+    due: isDue ? memberFee : pendingAmount,
     modes: Array.from(new Set(payments.map((payment) => MODE_LABELS[payment.paymentMode]))),
     status,
     hasRecords: payments.length > 0,
@@ -386,7 +390,16 @@ export async function listPayments({
     prisma.payment.findMany({
       where,
       include: { member: { include: { seat: { include: { room: true } } } } },
-      orderBy: [{ month: "desc" }, { paymentDate: "desc" }, { createdAt: "desc" }],
+      orderBy: [
+        { month: "desc" },
+        { paymentDate: "desc" },
+        { createdAt: "desc" },
+        // Unique tiebreaker: month/paymentDate/createdAt can all tie (a whole
+        // month is often recorded on one day), and without a unique key the
+        // database may return the same rows across pages. The list then never
+        // reaches its total, so "Load more" spins forever.
+        { id: "desc" },
+      ],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
@@ -693,11 +706,10 @@ export async function listOverdueReminders(monthsBack = 12): Promise<OverdueRemi
       const status = deriveMonthStatus(monthPayments, joinedAfterMonth);
       if (status !== "PENDING" && status !== "NONE") continue;
 
-      const pendingAmount = monthPayments
-        .filter((payment) => payment.status === "PENDING")
-        .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+      // The member's own fee, matching the month summary. The stored pending
+      // amount is kept in step with the fee, so this never shows a stale figure.
       owed.push(key);
-      totalDue += pendingAmount > 0 ? pendingAmount : fee;
+      totalDue += fee;
     }
 
     if (owed.length === 0) continue;

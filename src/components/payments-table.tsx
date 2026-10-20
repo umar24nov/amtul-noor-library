@@ -68,16 +68,22 @@ export function PaymentsTable({
     setLoading(true);
     try {
       const next = await loadMorePaymentsAction({ ...query, page: page + 1 });
-      setRows((current) => {
-        const seen = new Set(current.map((row) => row.id));
-        return [...current, ...next.payments.filter((row) => !seen.has(row.id))];
-      });
-      setTotal(next.total);
+      const seen = new Set(rows.map((row) => row.id));
+      const fresh = next.payments.filter((row) => !seen.has(row.id));
+      if (fresh.length === 0) {
+        // The server had nothing new to give, even if its count disagrees.
+        // Stop offering "Load more" so the button cannot spin against an empty
+        // page — this is what made the spinner seem stuck at the end.
+        setTotal(rows.length);
+      } else {
+        setRows([...rows, ...fresh]);
+        setTotal(next.total);
+      }
       setPage((current) => current + 1);
     } finally {
       setLoading(false);
     }
-  }, [loading, page, query, rows.length, total]);
+  }, [loading, page, query, rows, total]);
 
   /** A WhatsApp receipt link for a paid record, or null when it does not apply. */
   function receiptHref(payment: PaymentRow) {
@@ -143,6 +149,7 @@ export function PaymentsTable({
                   <div className="flex items-center justify-end gap-2">
                     <ReceiptActions
                       paymentPk={payment.id}
+                      status={payment.status}
                       whatsappHref={receiptHref(payment)}
                       hasEmail={Boolean(payment.member.email)}
                       compact
@@ -200,6 +207,7 @@ export function PaymentsTable({
                   <div className="flex items-center gap-1">
                     <ReceiptActions
                       paymentPk={payment.id}
+                      status={payment.status}
                       whatsappHref={receiptHref(payment)}
                       hasEmail={Boolean(payment.member.email)}
                       compact

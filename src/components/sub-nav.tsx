@@ -25,11 +25,18 @@ export function SubNav({ items, level }: { items: readonly SubNavItem[]; level: 
 
   if (visible.length < 2) return null;
 
+  // Only the most specific matching tab is active. Without this, viewing
+  // "/payments/overdue" would light up both "Collect" (/payments) and "Overdue",
+  // because the shorter href is a prefix of the longer path.
+  const activeHref = visible
+    .map((item) => item.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <nav aria-label="Section" className="-mb-px flex gap-1 overflow-x-auto">
       {visible.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = item.href === activeHref;
         return (
           <Link
             key={item.href}

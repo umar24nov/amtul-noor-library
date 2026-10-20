@@ -78,10 +78,8 @@ export default async function MemberDetailPage({
     .filter((payment) => payment.status === "PENDING")
     .sort((a, b) => a.month.localeCompare(b.month))[0];
   const dueMonth = soonestPending?.month ?? shiftMonthKey(currentMonthKey(), 1);
-  const dueAmount =
-    soonestPending && toNumber(soonestPending.amount) > 0
-      ? toNumber(soonestPending.amount)
-      : monthlyFee;
+  // The member's own fee, so the tile never quotes a stale stored amount.
+  const dueAmount = monthlyFee;
 
   /** Public link to download a payment's receipt without a login, when it exists. */
   const receiptPublicUrl = (payment: (typeof member.payments)[number]): string | null =>
@@ -349,6 +347,7 @@ export default async function MemberDetailPage({
                           {payment.status === "PAID" ? (
                             <ReceiptActions
                               paymentPk={payment.id}
+                              status={payment.status}
                               whatsappHref={receiptHref(payment)}
                               hasEmail={Boolean(member.email)}
                               publicUrl={receiptPublicUrl(payment)}
@@ -395,6 +394,7 @@ export default async function MemberDetailPage({
                       <div className="mt-2">
                         <ReceiptActions
                           paymentPk={payment.id}
+                          status={payment.status}
                           whatsappHref={receiptHref(payment)}
                           hasEmail={Boolean(member.email)}
                           publicUrl={receiptPublicUrl(payment)}
