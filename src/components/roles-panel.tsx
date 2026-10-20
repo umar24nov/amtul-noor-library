@@ -373,7 +373,7 @@ function RoleCard({
   const LevelIcon = isAdmin ? ShieldCheck : ShieldHalf;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/15 transition-colors hover:border-foreground/30">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
