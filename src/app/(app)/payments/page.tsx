@@ -3,16 +3,17 @@ import Link from "next/link";
 import { History, ReceiptIndianRupee, TriangleAlert, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { SubNav } from "@/components/sub-nav";
 import { ExportButton } from "@/components/export-button";
 import { PaymentsToolbar } from "@/components/payments-toolbar";
 import { PaymentsTable } from "@/components/payments-table";
-import { PaymentReminders } from "@/components/payment-reminders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterField, SearchInput, selectClassName } from "@/components/filters";
 import { MonthStepper } from "@/components/month-stepper";
 import {
   MONTH_FILTER_PAD_FORWARD,
+  PAYMENT_TABS,
   paymentModeLabels,
   paymentStatusLabels,
 } from "@/lib/constants";
@@ -21,11 +22,11 @@ import {
   getPaymentStats,
   listActiveMembers,
   listPayments,
-  listPaymentReminders,
   listSelectableMonthOptions,
   listSelectableMonths,
 } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
+import { getSession } from "@/lib/auth";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -40,7 +41,13 @@ type SearchParams = Promise<{
 
 const ALL = "ALL";
 
+/**
+ * The "Collect" tab of Payments: one month at a time, every record with what it
+ * collected. The heavier, rarely used jobs moved to their own tabs (see
+ * PAYMENT_TABS) so this screen stays about money coming in.
+ */
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
+  const session = await getSession();
   const params = await searchParams;
 
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "") ? params.month! : currentMonthKey();
@@ -49,16 +56,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const mode = (params.mode as PaymentMode | undefined) ?? ALL;
   const status = (params.status as PaymentStatus | undefined) ?? ALL;
 
-  const [result, stats, fee, activeMembers, months, monthOptions, reminders] =
-    await Promise.all([
-      listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
-      getPaymentStats(month),
-      getMonthlyFee(),
-      listActiveMembers(),
-      listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
-      listSelectableMonthOptions(),
-      listPaymentReminders(month),
-    ]);
+  const [result, stats, fee, activeMembers, months, monthOptions] = await Promise.all([
+    listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
+    getPaymentStats(month),
+    getMonthlyFee(),
+    listActiveMembers(),
+    listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
+    listSelectableMonthOptions(),
+  ]);
 
   const members = activeMembers.map((member) => ({
     id: member.id,
@@ -83,14 +88,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       <PageHeader
         title="Payments"
         description="Every payment is a separate record, kept forever."
+        below={<SubNav items={PAYMENT_TABS} level={session?.level ?? "DAY_TO_DAY"} />}
         actions={
           <div className="grid w-full gap-2 sm:w-auto">
-            <PaymentsToolbar
-              members={members}
-              fee={fee}
-              month={month}
-              months={monthOptions}
-            />
+            <PaymentsToolbar members={members} fee={fee} months={monthOptions} />
             <ExportButton
               href={exportHref}
               label="Export to Excel"
@@ -130,11 +131,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         />
       </div>
 
-      <PaymentReminders rows={reminders} month={month} />
-
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle className="text-sm">Filter payments</CardTitle>
+          <Button asChild variant="ghost" size="sm" className="h-8">
+            <Link href="/payments/overdue">Who owes what &rarr;</Link>
+          </Button>
         </CardHeader>
         <CardContent>
           <form method="get" className="grid gap-3">
@@ -209,9 +211,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                 className="h-10"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Exports include every matching record, not only the page on screen.
-            </p>
           </form>
         </CardContent>
       </Card>

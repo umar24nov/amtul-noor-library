@@ -250,6 +250,22 @@ export const NAV_ITEMS = [
 ] as const;
 
 /**
+ * The tabs shown under the Payments heading.
+ *
+ * The payments area does three different jobs — looking at what was collected,
+ * chasing money still owed, and the rare housekeeping tasks (the standard fee,
+ * generating pending rows) — and cramming all three onto one screen was
+ * overwhelming. Each tab is now its own page. "Collect" is the href that also
+ * matches the list in the sidebar so the tab strip can live outside /payments.
+ */
+export const PAYMENT_TABS = [
+  { href: "/payments", label: "Collect", description: "Every record and what came in", adminOnly: false },
+  { href: "/payments/overdue", label: "Overdue", description: "Members behind on finished months", adminOnly: false },
+  { href: "/reminders", label: "This month", description: "Who still owes the chosen month", adminOnly: false },
+  { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", adminOnly: true },
+] as const;
+
+/**
  * How far the selectable month window reaches either side of the data. The
  * forward padding is what lets a month be recorded or viewed before it arrives,
  * and the backward padding keeps older months reachable after archiving.
