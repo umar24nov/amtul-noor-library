@@ -7,12 +7,14 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { ProfileMenu } from "@/components/profile-menu";
 import { getSession } from "@/lib/auth";
 import { isDatabaseReachable } from "@/lib/db-status";
+import { effectivePermissions } from "@/lib/permission-defs";
 import { prisma } from "@/lib/prisma";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
+  const permissions = effectivePermissions(session.level, session.permissions);
   const databaseIsUp = await isDatabaseReachable();
   // The name and role name are read fresh so a rename shows up without signing
   // in again.
@@ -39,14 +41,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
-          <DesktopNav level={session.level} />
+          <DesktopNav permissions={permissions} />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 xl:pl-64">
         {/* Mobile / tablet top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-          <MobileMenu level={session.level} />
+          <MobileMenu permissions={permissions} />
           <Link
             href="/"
             className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

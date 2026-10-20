@@ -1,11 +1,11 @@
 import { getSeatsForExport } from "@/lib/export";
 import { buildSeatsWorkbook } from "@/lib/export-workbook";
-import { exportFilename, requireSession, workbookResponse } from "@/lib/export-response";
+import { exportFilename, requireExport, workbookResponse } from "@/lib/export-response";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const denied = await requireSession();
+  const denied = await requireExport("REPORTS");
   if (denied) return denied;
 
   const rows = await getSeatsForExport();

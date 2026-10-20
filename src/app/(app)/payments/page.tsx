@@ -26,7 +26,8 @@ import {
   listSelectableMonths,
 } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
-import { getSession } from "@/lib/auth";
+import { effectivePermissions } from "@/lib/permission-defs";
+import { requirePermission } from "@/lib/permissions";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -49,7 +50,8 @@ const ALL = "ALL";
  * PAYMENT_TABS) so this screen stays about money coming in.
  */
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
-  const session = await getSession();
+  const session = await requirePermission("PAYMENTS");
+  const permissions = effectivePermissions(session.level, session.permissions);
   const params = await searchParams;
 
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "") ? params.month! : currentMonthKey();
@@ -83,7 +85,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       <PageHeader
         title="Payments"
         description="Every payment is a separate record, kept forever."
-        below={<SubNav items={PAYMENT_TABS} level={session?.level ?? "DAY_TO_DAY"} />}
+        below={<SubNav items={PAYMENT_TABS} permissions={permissions} />}
         actions={
           <div className="grid w-full gap-2 sm:w-auto">
             <PaymentsToolbar

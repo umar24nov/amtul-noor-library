@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { SubNav } from "@/components/sub-nav";
 import { PaymentAdminActions } from "@/components/payment-admin-actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PAYMENT_TABS } from "@/lib/constants";
 import { formatINR } from "@/lib/format";
-import { getAdminSession } from "@/lib/auth";
+import { effectivePermissions } from "@/lib/permission-defs";
+import { requirePermission } from "@/lib/permissions";
 import { listSelectableMonthOptions } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
 
@@ -15,11 +15,11 @@ export const metadata: Metadata = { title: "Payment settings" };
 /**
  * The rare, heavier payment jobs, kept off the busy Collect screen: the standard
  * monthly fee, and generating the month's pending rows in one go. Both can
- * rewrite money across many members, so this tab is admin only.
+ * rewrite money across many members, so this tab needs the Settings permission.
  */
 export default async function PaymentSettingsPage() {
-  const session = await getAdminSession();
-  if (!session) redirect("/payments");
+  const session = await requirePermission("SETTINGS");
+  const permissions = effectivePermissions(session.level, session.permissions);
 
   const [fee, months] = await Promise.all([getMonthlyFee(), listSelectableMonthOptions()]);
 
@@ -28,7 +28,7 @@ export default async function PaymentSettingsPage() {
       <PageHeader
         title="Payment settings"
         description="Set the standard fee and generate a month's pending rows."
-        below={<SubNav items={PAYMENT_TABS} level={session.level} />}
+        below={<SubNav items={PAYMENT_TABS} permissions={permissions} />}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

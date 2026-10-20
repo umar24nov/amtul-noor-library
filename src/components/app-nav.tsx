@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { NAV_ITEMS } from "@/lib/constants";
-import type { RoleLevel } from "@/generated/prisma/enums";
+import type { PermissionKey } from "@/lib/permission-defs";
 
 const ICONS = {
   "/dashboard": "M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z",
@@ -22,14 +22,15 @@ const ICONS = {
 function NavLinks({
   onNavigate,
   className,
-  level,
+  permissions,
 }: {
   onNavigate?: () => void;
   className?: string;
-  level: RoleLevel;
+  /** The areas this person's role grants. Only matching links are shown. */
+  permissions: PermissionKey[];
 }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || level === "ADMIN");
+  const items = NAV_ITEMS.filter((item) => !item.permission || permissions.includes(item.permission));
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
@@ -68,24 +69,24 @@ function NavLinks({
   );
 }
 
-export function DesktopNav({ level }: { level: RoleLevel }) {
+export function DesktopNav({ permissions }: { permissions: PermissionKey[] }) {
   return (
     <nav className="flex flex-col gap-1 px-3">
-      <NavLinks level={level} />
+      <NavLinks permissions={permissions} />
     </nav>
   );
 }
 
 export function MobileNav({
   onNavigate,
-  level,
+  permissions,
 }: {
   onNavigate?: () => void;
-  level: RoleLevel;
+  permissions: PermissionKey[];
 }) {
   return (
     <nav className="flex flex-col gap-1">
-      <NavLinks onNavigate={onNavigate} level={level} />
+      <NavLinks onNavigate={onNavigate} permissions={permissions} />
     </nav>
   );
 }

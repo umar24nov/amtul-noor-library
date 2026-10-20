@@ -11,6 +11,7 @@ import {
   type EditableApplication,
 } from "@/components/application-card-actions";
 import { AadhaarPreview } from "@/components/aadhaar-preview";
+import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { cn } from "cn";
@@ -100,6 +101,7 @@ function toEditableApplication(application: {
 }
 
 export default async function ApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
+  await requirePermission("APPLICATIONS");
   const params = await searchParams;
   const status = params.status;
   const where: { status?: ApplicationStatus } = {};

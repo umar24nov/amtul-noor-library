@@ -21,6 +21,7 @@ import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { UpiPayCard } from "@/components/upi-pay-card";
+import { requirePermission } from "@/lib/permissions";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
 export async function generateMetadata({
@@ -49,6 +50,7 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ joined?: string; email?: string }>;
 }) {
+  await requirePermission("MEMBERS");
   const { id } = await params;
   const { joined, email } = await searchParams;
   const memberId = Number(id);

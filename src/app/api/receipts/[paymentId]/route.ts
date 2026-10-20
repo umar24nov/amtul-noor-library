@@ -1,4 +1,4 @@
-import { requireSession } from "@/lib/export-response";
+import { requireExport } from "@/lib/export-response";
 import { buildReceiptBytes } from "@/lib/receipts";
 
 /**
@@ -12,7 +12,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ paymentId: string }> },
 ) {
-  const denied = await requireSession();
+  const denied = await requireExport("PAYMENTS");
   if (denied) return denied;
 
   const { paymentId } = await params;

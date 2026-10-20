@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import type { RoleLevel } from "@/generated/prisma/enums";
+import type { Permission, RoleLevel } from "@/generated/prisma/enums";
 
 export const SESSION_COOKIE = "anl_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12; // 12 hours
@@ -17,7 +17,24 @@ function getSecretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export type SessionPayload = { email: string; userId: number; roleId: number; level: RoleLevel };
+/**
+ * What a signed-in person is, resolved for the current request. The cookie only
+ * carries the identity (see {@link SessionToken}); the permission list is looked
+ * up from the database each request so a change to a role applies immediately.
+ */
+export type SessionPayload = {
+  email: string;
+  userId: number;
+  roleId: number;
+  level: RoleLevel;
+  /** The areas this person's role grants. Ignored for a full admin, who always
+   *  has everything. */
+  permissions: Permission[];
+};
+
+/** The identity stored in the session cookie. Deliberately small: permissions
+ *  are not baked in, so they can change between requests. */
+type SessionToken = { email: string; userId: number; roleId: number; level: RoleLevel };
 
 /**
  * The seeded full-admin role. The env-var admin is provisioned into it, and the
@@ -82,7 +99,7 @@ async function recordLogin(userId: number): Promise<void> {
 export async function verifyCredentials(
   email: string,
   password: string,
-): Promise<SessionPayload | null> {
+): Promise<SessionToken | null> {
   const normalisedEmail = email.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({
@@ -150,7 +167,7 @@ export async function verifyCredentials(
   return { email: provisioned.email, userId: provisioned.id, roleId: provisioned.roleId, level: provisioned.level };
 }
 
-export async function createSession(payload: SessionPayload): Promise<void> {
+export async function createSession(payload: SessionToken): Promise<void> {
   const token = await new SignJWT({
     email: payload.email,
     userId: payload.userId,
@@ -177,30 +194,53 @@ export async function destroySession(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-/** Reads and verifies the session cookie. Returns null when not signed in. */
+/**
+ * Reads and verifies the session cookie, then resolves the account's current
+ * role and permissions from the database.
+ *
+ * The database is the source of truth for the role, its level and its
+ * permissions rather than the token: a change to someone's role, or deactivating
+ * their account, takes effect on their next request instead of waiting out the
+ * twelve-hour cookie. The token only proves who they are.
+ */
 export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  let claims: { email: string; userId: number; roleId: number };
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
     if (typeof payload.email !== "string") return null;
-    // Cookies issued before roles became custom carry only ADMIN/STAFF. Everyone
-    // who could sign in then was an admin, so that is how they are read; the
-    // next sign-in re-issues the cookie with the role id and level in it.
-    const level: RoleLevel = payload.level === "DAY_TO_DAY" ? "DAY_TO_DAY" : "ADMIN";
-    const roleId = typeof payload.roleId === "number" ? payload.roleId : 0;
-    const userId = typeof payload.userId === "number" ? payload.userId : 0;
-    return { email: payload.email, userId, roleId, level };
+    claims = {
+      email: payload.email,
+      userId: typeof payload.userId === "number" ? payload.userId : 0,
+      roleId: typeof payload.roleId === "number" ? payload.roleId : 0,
+    };
   } catch {
     return null;
   }
-});
 
-/** The session, but only when it belongs to a full admin. */
-export async function getAdminSession(): Promise<SessionPayload | null> {
-  const session = await getSession();
-  return session?.level === "ADMIN" ? session : null;
-}
+  // A cookie issued before ids were added has no id; fall back to the email so
+  // an older session is not signed out. Look the account up by id when present.
+  const row = claims.userId
+    ? await prisma.user.findUnique({
+        where: { id: claims.userId },
+        select: { email: true, id: true, active: true, role: { select: { id: true, level: true, permissions: true } } },
+      })
+    : await prisma.user.findUnique({
+        where: { email: claims.email },
+        select: { email: true, id: true, active: true, role: { select: { id: true, level: true, permissions: true } } },
+      });
+
+  if (!row || !row.active) return null;
+
+  return {
+    email: row.email,
+    userId: row.id,
+    roleId: row.role.id,
+    level: row.role.level,
+    permissions: row.role.permissions,
+  };
+});
 
 export type CurrentUser = {
   id: number;

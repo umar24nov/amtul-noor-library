@@ -5,6 +5,7 @@ import { ExportButton } from "@/components/export-button";
 import { StatCard } from "@/components/stat-card";
 import { SeatsView } from "@/components/seats-view";
 import { getRoomsWithSeats, listActiveMembers } from "@/lib/queries";
+import { requirePermission } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Seats" };
 
@@ -13,6 +14,7 @@ export default async function SeatsPage({
 }: {
   searchParams: Promise<{ room?: string }>;
 }) {
+  await requirePermission("SEATS");
   const { room } = await searchParams;
   const rooms = await getRoomsWithSeats();
   const activeMembers = await listActiveMembers();

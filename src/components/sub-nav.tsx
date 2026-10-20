@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
-import type { RoleLevel } from "@/generated/prisma/enums";
+import type { PermissionKey } from "@/lib/permission-defs";
 
 export type SubNavItem = {
   href: string;
   label: string;
-  adminOnly: boolean;
+  permission: PermissionKey;
 };
 
 /**
@@ -19,9 +19,15 @@ export type SubNavItem = {
  * item is matched on its own href, so `/payments` and `/payments/settings`
  * highlight independently.
  */
-export function SubNav({ items, level }: { items: readonly SubNavItem[]; level: RoleLevel }) {
+export function SubNav({
+  items,
+  permissions,
+}: {
+  items: readonly SubNavItem[];
+  permissions: PermissionKey[];
+}) {
   const pathname = usePathname();
-  const visible = items.filter((item) => !item.adminOnly || level === "ADMIN");
+  const visible = items.filter((item) => permissions.includes(item.permission));
 
   if (visible.length < 2) return null;
 

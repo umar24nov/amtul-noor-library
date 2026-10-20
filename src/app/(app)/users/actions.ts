@@ -3,7 +3,8 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
-import { getAdminSession } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
+import { actionPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
   createUserSchema,
@@ -20,11 +21,10 @@ function revalidateUsers() {
   revalidatePath("/users");
 }
 
-/** Every mutation on this screen is admin only; the page itself is too, but an
- *  action can be called directly, so the check lives here as well. */
-async function adminOnly(): Promise<ActionState | null> {
-  const session = await getAdminSession();
-  return session ? null : errorState("Only an admin can manage accounts.");
+/** Every mutation on this screen needs the Users permission; the page is gated
+ *  too, but an action can be called directly, so the check lives here as well. */
+function requireUsers() {
+  return actionPermission("USERS");
 }
 
 /** Active people whose role is at the full-admin level. The library must always
@@ -37,8 +37,8 @@ export async function createUserAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const denied = await adminOnly();
-  if (denied) return denied;
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
 
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
@@ -84,8 +84,8 @@ export async function createUserAction(
 }
 
 export async function updateUserRoleAction(formData: FormData): Promise<ActionState> {
-  const denied = await adminOnly();
-  if (denied) return denied;
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
 
   const parsed = userRoleChangeSchema.safeParse({
     userId: formData.get("userId"),
@@ -98,7 +98,7 @@ export async function updateUserRoleAction(formData: FormData): Promise<ActionSt
   try {
     const target = await prisma.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, active: true, role: { select: { level: true } } },
+      select: { id: true, email: true, active: true, role: { select: { name: true, level: true } } },
     });
     if (!target) return errorState("That account no longer exists.");
 
@@ -119,6 +119,12 @@ export async function updateUserRoleAction(formData: FormData): Promise<ActionSt
       data: { roleId: parsed.data.roleId },
     });
 
+    await logActivity(
+      "ROLE_CHANGED",
+      { id: target.id, email: target.email },
+      `${target.role.name} → ${role.name}`,
+    );
+
     revalidateUsers();
     return successState(`${target.email} is now ${role.name}.`);
   } catch (error) {
@@ -130,8 +136,8 @@ export async function resetUserPasswordAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const denied = await adminOnly();
-  if (denied) return denied;
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
 
   const parsed = resetPasswordSchema.safeParse({
     userId: formData.get("userId"),
@@ -166,10 +172,10 @@ export async function resetUserPasswordAction(
  * no way to lock the library out of its own app.
  */
 export async function toggleUserActiveAction(formData: FormData): Promise<ActionState> {
-  const denied = await adminOnly();
-  if (denied) return denied;
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
+  const session = gate.session;
 
-  const session = await getAdminSession();
   const parsed = userToggleSchema.safeParse({ userId: formData.get("userId") });
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
@@ -182,7 +188,7 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
     });
     if (!target) return errorState("That account no longer exists.");
 
-    if (target.active && session?.userId === target.id) {
+    if (target.active && session.userId === target.id) {
       return errorState("You cannot deactivate your own account.");
     }
 
@@ -196,6 +202,12 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
       where: { id: target.id },
       data: { active: !target.active },
     });
+
+    await logActivity(
+      target.active ? "DEACTIVATED" : "REACTIVATED",
+      { id: target.id, email: target.email },
+      `by ${session.email}`,
+    );
 
     revalidateUsers();
     return successState(

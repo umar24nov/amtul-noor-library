@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
+import { actionPermission, can, canAny } from "@/lib/permissions";
 import { parseInputDate, shiftMonthKey } from "@/lib/format";
 import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
 import { markGapMonthsNotApplicable, syncPendingAmounts } from "@/lib/membership";
@@ -46,7 +47,8 @@ export async function loadMoreMembersAction(filters: {
   sort?: string;
   page?: number;
 }) {
-  if (!(await getSession())) return { members: [], total: 0 };
+  const session = await getSession();
+  if (!session || !canAny(session, ["MEMBERS", "SEATS"])) return { members: [], total: 0 };
   const roomId = Number(filters.room);
   const [{ members, total }, standardFee, fees] = await Promise.all([
     listMembers({
@@ -83,7 +85,8 @@ export async function createMemberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await getSession())) return errorState("Please sign in to continue.");
+  const gate = await actionPermission("MEMBERS");
+  if ("denied" in gate) return gate.denied;
   const parsed = memberFormSchema.safeParse({
     name: formData.get("name"),
     mobile: formData.get("mobile"),
@@ -238,7 +241,8 @@ export async function updateMemberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await getSession())) return errorState("Please sign in to continue.");
+  const gate = await actionPermission("MEMBERS");
+  if ("denied" in gate) return gate.denied;
   const parsed = memberFormSchema.safeParse({
     name: formData.get("name"),
     mobile: formData.get("mobile"),
@@ -388,7 +392,9 @@ export async function updateMemberAction(
 
 /** Leaving keeps every record, releases the seat and never deletes anything. */
 export async function markMemberLeftAction(formData: FormData): Promise<void> {
-  if (!(await getSession())) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!can(session, "MEMBERS")) redirect("/dashboard");
   const parsed = markLeftSchema.safeParse({
     memberId: formData.get("memberId"),
     leavingDate: formData.get("leavingDate"),
@@ -429,7 +435,8 @@ export async function markMemberLeftAction(formData: FormData): Promise<void> {
  * available. Applications they came from are unlinked but kept.
  */
 export async function deleteMemberAction(memberId: number): Promise<ActionState> {
-  if (!(await getSession())) return errorState("Please sign in to continue.");
+  const gate = await actionPermission("MEMBERS");
+  if ("denied" in gate) return gate.denied;
   if (!Number.isInteger(memberId) || memberId <= 0) {
     return errorState("Member not found.");
   }
@@ -461,7 +468,8 @@ export async function deleteMemberAction(memberId: number): Promise<ActionState>
 
 /** Seat search used by the "Mark as Left" and edit dialogs. */
 export async function getMemberForEdit(memberId: number) {
-  if (!(await getSession())) return null;
+  const session = await getSession();
+  if (!session || !canAny(session, ["MEMBERS", "SEATS"])) return null;
   const [member, standardFee, memberFee] = await Promise.all([
     prisma.member.findUnique({
       where: { id: memberId },

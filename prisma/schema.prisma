@@ -51,6 +51,30 @@ enum RoleLevel {
   DAY_TO_DAY
 }
 
+/// The areas a role can be granted. Stored as a list on each role; a full-admin
+/// role is always treated as having every one, so it cannot lock itself out.
+enum Permission {
+  MEMBERS
+  APPLICATIONS
+  PAYMENTS
+  REMINDERS
+  SEATS
+  REPORTS
+  SETTINGS
+  USERS
+}
+
+/// What someone did and when, for the owner's peace of mind. Sign-ins, sign-outs
+/// and access changes are written here so the Users screen can show a running
+/// history of who has been in the app.
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  ROLE_CHANGED
+  DEACTIVATED
+  REACTIVATED
+}
+
 /// A physical room in the library (Room 1, Room 2, ...).
 model Room {
   id        Int      @id @default(autoincrement())
@@ -220,6 +244,9 @@ model Role {
   /// What the owner called it, shown on the Users screen and in the sidebar.
   name      String    @unique
   level     RoleLevel
+  /// The areas this role can open and work in. A full-admin role ignores this
+  /// list and is always granted everything, so it can never lock itself out.
+  permissions Permission[]
   /// The seeded full-admin role. It can be renamed but not deleted, and its
   /// level cannot be lowered, so the library can never lock itself out.
   builtIn   Boolean   @default(false)
@@ -246,11 +273,32 @@ model User {
   /// A deactivated account cannot sign in, but its row is kept.
   active       Boolean   @default(true)
   lastLoginAt  DateTime?
+  activity     ActivityLog[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([roleId])
   @@index([active])
+}
+
+/// One entry in the who-did-what-when history. Written on sign-in and sign-out
+/// and when access changes, so the Users screen can show recent activity. The
+/// account is kept by reference so the list survives a rename, and rows are
+/// never edited.
+model ActivityLog {
+  id        Int            @id @default(autoincrement())
+  userId    Int?
+  user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Copy of the email at the time, so the entry still reads well if the
+  /// account is later renamed or its row removed.
+  email     String
+  action    ActivityAction
+  /// A short human-readable detail, e.g. the role someone moved to.
+  detail    String         @default("")
+  createdAt DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 /// A message sent from the public help & support page. Anyone can write in

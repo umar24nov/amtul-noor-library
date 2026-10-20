@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import { listMembers, listOpenSeats, listRooms } from "@/lib/queries";
+import { requirePermission } from "@/lib/permissions";
 import { getMonthlyFee, memberFeesByMemberId, withMemberFees } from "@/lib/settings";
 import {
   parseRoomFilter,
@@ -31,6 +32,7 @@ type SearchParams = Promise<{
 }>;
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
+  await requirePermission("MEMBERS");
   const params = await searchParams;
   const search = params.q ?? "";
   // The list opens on active members by default, which is what the owner looks

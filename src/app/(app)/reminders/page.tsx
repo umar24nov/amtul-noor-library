@@ -10,6 +10,7 @@ import { MonthStepper } from "@/components/month-stepper";
 import { MONTH_FILTER_PAD_FORWARD } from "@/lib/constants";
 import { currentMonthKey, formatINR, formatMonth } from "@/lib/format";
 import { listPaymentReminders, listSelectableMonths } from "@/lib/queries";
+import { requirePermission } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Reminders" };
 
@@ -20,6 +21,7 @@ type SearchParams = Promise<{ month?: string }>;
  * one-tap WhatsApp reminder. Any month can be checked with the picker above.
  */
 export default async function RemindersPage({ searchParams }: { searchParams: SearchParams }) {
+  await requirePermission("REMINDERS");
   const params = await searchParams;
 
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "")

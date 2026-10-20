@@ -1,16 +1,20 @@
 import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import type { PermissionKey } from "@/lib/permission-defs";
 
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 /**
  * Guards an export endpoint. The proxy already redirects anonymous requests, but
- * an API call should answer 401 rather than hand back a login page.
+ * an API call should answer 401 rather than hand back a login page, and a signed
+ * in person still needs the area the sheet covers.
  */
-export async function requireSession(): Promise<Response | null> {
+export async function requireExport(key: PermissionKey): Promise<Response | null> {
   const session = await getSession();
-  if (session) return null;
-  return new Response("Not signed in.", { status: 401 });
+  if (!session) return new Response("Not signed in.", { status: 401 });
+  if (!can(session, key)) return new Response("Not allowed.", { status: 403 });
+  return null;
 }
 
 export function workbookResponse(buffer: Buffer, filename: string): Response {

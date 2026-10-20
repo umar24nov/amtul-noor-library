@@ -1,6 +1,6 @@
 import { getPaymentsForExport } from "@/lib/export";
 import { buildPaymentsWorkbook } from "@/lib/export-workbook";
-import { exportFilename, requireSession, workbookResponse } from "@/lib/export-response";
+import { exportFilename, requireExport, workbookResponse } from "@/lib/export-response";
 import { formatMonth } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export async function GET(request: Request) {
-  const denied = await requireSession();
+  const denied = await requireExport("REPORTS");
   if (denied) return denied;
 
   const params = new URL(request.url).searchParams;

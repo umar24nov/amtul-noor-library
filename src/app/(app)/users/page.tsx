@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { ActivityPanel } from "@/components/activity-panel";
 import { RolesPanel, type PanelRole } from "@/components/roles-panel";
 import { UsersPanel, type PanelUser } from "@/components/users-panel";
-import { getAdminSession } from "@/lib/auth";
+import { listRecentActivity } from "@/lib/activity";
 import { formatDate } from "@/lib/format";
+import { effectivePermissions, PERMISSION_KEYS } from "@/lib/permission-defs";
+import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -12,15 +14,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * Who can sign in to the app, and the roles they sign in with. Admin only: people
- * on a day-to-day role never see this page, and the actions behind it check again,
- * because a form action can be called directly.
+ * Who can sign in to the app, the roles they sign in with, and recent sign-in
+ * activity. Needs the Users permission: a role without it never sees this page,
+ * and the actions behind it check again, because a form action can be called
+ * directly.
  */
 export default async function UsersPage() {
-  const session = await getAdminSession();
-  if (!session) redirect("/dashboard");
+  const session = await requirePermission("USERS");
 
-  const [roles, rows] = await Promise.all([
+  const [roles, rows, activity] = await Promise.all([
     prisma.role.findMany({
       orderBy: [{ level: "asc" }, { createdAt: "asc" }],
       select: {
@@ -28,6 +30,7 @@ export default async function UsersPage() {
         name: true,
         level: true,
         builtIn: true,
+        permissions: true,
         _count: { select: { users: true } },
       },
     }),
@@ -42,6 +45,7 @@ export default async function UsersPage() {
         role: { select: { id: true, name: true, level: true } },
       },
     }),
+    listRecentActivity(25),
   ]);
 
   const roleOptions: PanelRole[] = roles.map((role) => ({
@@ -50,6 +54,9 @@ export default async function UsersPage() {
     level: role.level,
     builtIn: role.builtIn,
     userCount: role._count.users,
+    // A full admin effectively has every permission; the panel shows them ticked.
+    permissions: effectivePermissions(role.level, role.permissions),
+    allPermissions: [...PERMISSION_KEYS],
   }));
 
   const users: PanelUser[] = rows.map((row) => ({
@@ -67,10 +74,11 @@ export default async function UsersPage() {
     <div className="grid gap-6">
       <PageHeader
         title="Users"
-        description="Everyone who can sign in to the app, and the roles they use. Full admins manage accounts and the monthly fee; day-to-day roles run the library."
+        description="Everyone who can sign in to the app, the roles they use, and who has been signing in."
       />
       <UsersPanel users={users} roles={roleOptions} currentUserId={session.userId} />
       <RolesPanel roles={roleOptions} />
+      <ActivityPanel entries={activity} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createSession, destroySession, verifyCredentials } from "@/lib/auth";
+import { createSession, destroySession, getSession, verifyCredentials } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 import { errorState, type ActionState } from "@/lib/action-result";
 import {
   checkLoginRateLimit,
@@ -50,10 +51,16 @@ export async function loginAction(
 
   await clearLoginFailures(parsed.data.email);
   await createSession(session);
+  await logActivity("LOGIN", { id: session.userId, email: session.email });
   redirect(safeNext(parsed.data.next));
 }
 
 export async function logoutAction(): Promise<void> {
+  // Read the session before it is cleared so the log can name who left.
+  const session = await getSession();
+  if (session) {
+    await logActivity("LOGOUT", { id: session.userId, email: session.email });
+  }
   await destroySession();
   redirect("/login");
 }

@@ -4,6 +4,7 @@ import type {
   PaymentStatus,
   SeatStatus,
 } from "@/generated/prisma/enums";
+import type { PermissionKey } from "@/lib/permission-defs";
 
 export const LIBRARY_NAME = "Amtul Noor Library";
 export const LIBRARY_TAGLINE = "Your Gateway to Knowledge and Success";
@@ -239,15 +240,20 @@ export const paymentStatusHelp: Record<PaymentStatus, string> = {
   ON_HOLD: "Member was away this month, payment held.",
 };
 
-export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", adminOnly: false },
-  { href: "/members", label: "Members", adminOnly: false },
-  { href: "/applications", label: "Applications", adminOnly: false },
-  { href: "/payments", label: "Payments", adminOnly: false },
-  { href: "/reminders", label: "Reminders", adminOnly: false },
-  { href: "/seats", label: "Seats", adminOnly: false },
-  { href: "/users", label: "Users", adminOnly: true },
-] as const;
+/**
+ * The sidebar links, each mapped to the area it opens. The dashboard is open to
+ * anyone signed in; every other link needs its permission, so a role that is not
+ * granted an area does not see it here (and cannot open it by URL either).
+ */
+export const NAV_ITEMS: { href: string; label: string; permission: PermissionKey | null }[] = [
+  { href: "/dashboard", label: "Dashboard", permission: null },
+  { href: "/members", label: "Members", permission: "MEMBERS" },
+  { href: "/applications", label: "Applications", permission: "APPLICATIONS" },
+  { href: "/payments", label: "Payments", permission: "PAYMENTS" },
+  { href: "/reminders", label: "Reminders", permission: "REMINDERS" },
+  { href: "/seats", label: "Seats", permission: "SEATS" },
+  { href: "/users", label: "Users", permission: "USERS" },
+];
 
 /**
  * The tabs shown under the Payments heading.
@@ -261,10 +267,15 @@ export const NAV_ITEMS = [
  * Reminders are deliberately absent: "who still owes a month" is its own
  * sidebar page (/reminders), not a Payments tab, so it is not duplicated here.
  */
-export const PAYMENT_TABS = [
-  { href: "/payments", label: "Collect", description: "Every record and what came in", adminOnly: false },
-  { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", adminOnly: true },
-] as const;
+export const PAYMENT_TABS: {
+  href: string;
+  label: string;
+  description: string;
+  permission: PermissionKey;
+}[] = [
+  { href: "/payments", label: "Collect", description: "Every record and what came in", permission: "PAYMENTS" },
+  { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", permission: "SETTINGS" },
+];
 
 /**
  * How far the selectable month window reaches either side of the data. The

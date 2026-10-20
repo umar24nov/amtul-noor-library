@@ -6,6 +6,7 @@ import { MemberForm } from "@/components/member-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { listOpenSeats, listSelectableMonthOptions } from "@/lib/queries";
+import { requirePermission } from "@/lib/permissions";
 import { getMonthlyFee } from "@/lib/settings";
 import { formatINR } from "@/lib/format";
 import { createMemberAction } from "../actions";
@@ -13,6 +14,7 @@ import { createMemberAction } from "../actions";
 export const metadata: Metadata = { title: "Add Member" };
 
 export default async function NewMemberPage() {
+  await requirePermission("MEMBERS");
   const [openSeats, fee, months] = await Promise.all([
     listOpenSeats(),
     getMonthlyFee(),

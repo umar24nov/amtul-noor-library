@@ -44,6 +44,25 @@ export function formatDate(value: Date | string | null | undefined): string {
   }).format(date);
 }
 
+/**
+ * Formats an exact instant, such as an activity timestamp, in the viewer's own
+ * time zone. This differs from `formatDate`: that one renders UTC-midnight
+ * calendar dates, whereas an activity happened at a real moment and should read
+ * in the time the person is looking at it.
+ */
+export function formatDateTime(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 /** Converts a `YYYY-MM` key into a readable label such as "May 2026". */
 export function formatMonth(month: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(month);

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { errorState, successState, type ActionState } from "@/lib/action-result";
-import { getAdminSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import { isPermissionKey, type PermissionKey } from "@/lib/permission-defs";
 import { prisma } from "@/lib/prisma";
 import { createRoleSchema, deleteRoleSchema, fieldErrors, updateRoleSchema } from "@/lib/validators";
 
@@ -10,9 +12,20 @@ function revalidateUsers() {
   revalidatePath("/users");
 }
 
-async function adminOnly(): Promise<ActionState | null> {
-  const session = await getAdminSession();
-  return session ? null : errorState("Only an admin can manage roles.");
+/** Managing roles needs the Users permission; the page is gated too, but an
+ *  action can be called directly, so the check lives here as well. */
+async function requireUsers(): Promise<ActionState | null> {
+  const session = await getSession();
+  if (!session) return errorState("Please sign in again.");
+  if (!can(session, "USERS")) return errorState("Your role cannot manage roles.");
+  return null;
+}
+
+/** Every permission the form ticked, in the fixed key order. Unrecognised values
+ *  are dropped so a tampered form cannot store a key the app does not know. */
+function readPermissions(formData: FormData): PermissionKey[] {
+  const raw = formData.getAll("permissions");
+  return raw.filter(isPermissionKey);
 }
 
 /** A duplicate name is the one failure worth naming precisely, since the owner
@@ -46,7 +59,7 @@ export async function createRoleAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const denied = await adminOnly();
+  const denied = await requireUsers();
   if (denied) return denied;
 
   const parsed = createRoleSchema.safeParse({
@@ -57,8 +70,12 @@ export async function createRoleAction(
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
   }
 
+  const permissions = readPermissions(formData);
+
   try {
-    await prisma.role.create({ data: { name: parsed.data.name, level: parsed.data.level } });
+    await prisma.role.create({
+      data: { name: parsed.data.name, level: parsed.data.level, permissions },
+    });
     revalidateUsers();
     return successState(`Role "${parsed.data.name}" added.`);
   } catch (error) {
@@ -75,7 +92,7 @@ export async function updateRoleAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const denied = await adminOnly();
+  const denied = await requireUsers();
   if (denied) return denied;
 
   const parsed = updateRoleSchema.safeParse({
@@ -86,6 +103,8 @@ export async function updateRoleAction(
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
   }
+
+  const permissions = readPermissions(formData);
 
   try {
     const role = await prisma.role.findUnique({
@@ -111,7 +130,7 @@ export async function updateRoleAction(
 
     await prisma.role.update({
       where: { id: role.id },
-      data: { name: parsed.data.name, level: parsed.data.level },
+      data: { name: parsed.data.name, level: parsed.data.level, permissions },
     });
 
     revalidateUsers();
@@ -127,7 +146,7 @@ export async function updateRoleAction(
 }
 
 export async function deleteRoleAction(formData: FormData): Promise<ActionState> {
-  const denied = await adminOnly();
+  const denied = await requireUsers();
   if (denied) return denied;
 
   const parsed = deleteRoleSchema.safeParse({ roleId: formData.get("roleId") });
