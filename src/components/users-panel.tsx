@@ -322,8 +322,8 @@ function UserCard({
     <div
       className={
         user.active
-          ? "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20"
-          : "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 opacity-70 transition-colors hover:opacity-100"
+          ? "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/15 transition-colors hover:border-foreground/30"
+          : "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/15 opacity-70 transition-colors hover:opacity-100"
       }
     >
       <div className="flex items-start gap-3">
