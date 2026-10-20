@@ -265,7 +265,6 @@ export const NAV_ITEMS = [
  */
 export const PAYMENT_TABS = [
   { href: "/payments", label: "Collect", description: "Every record and what came in", adminOnly: false },
-  { href: "/payments/overdue", label: "Overdue", description: "Members behind on finished months", adminOnly: false },
   { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", adminOnly: true },
 ] as const;
 

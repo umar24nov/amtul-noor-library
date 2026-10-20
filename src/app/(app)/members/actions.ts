@@ -29,9 +29,7 @@ function revalidateAll() {
   // manual reload — the "edit only seems to save after refresh" report.
   revalidatePath("/members/[id]", "page");
   revalidatePath("/payments");
-  revalidatePath("/payments/overdue");
   revalidatePath("/reminders");
-  revalidatePath("/seats");
   revalidatePath("/");
 }
 

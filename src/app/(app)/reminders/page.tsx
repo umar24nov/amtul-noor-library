@@ -76,7 +76,9 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
             </Button>
           </form>
           <Button asChild variant="ghost" size="sm" className="h-9 self-start">
+          {/*
             <Link href="/payments/overdue">Older months overdue &rarr;</Link>
+          */}
           </Button>
         </CardContent>
       </Card>

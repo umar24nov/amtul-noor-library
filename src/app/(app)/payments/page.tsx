@@ -135,7 +135,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle className="text-sm">Filter payments</CardTitle>
           <Button asChild variant="ghost" size="sm" className="h-8">
+          {/*
             <Link href="/payments/overdue">Who owes what &rarr;</Link>
+          */}
           </Button>
         </CardHeader>
         <CardContent>
