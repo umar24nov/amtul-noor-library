@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Armchair, CircleCheckBig, ReceiptIndianRupee, TriangleAlert, UserPlus, Users, UserRoundCheck } from "lucide-react";
+import { Armchair, CircleCheckBig, ReceiptIndianRupee, TriangleAlert, Users, UserRoundCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
 import { PaymentStatusBadge } from "@/components/status-badges";
 import { RevenueChart } from "@/components/revenue-chart";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthStepper } from "@/components/month-stepper";
 import { FilterSelect } from "@/components/filter-select";
@@ -107,12 +106,6 @@ export default async function DashboardPage({
               description={`Download ${formatMonth(month)} payments as an Excel sheet`}
               className="h-11 flex-1 sm:flex-none sm:w-44"
             />
-            <Button asChild size="lg" className="h-11 flex-1 sm:flex-none sm:w-44">
-              <Link href="/members/new">
-                <UserPlus className="size-4" />
-                Add Member
-              </Link>
-            </Button>
           </div>
         }
       />
@@ -193,13 +186,8 @@ export default async function DashboardPage({
               <p className="text-sm text-muted-foreground">
                 {memberScope === "ACTIVE"
                   ? "Switch the filter to see members who have left."
-                  : "Add a member to start recording payments."}
+                  : "New members arrive through the application form."}
               </p>
-              {memberScope !== "ACTIVE" && (
-                <Button asChild variant="secondary" className="mt-2 h-10">
-                  <Link href="/members/new">Add Member</Link>
-                </Button>
-              )}
             </div>
           ) : (
             <>
