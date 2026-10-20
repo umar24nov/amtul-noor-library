@@ -9,7 +9,6 @@ import {
   LIBRARY_HOURS,
   LIBRARY_HOURS_DAYS,
   LIBRARY_MAPS_URL,
-  LIBRARY_NAME,
   LIBRARY_PHONE,
   LIBRARY_PHONE_ALT,
   LIBRARY_PHONE_ALT_URL,
@@ -19,8 +18,6 @@ import {
 } from "@/lib/constants";
 
 export function SiteFooter() {
-  const year = new Date().getFullYear();
-
   const productLinks = [
     { href: "/#amenities", label: "Features" },
     { href: "/#plans", label: "Pricing" },
@@ -30,6 +27,7 @@ export function SiteFooter() {
   const companyLinks: { href: string; label: string; external?: boolean }[] = [
     { href: "/#visit", label: "Contact" },
     { href: "/support", label: "Help & support" },
+    { href: "/developer", label: "Developer" },
     { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
   ];
 
@@ -153,7 +151,13 @@ export function SiteFooter() {
       <div className="border-t border-border">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:px-6">
           <p>
-            &copy; {year} {LIBRARY_NAME} · {LIBRARY_ADDRESS}
+            Built by{" "}
+            <Link
+              href="/developer"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              Mohammad Umar
+            </Link>
           </p>
           <p>{LIBRARY_TAGLINE}</p>
         </div>
