@@ -18,6 +18,15 @@ import {
 } from "@/lib/constants";
 
 export function SiteFooter() {
+  // Footer links share one hover: the text darkens and a soft muted pill appears
+  // behind it. No underline — at this text size an underline read as a stray rule.
+  const linkClass =
+    "-mx-2 rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  // Contact values are already foreground coloured, so only the hover pill is
+  // added here.
+  const contactClass =
+    "-mx-2 rounded-md px-2 py-1 text-foreground transition-colors hover:bg-muted";
+
   const libraryLinks = [
     { href: "/#amenities", label: "Facilities" },
     { href: "/#plans", label: "Membership & fees" },
@@ -60,13 +69,10 @@ export function SiteFooter() {
 
           <nav aria-label="Library">
             <h3 className="font-heading text-sm font-semibold">Library</h3>
-            <ul className="mt-4 space-y-2.5 text-sm">
+            <ul className="mt-4 space-y-1.5 text-sm">
               {libraryLinks.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
+                  <Link href={link.href} className={linkClass}>
                     {link.label}
                   </Link>
                 </li>
@@ -76,7 +82,7 @@ export function SiteFooter() {
 
           <nav aria-label="Support">
             <h3 className="font-heading text-sm font-semibold">Support</h3>
-            <ul className="mt-4 space-y-2.5 text-sm">
+            <ul className="mt-4 space-y-1.5 text-sm">
               {supportLinks.map((link) =>
                 link.external ? (
                   <li key={link.label}>
@@ -84,17 +90,14 @@ export function SiteFooter() {
                       href={link.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                      className={linkClass}
                     >
                       {link.label}
                     </a>
                   </li>
                 ) : (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                    >
+                    <Link href={link.href} className={linkClass}>
                       {link.label}
                     </Link>
                   </li>
@@ -108,18 +111,18 @@ export function SiteFooter() {
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <Phone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span className="flex flex-col gap-1">
+                <span className="flex flex-col gap-0.5">
                   <a
                     href={LIBRARY_PHONE_URL}
                     aria-label={`Call ${LIBRARY_PHONE}`}
-                    className="text-foreground underline underline-offset-4"
+                    className={contactClass}
                   >
                     {LIBRARY_PHONE}
                   </a>
                   <a
                     href={LIBRARY_PHONE_ALT_URL}
                     aria-label={`Call ${LIBRARY_PHONE_ALT}`}
-                    className="text-foreground underline underline-offset-4"
+                    className={contactClass}
                   >
                     {LIBRARY_PHONE_ALT}
                   </a>
@@ -127,10 +130,7 @@ export function SiteFooter() {
               </li>
               <li className="flex gap-2">
                 <Mail className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <a
-                  href={LIBRARY_EMAIL_URL}
-                  className="text-foreground underline underline-offset-4"
-                >
+                <a href={LIBRARY_EMAIL_URL} className={contactClass}>
                   {LIBRARY_EMAIL}
                 </a>
               </li>
@@ -155,7 +155,7 @@ export function SiteFooter() {
             Built by{" "}
             <Link
               href="/developer"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
+              className="-mx-1 rounded-md px-1 py-0.5 font-medium text-foreground transition-colors hover:bg-muted"
             >
               Mohammad Umar
             </Link>

@@ -76,12 +76,18 @@ export function SeatMap({
   const byNumber = new Map(seats.map((seat) => [seat.number, seat.status]));
 
   return (
-    <svg
-      viewBox="40 28 820 572"
-      role="group"
-      aria-label={ariaLabel}
-      className={cn("h-auto w-full", className)}
-    >
+    // On a narrow screen the map would shrink until each seat is a few pixels
+    // wide and impossible to tap, so it keeps a minimum width and this wrapper
+    // scrolls sideways instead. From `sm` up there is room, so it fits and the
+    // scroll never appears. The caller's className (border, padding, max-width)
+    // goes on the wrapper, not the svg, so a wide map still scrolls inside it.
+    <div className={cn("w-full overflow-x-auto", className)}>
+      <svg
+        viewBox="40 28 820 572"
+        role="group"
+        aria-label={ariaLabel}
+        className="h-auto w-full min-w-[34rem] sm:min-w-0"
+      >
       {/* Room shell: a tinted floor inside a solid wall. */}
       <rect
         x="50"
@@ -277,6 +283,7 @@ export function SeatMap({
 
         return <g key={seat.number}>{content}</g>;
       })}
-    </svg>
+      </svg>
+    </div>
   );
 }

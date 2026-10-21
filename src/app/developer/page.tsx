@@ -87,7 +87,7 @@ export default function DeveloperPage() {
         <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="-mx-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to the library
