@@ -8,6 +8,15 @@ export type ActionState = {
 
 export const IDLE_STATE: ActionState = { status: "idle" };
 
+/**
+ * The result of reading a stored password back. It carries the password itself
+ * rather than a message, so it cannot be an `ActionState`: that one is used
+ * with form state, where every value ends up in a hidden field.
+ */
+export type PasswordRevealState =
+  | { status: "success"; password: string }
+  | { status: "error"; message: string };
+
 export function errorState(
   message: string,
   fieldErrors?: Record<string, string>,

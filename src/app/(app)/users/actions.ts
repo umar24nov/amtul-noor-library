@@ -2,8 +2,15 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import {
+  errorState,
+  prismaErrorMessage,
+  successState,
+  type ActionState,
+  type PasswordRevealState,
+} from "@/lib/action-result";
 import { logActivity } from "@/lib/activity";
+import { decryptPassword, encryptPassword } from "@/lib/password-vault";
 import { actionPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
@@ -40,6 +47,7 @@ export async function createUserAction(
 ): Promise<ActionState> {
   const gate = await requireUsers();
   if ("denied" in gate) return gate.denied;
+  const session = gate.session;
 
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
@@ -74,8 +82,16 @@ export async function createUserAction(
         name: name ?? null,
         roleId,
         passwordHash: bcrypt.hashSync(password, BCRYPT_COST),
+        // A second, encrypted copy so the owner can read the password back.
+        passwordCiphertext: encryptPassword(password),
       },
     });
+
+    await logActivity(
+      "PASSWORD_CHANGED",
+      { id: null, email },
+      `set by ${session.email}`,
+    );
 
     revalidateUsers();
     return successState(`${email} can now sign in as ${role.name}.`);
@@ -161,10 +177,22 @@ export async function updateUserAction(
         email,
         roleId,
         active,
-        ...(password ? { passwordHash: bcrypt.hashSync(password, BCRYPT_COST) } : {}),
+        ...(password
+          ? {
+              passwordHash: bcrypt.hashSync(password, BCRYPT_COST),
+              passwordCiphertext: encryptPassword(password),
+            }
+          : {}),
       },
     });
 
+    if (password) {
+      await logActivity(
+        "PASSWORD_CHANGED",
+        { id: target.id, email },
+        `by ${session.email}`,
+      );
+    }
     if (target.role.name !== role.name) {
       await logActivity(
         "ROLE_CHANGED",
@@ -242,6 +270,7 @@ export async function resetUserPasswordAction(
 ): Promise<ActionState> {
   const gate = await requireUsers();
   if ("denied" in gate) return gate.denied;
+  const session = gate.session;
 
   const parsed = resetPasswordSchema.safeParse({
     userId: formData.get("userId"),
@@ -260,13 +289,67 @@ export async function resetUserPasswordAction(
 
     await prisma.user.update({
       where: { id: target.id },
-      data: { passwordHash: bcrypt.hashSync(parsed.data.password, BCRYPT_COST) },
+      data: {
+        passwordHash: bcrypt.hashSync(parsed.data.password, BCRYPT_COST),
+        // Keep the readable copy in step with the hash.
+        passwordCiphertext: encryptPassword(parsed.data.password),
+      },
     });
+
+    await logActivity(
+      "PASSWORD_CHANGED",
+      { id: target.id, email: target.email },
+      `by ${session.email}`,
+    );
 
     revalidateUsers();
     return successState(`Password updated for ${target.email}.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Reads back the last password the owner set for an account, so they do not
+ * have to reset somebody's password because they forgot what they handed out.
+ *
+ * The account must be one the caller is allowed to manage, and every read is
+ * written to the activity log, because showing somebody's password is exactly
+ * the kind of thing the owner wants to see later. The plain password only
+ * travels to the browser that asked for it; it is never written to the log.
+ */
+export async function revealUserPasswordAction(userId: number): Promise<PasswordRevealState> {
+  const gate = await requireUsers();
+  if ("denied" in gate) {
+    return { status: "error", message: gate.denied.message ?? "You cannot do that." };
+  }
+  const session = gate.session;
+
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, passwordCiphertext: true },
+    });
+    if (!target) return { status: "error", message: "That account no longer exists." };
+
+    const password = decryptPassword(target.passwordCiphertext);
+    if (!password) {
+      return {
+        status: "error",
+        message:
+          "This password cannot be read back. Passwords set before this feature were never stored, and a changed encryption key makes older ones unreadable. Set a new password instead.",
+      };
+    }
+
+    await logActivity(
+      "PASSWORD_VIEWED",
+      { id: target.id, email: target.email },
+      `by ${session.email}`,
+    );
+
+    return { status: "success", password };
+  } catch {
+    return { status: "error", message: "Something went wrong while reading the password." };
   }
 }
 

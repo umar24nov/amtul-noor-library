@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Mail, Pencil, Power, UserPlus, UserRound } from "lucide-react";
+import { Copy, KeyRound, Mail, Pencil, Power, UserPlus, UserRound } from "lucide-react";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import type { PanelRole } from "@/components/roles-panel";
 import {
   createUserAction,
   resetUserPasswordAction,
+  revealUserPasswordAction,
   toggleUserActiveAction,
   updateUserAction,
   updateUserRoleAction,
@@ -340,7 +341,13 @@ function EditUserDialog({
   );
 }
 
-function ResetPasswordDialog({
+/**
+ * The password for one account: the last one the owner set, readable back so
+ * they do not have to hand out a new one every time they forget it, and a form
+ * to set a new one. Reading the password is written to the activity log, so
+ * the owner can see afterwards that it was read.
+ */
+function PasswordDialog({
   user,
   onOpenChange,
 }: {
@@ -348,6 +355,12 @@ function ResetPasswordDialog({
   onOpenChange: (user: PanelUser | null) => void;
 }) {
   const [state, formAction] = useActionState(resetUserPasswordAction, IDLE_STATE);
+  const [reveal, setReveal] = useState<{
+    status: "idle" | "shown";
+    password?: string;
+    message?: string;
+  }>({ status: "idle" });
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (state.done) {
@@ -356,43 +369,121 @@ function ResetPasswordDialog({
     }
   }, [state, onOpenChange]);
 
+  const showPassword = () => {
+    if (!user) return;
+    startTransition(async () => {
+      const result = await revealUserPasswordAction(user.id);
+      if (result.status === "error") {
+        setReveal({ status: "idle", message: result.message });
+        return;
+      }
+      setReveal({ status: "shown", password: result.password });
+    });
+  };
+
+  const copyPassword = async () => {
+    if (!reveal.password) return;
+    try {
+      await navigator.clipboard.writeText(reveal.password);
+      toast.success("Password copied.");
+    } catch {
+      toast.error("Could not copy the password.");
+    }
+  };
+
   return (
     <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onOpenChange(null)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reset password</DialogTitle>
-          <DialogDescription>{user ? `Set a new password for ${user.email}.` : ""}</DialogDescription>
+          <DialogTitle>Password for {user?.email}</DialogTitle>
+          <DialogDescription>
+            Read back the last password you set, or set a new one.
+          </DialogDescription>
         </DialogHeader>
         {user && (
-          <form action={formAction} className="grid gap-4">
-            <input type="hidden" name="userId" value={user.id} />
-            <div className="grid gap-1.5">
-              <Label htmlFor="reset-password">
-                New password <span className="text-destructive">*</span>
-              </Label>
-              <PasswordInput
-                id="reset-password"
-                name="password"
-                autoComplete="new-password"
-                aria-invalid={Boolean(state.fieldErrors?.password)}
-              />
-              {state.fieldErrors?.password && (
-                <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
+          <div className="grid gap-4">
+            <div className="grid gap-2 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">Last password you set</span>
+                {reveal.status === "shown" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setReveal({ status: "idle" })}
+                  >
+                    Hide
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={showPassword}
+                    disabled={pending}
+                  >
+                    {pending ? "Reading…" : "Show password"}
+                  </Button>
+                )}
+              </div>
+              {reveal.status === "shown" && reveal.password ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={reveal.password}
+                    aria-label="The password you last set"
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    onClick={copyPassword}
+                    aria-label="Copy the password"
+                    title="Copy the password"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Hidden. Anyone with the Users permission can read it, and every read is written
+                  to the activity log.
+                </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                At least 8 characters. Use the eye button to check it before saving.
-              </p>
+              {reveal.message && <p className="text-xs text-destructive">{reveal.message}</p>}
             </div>
-            {state.status === "error" && state.message && (
-              <p className="text-sm text-destructive">{state.message}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(null)}>
-                Cancel
-              </Button>
-              <SubmitButton pendingLabel="Saving">Save password</SubmitButton>
-            </div>
-          </form>
+
+            <form action={formAction} className="grid gap-4">
+              <input type="hidden" name="userId" value={user.id} />
+              <div className="grid gap-1.5">
+                <Label htmlFor="reset-password">
+                  Set a new password <span className="text-destructive">*</span>
+                </Label>
+                <PasswordInput
+                  id="reset-password"
+                  name="password"
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(state.fieldErrors?.password)}
+                />
+                {state.fieldErrors?.password && (
+                  <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  At least 8 characters. Use the eye button to check it before saving.
+                </p>
+              </div>
+              {state.status === "error" && state.message && (
+                <p className="text-sm text-destructive">{state.message}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(null)}>
+                  Cancel
+                </Button>
+                <SubmitButton pendingLabel="Saving">Save password</SubmitButton>
+              </div>
+            </form>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -456,14 +547,14 @@ function UserCard({
   roles,
   isSelf,
   onEdit,
-  onReset,
+  onPassword,
   onToggle,
 }: {
   user: PanelUser;
   roles: PanelRole[];
   isSelf: boolean;
   onEdit: () => void;
-  onReset: () => void;
+  onPassword: () => void;
   onToggle: () => void;
 }) {
   const isAdmin = user.level === "ADMIN";
@@ -518,9 +609,9 @@ function UserCard({
           <Pencil className="size-3.5" />
           Edit details
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onReset}>
+        <Button type="button" variant="outline" size="sm" onClick={onPassword}>
           <KeyRound className="size-3.5" />
-          Reset password
+          Password
         </Button>
         <Button
           type="button"
@@ -549,7 +640,7 @@ export function UsersPanel({
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PanelUser | null>(null);
-  const [resetTarget, setResetTarget] = useState<PanelUser | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<PanelUser | null>(null);
   const [toggleTarget, setToggleTarget] = useState<PanelUser | null>(null);
 
   return (
@@ -587,7 +678,7 @@ export function UsersPanel({
             roles={roles}
             isSelf={user.id === currentUserId}
             onEdit={() => setEditTarget(user)}
-            onReset={() => setResetTarget(user)}
+            onPassword={() => setPasswordTarget(user)}
             onToggle={() => setToggleTarget(user)}
           />
         ))}
@@ -595,7 +686,8 @@ export function UsersPanel({
 
       <p className="text-xs text-muted-foreground">
         Click a card to change the name, email, role, password, or whether the account can sign in.
-        A deactivated account keeps its history but cannot sign in.
+        The Password button shows the last password you set for an account. A deactivated account
+        keeps its history but cannot sign in.
       </p>
 
       <EditUserDialog
@@ -605,10 +697,10 @@ export function UsersPanel({
         currentUserId={currentUserId}
         onOpenChange={setEditTarget}
       />
-      <ResetPasswordDialog
-        key={`reset-${resetTarget?.id ?? "none"}`}
-        user={resetTarget}
-        onOpenChange={setResetTarget}
+      <PasswordDialog
+        key={`password-${passwordTarget?.id ?? "none"}`}
+        user={passwordTarget}
+        onOpenChange={setPasswordTarget}
       />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
     </section>

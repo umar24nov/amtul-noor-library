@@ -58,7 +58,9 @@ export async function getBuiltInAdminRole(): Promise<{ id: number; level: RoleLe
   if (adminLevel) return adminLevel;
 
   return prisma.role.create({
-    data: { name: "Admin", level: "ADMIN", builtIn: true },
+    // The permission list is always written out: the column has no default in
+    // the database, and a full admin is allowed everything regardless of it.
+    data: { name: "Admin", level: "ADMIN", builtIn: true, permissions: [] },
     select: { id: true, level: true },
   });
 }

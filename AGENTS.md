@@ -22,6 +22,15 @@ the file that holds it, because most of these are easy to undo by accident.
   window this was written to close.
 - Passwords are bcrypt hashes from an env var (`ADMIN_PASSWORD_HASH`), never in
   the repo.
+- The Users screen can show the last password the owner handed out
+  (`src/lib/password-vault.ts`). That is a **second, reversible** copy of the
+  plain password, encrypted with AES-256-GCM under a key derived from
+  `AUTH_SECRET`; the bcrypt hash stays the real credential. The copy is
+  written whenever a password is set, read only through the
+  `revealUserPasswordAction` server action (which checks the Users permission
+  and writes a `PASSWORD_VIEWED` entry to the activity log), and it is unreadable
+  after `AUTH_SECRET` changes. Do not log the plain password, and do not put it
+  in a URL, a query string, or a page prop.
 - Authorization is a per-role permission list (`src/lib/permission-defs.ts`)
   checked on the server in three places, and all three matter: the sidebar only
   *hides* links, it is not a control. Pages call `requirePermission`, server

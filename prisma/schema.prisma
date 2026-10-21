@@ -73,6 +73,8 @@ enum ActivityAction {
   ROLE_CHANGED
   DEACTIVATED
   REACTIVATED
+  PASSWORD_CHANGED
+  PASSWORD_VIEWED
 }
 
 /// A physical room in the library (Room 1, Room 2, ...).
@@ -267,6 +269,11 @@ model User {
   /// Display name, shown in the sidebar. Optional: the login form has no name.
   name         String?
   passwordHash String
+  /// The last password the owner handed out for this account, kept encrypted
+  /// so the owner can read it back when they forget what they gave someone.
+  /// The bcrypt hash above stays the real credential; this copy is only
+  /// readable by the app, with the key held in the environment.
+  passwordCiphertext String?
   /// The named role this person signs in with. Every account has one.
   roleId       Int
   role         Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
