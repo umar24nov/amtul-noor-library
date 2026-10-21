@@ -18,17 +18,18 @@ import {
 } from "@/lib/constants";
 
 export function SiteFooter() {
-  const productLinks = [
-    { href: "/#amenities", label: "Features" },
-    { href: "/#plans", label: "Pricing" },
+  const libraryLinks = [
+    { href: "/#amenities", label: "Facilities" },
+    { href: "/#plans", label: "Membership & fees" },
+    { href: "/#visit", label: "Visit the library" },
     { href: "/#faq", label: "FAQ" },
   ];
 
-  const companyLinks: { href: string; label: string; external?: boolean }[] = [
-    { href: "/#visit", label: "Contact" },
+  const supportLinks: { href: string; label: string; external?: boolean }[] = [
+    { href: "/join", label: "Apply for a seat" },
     { href: "/support", label: "Help & support" },
-    { href: "/developer", label: "Developer" },
     { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
+    { href: "/developer", label: "Developer" },
   ];
 
   return (
@@ -57,10 +58,10 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <nav aria-label="Product">
-            <h3 className="font-heading text-sm font-semibold">Product</h3>
+          <nav aria-label="Library">
+            <h3 className="font-heading text-sm font-semibold">Library</h3>
             <ul className="mt-4 space-y-2.5 text-sm">
-              {productLinks.map((link) => (
+              {libraryLinks.map((link) => (
                 <li key={link.label}>
                   <Link
                     href={link.href}
@@ -73,10 +74,10 @@ export function SiteFooter() {
             </ul>
           </nav>
 
-          <nav aria-label="Company">
-            <h3 className="font-heading text-sm font-semibold">Company</h3>
+          <nav aria-label="Support">
+            <h3 className="font-heading text-sm font-semibold">Support</h3>
             <ul className="mt-4 space-y-2.5 text-sm">
-              {companyLinks.map((link) =>
+              {supportLinks.map((link) =>
                 link.external ? (
                   <li key={link.label}>
                     <a
