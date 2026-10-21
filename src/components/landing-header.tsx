@@ -12,7 +12,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Brand } from "@/components/brand";
-import { LIBRARY_TAGLINE } from "@/lib/constants";
 
 export type LandingNavItem = { href: string; label: string };
 
@@ -97,8 +96,8 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
               <SheetContent side="right" className="w-72 p-0">
                 <SheetHeader className="border-b border-border p-4">
                   <SheetTitle className="sr-only">Navigation</SheetTitle>
+                  {/* The plain mark, the same one the header above uses. */}
                   <Brand compact />
-                  <p className="text-xs text-muted-foreground">{LIBRARY_TAGLINE}</p>
                 </SheetHeader>
                 <nav
                   aria-label="Page sections"

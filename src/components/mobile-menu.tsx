@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/sheet";
 import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/app-nav";
-import { LIBRARY_TAGLINE } from "@/lib/constants";
 import type { PermissionKey } from "@/lib/permission-defs";
 
 export function MobileMenu({ permissions }: { permissions: PermissionKey[] }) {
@@ -33,9 +32,10 @@ export function MobileMenu({ permissions }: { permissions: PermissionKey[] }) {
       <SheetContent side="left" className="w-72 p-0">
         <SheetHeader className="border-b border-border p-4">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          {/* compact, so the motto below is not repeated and truncated here */}
+          {/* The plain mark, the same one the top bar and the desktop header
+              use. The motto stays out of the menu so the brand reads the same
+              everywhere it appears. */}
           <Brand compact />
-          <p className="text-xs text-muted-foreground">{LIBRARY_TAGLINE}</p>
         </SheetHeader>
         <div className="p-3">
           {/* Choosing a destination dismisses the menu. Without this the sheet
