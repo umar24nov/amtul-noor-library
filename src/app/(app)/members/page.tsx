@@ -82,14 +82,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         title="Members"
         description="Permanent personal record of everyone who joined the library."
         actions={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="flex w-full flex-row gap-2 sm:w-auto">
             <ExportButton
               href="/api/export/members"
               label="Export"
               description="Download every member as an Excel sheet"
-              className="h-11 w-full sm:w-auto"
+              className="h-11 flex-1 sm:w-auto sm:flex-none"
             />
-            <Button asChild size="lg" className="h-11 w-full sm:w-auto">
+            <Button asChild size="lg" className="h-11 flex-1 sm:w-auto sm:flex-none">
               <Link href="/members/new">
                 <UserPlus className="size-4" />
                 Add Member
@@ -109,34 +109,37 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                 standalone={false}
               />
             </div>
-            <FilterField label="Status" className="sm:w-40">
-              <FilterSelect
-                name="status"
-                value={status}
-                ariaLabel="Filter by status"
-                options={[
-                  { value: "ALL", label: "All members" },
-                  { value: "ACTIVE", label: "Active" },
-                  { value: "LEFT", label: "Left" },
-                ]}
-              />
-            </FilterField>
-            <FilterField label="Room" className="sm:w-40">
-              <FilterSelect
-                name="room"
-                value={roomValue}
-                ariaLabel="Filter by room"
-                options={roomOptions}
-              />
-            </FilterField>
-            <FilterField label="Sort by" className="sm:w-56">
-              <FilterSelect
-                name="sort"
-                value={sort}
-                ariaLabel="Sort members by"
-                options={[...MEMBER_SORTS]}
-              />
-            </FilterField>
+            {/* Two columns on a phone, one row on a wide screen. */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:gap-2">
+              <FilterField label="Status" className="sm:w-40">
+                <FilterSelect
+                  name="status"
+                  value={status}
+                  ariaLabel="Filter by status"
+                  options={[
+                    { value: "ALL", label: "All members" },
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "LEFT", label: "Left" },
+                  ]}
+                />
+              </FilterField>
+              <FilterField label="Room" className="sm:w-40">
+                <FilterSelect
+                  name="room"
+                  value={roomValue}
+                  ariaLabel="Filter by room"
+                  options={roomOptions}
+                />
+              </FilterField>
+              <FilterField label="Sort by" className="col-span-2 sm:w-56 sm:col-span-1">
+                <FilterSelect
+                  name="sort"
+                  value={sort}
+                  ariaLabel="Sort members by"
+                  options={[...MEMBER_SORTS]}
+                />
+              </FilterField>
+            </div>
           </form>
         </CardContent>
       </Card>

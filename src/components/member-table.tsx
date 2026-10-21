@@ -340,11 +340,14 @@ export function MemberTable({
   };
 
   return (
-    /* One scroll box holds the whole list. The page underneath stays still no
-       matter how many members there are, the table header sticks to the top of
-       the box, and the loading sentinel at the end of the list sits inside the
-       box, so scrolling it starts the next batch. */
-    <div className="max-h-[65dvh] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card md:max-h-[calc(100dvh-16rem)]">
+    /* One scroll box holds the whole list on a wide screen: the page underneath
+       stays still no matter how many members there are, the table header sticks
+       to the top of the box, and the loading sentinel at the end of the list
+       sits inside the box, so scrolling it starts the next batch.
+       On a phone the list flows with the page instead. Two scroll areas on a
+       touch screen fight each other, so the phone gets the one scroll the hand
+       already knows. */
+    <div className="md:max-h-[calc(100dvh-16rem)] md:overflow-y-auto md:overscroll-contain md:rounded-xl md:border md:border-border md:bg-card">
       {/* Desktop / tablet table. The header cells use top-0 because their
           nearest scroll container is this box, not the page. */}
       <div className="hidden md:block">
@@ -384,8 +387,8 @@ export function MemberTable({
         </table>
       </div>
 
-      {/* Mobile cards, in the same scroll box so the page stays still. */}
-      <div className="grid gap-2.5 p-2 md:hidden">
+      {/* Mobile cards. They flow with the page on a phone. */}
+      <div className="grid gap-2.5 md:hidden">
         {rows.map((member) => (
           <div key={member.id} className="rounded-xl border border-border bg-card p-3">
             <div className="flex items-start justify-between gap-2">
@@ -431,7 +434,7 @@ export function MemberTable({
         ))}
       </div>
 
-      <div className="border-t border-border p-3">
+      <div className="p-3 md:border-t md:border-border">
         <LoadMoreFooter
           loaded={rows.length}
           total={total}
