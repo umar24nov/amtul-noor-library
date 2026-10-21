@@ -42,6 +42,8 @@ export async function proxy(request: NextRequest) {
       pathname === "/join" ||
       pathname === "/support" ||
       pathname === "/developer" ||
+      pathname === "/opengraph-image" ||
+      pathname === "/twitter-image" ||
       pathname.startsWith("/receipts/") ||
       pathname.startsWith("/pay/")
     ) {
