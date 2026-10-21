@@ -462,7 +462,7 @@ export function ApplicationForm({
                       chooseSeat(seat);
                     }}
                     ariaLabel={`${selectedRoom.name} seat map. Tap a free seat to choose it.`}
-                    className="mx-auto rounded-xl border border-border bg-card p-3 sm:max-w-lg"
+                    className="mx-auto max-w-lg rounded-xl border border-border bg-card p-3"
                   />
                 ) : selectedRoom ? (
                   <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">

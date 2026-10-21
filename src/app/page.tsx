@@ -371,7 +371,7 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
                     seats={seats}
                     seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
                     ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-3 sm:max-w-lg"
+                    className="mx-auto mt-3 w-full max-w-lg"
                   />
                 ) : (
                   <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">

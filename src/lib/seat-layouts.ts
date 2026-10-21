@@ -17,10 +17,10 @@
  * in shape, which is what the owner asked for: "same layout, different numbers".
  */
 
-/** Gap between the edge of a desk and the seat drawn on top of it. The seat
- *  fills almost the whole desk so it reads clearly on any screen; the desk box
- *  itself is unchanged, only the seat inside it grows. */
-export const SEAT_INSET = 2;
+/** Gap between the edge of a desk and the seat drawn on top of it. Zero, so the
+ *  seat fills its desk box exactly and reads as large as the box allows on a
+ *  phone. The box itself is unchanged — only the seat inside it grows. */
+export const SEAT_INSET = 0;
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
