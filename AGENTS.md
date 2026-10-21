@@ -34,6 +34,10 @@ the file that holds it, because most of these are easy to undo by accident.
   activity log), and it is unreadable after the secret it was written with
   changes. Do not log the plain password, and do not put it in a URL, a query
   string, or a page prop.
+- Migrations run from the production build (`scripts/vercel-migrate.mjs`),
+  before `next build`, so the code never reaches the database ahead of the
+  schema. A preview build must not migrate: the guard is `VERCEL_ENV`, and
+  changing it needs a thought.
 - Authorization is a per-role permission list (`src/lib/permission-defs.ts`)
   checked on the server in three places, and all three matter: the sidebar only
   *hides* links, it is not a control. Pages call `requirePermission`, server

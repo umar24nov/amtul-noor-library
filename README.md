@@ -87,6 +87,9 @@ A single Next.js application (App Router) with a PostgreSQL database.
   locally and in the Vercel project settings in production; `.env` is
   gitignored and there is no template in the repo on purpose.
 
+- Database migrations are applied by the production build itself
+  (`scripts/vercel-migrate.mjs`), so a deployment never runs against a schema
+  it does not have. A preview build never touches the database.
 ## License
 
 Released under the MIT License. See [LICENSE](LICENSE).
