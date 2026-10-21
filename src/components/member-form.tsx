@@ -93,7 +93,7 @@ export function MemberForm({
             id={`${id}-name`}
             name="name"
             defaultValue={defaults?.name}
-            placeholder="e.g. Talib Hasan"
+            placeholder="e.g. Mohammad Umar"
             autoComplete="name"
             required
             aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -112,7 +112,7 @@ export function MemberForm({
             type="tel"
             inputMode="numeric"
             defaultValue={defaults?.mobile}
-            placeholder="10 digit number"
+            placeholder="10-digit number"
             autoComplete="tel"
             required
             aria-invalid={Boolean(state.fieldErrors?.mobile)}
@@ -128,7 +128,7 @@ export function MemberForm({
             name="email"
             type="email"
             defaultValue={defaults?.email}
-            placeholder="Optional — used to email fee receipts"
+            placeholder="name@example.com"
             autoComplete="email"
             aria-invalid={Boolean(state.fieldErrors?.email)}
             className="h-11"
@@ -143,7 +143,7 @@ export function MemberForm({
               id={`${id}-guardianName`}
               name="guardianName"
               defaultValue={defaults?.guardianName}
-              placeholder="Optional"
+              placeholder="e.g. Mubassir Hussain"
               className="h-11"
             />
             <FieldError message={state.fieldErrors?.guardianName} />
@@ -157,7 +157,7 @@ export function MemberForm({
               type="tel"
               inputMode="numeric"
               defaultValue={defaults?.guardianMobile}
-              placeholder="Optional"
+              placeholder="10-digit number"
               aria-invalid={Boolean(state.fieldErrors?.guardianMobile)}
               className="h-11"
             />
