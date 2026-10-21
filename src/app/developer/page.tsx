@@ -17,7 +17,6 @@ import {
   Users,
 } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
-import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SITE_NAV } from "@/lib/site-nav";
@@ -213,8 +212,6 @@ export default function DeveloperPage() {
           </Card>
         </section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 }
