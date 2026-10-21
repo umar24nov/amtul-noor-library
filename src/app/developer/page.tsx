@@ -32,7 +32,7 @@ export const metadata: Metadata = {
  *  constants because they belong to this page, not to the library. */
 const DEVELOPER = {
   name: "Mohammad Umar",
-  role: "B.Tech CSE Student · Software Developer & Machine Learning",
+  role: "Computer Science Undergraduate",
   email: "umar24nov@gmail.com",
   emailUrl: "mailto:umar24nov@gmail.com",
   phoneDisplay: "+91 82733 06126",

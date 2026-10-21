@@ -190,7 +190,7 @@ export function SeatMap({
             y={seat.y + seat.h / 2}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={17}
+            fontSize={21}
             fontWeight={700}
             pointerEvents="none"
             className={

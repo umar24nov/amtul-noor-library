@@ -155,7 +155,7 @@ export function SiteFooter() {
             Built by{" "}
             <Link
               href="/developer"
-              className="font-medium text-foreground underline underline-offset-4"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
             >
               Mohammad Umar
             </Link>
