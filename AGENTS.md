@@ -53,9 +53,15 @@ the file that holds it, because most of these are easy to undo by accident.
 
 ## Dependencies
 
-- `.env*` is gitignored; only `.env.example` is tracked.
+- `.env*` is gitignored. The tracked `.env.example` was removed on purpose, so
+  no template values sit in the repo; the variables the app needs are listed
+  in `src/lib/prisma.ts` and in the README.
 - Spreadsheets are written with `exceljs` (`src/lib/export-workbook.ts`); the
   old `xlsx` dependency and its one-off import script were removed.
-- `npm audit` reports high advisories in `eslint-config-next` and `shadcn`.
-  Both are dev/build tooling, not reachable at runtime, and `npm audit fix`
-  cannot clear them.
+- The handful of Radix state variants the UI primitives need (`data-open`,
+  `data-closed`, `data-checked`, and friends) live in `src/app/globals.css`.
+  They used to be imported from the `shadcn` CLI package; inlining them removed
+  that dependency and its audit advisories.
+- `npm audit` still reports high advisories in `eslint-config-next`, which is
+  build-time tooling and not reachable at runtime. `npm audit fix` cannot clear
+  them.

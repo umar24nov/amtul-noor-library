@@ -19,6 +19,7 @@ import {
 } from "@/lib/room-filter";
 import { getMonthlyFee, memberFeesByMemberId } from "@/lib/settings";
 import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
+import { deriveMonthStatus, summarizeArrears, type MonthStatus } from "@/lib/fees";
 import type {
   Member,
   Payment,
@@ -28,14 +29,14 @@ import type {
   Seat,
 } from "@/generated/prisma/client";
 
+export { deriveMonthStatus } from "@/lib/fees";
+export type { MonthStatus } from "@/lib/fees";
+
 export type MemberWithSeat = Member & {
   seat: (Seat & { room: Room }) | null;
 };
 
 export type MemberWithSeatAndPayments = MemberWithSeat & { payments: Payment[] };
-
-/** Effective status of one member for one month. */
-export type MonthStatus = PaymentStatus | "NONE";
 
 export type MonthSummaryRow = {
   memberPk: number;
@@ -61,18 +62,6 @@ const MODE_LABELS: Record<PaymentMode, string> = {
   OFFER: "Offer",
 };
 
-export function deriveMonthStatus(
-  payments: Pick<Payment, "status">[],
-  joinedAfterMonth: boolean,
-): MonthStatus {
-  if (joinedAfterMonth) return "NOT_APPLICABLE";
-  if (payments.some((payment) => payment.status === "PAID")) return "PAID";
-  if (payments.some((payment) => payment.status === "WAIVED")) return "WAIVED";
-  if (payments.some((payment) => payment.status === "ON_HOLD")) return "ON_HOLD";
-  if (payments.some((payment) => payment.status === "NOT_APPLICABLE")) return "NOT_APPLICABLE";
-  if (payments.some((payment) => payment.status === "PENDING")) return "PENDING";
-  return "NONE";
-}
 
 /**
  * Members who are relevant for a month: everyone currently active, plus anyone
@@ -738,20 +727,12 @@ export async function listOverdueReminders(monthsBack = 12): Promise<OverdueRemi
       byMonth.set(payment.month, list);
     }
 
-    const owed: string[] = [];
-    let totalDue = 0;
-
-    for (const key of keys) {
-      const joinedAfterMonth = monthKeyFromInputDate(member.joiningDate.toISOString()) > key;
-      const monthPayments = byMonth.get(key) ?? [];
-      const status = deriveMonthStatus(monthPayments, joinedAfterMonth);
-      if (status !== "PENDING" && status !== "NONE") continue;
-
-      // The member's own fee, matching the month summary. The stored pending
-      // amount is kept in step with the fee, so this never shows a stale figure.
-      owed.push(key);
-      totalDue += fee;
-    }
+    const { months: owed, totalDue } = summarizeArrears({
+      fee,
+      joiningDate: member.joiningDate.toISOString(),
+      months: keys,
+      paymentsByMonth: byMonth,
+    });
 
     if (owed.length === 0) continue;
 

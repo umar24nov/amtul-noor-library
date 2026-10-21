@@ -323,7 +323,11 @@ export function MemberTable({
     );
 
     return (
-      <th key={key} className={STICKY_HEADER_CELL} aria-sort={active ? "ascending" : "none"}>
+      <th
+        key={key}
+        className={cn(STICKY_HEADER_CELL, "top-0")}
+        aria-sort={active ? "ascending" : "none"}
+      >
         <Link
           href={sortHref(key)}
           scroll={false}
@@ -336,26 +340,28 @@ export function MemberTable({
   };
 
   return (
-    <>
-      {/* Desktop / tablet table */}
-      {/* No overflow-hidden here: it would turn this box into a scroll
-          container and the sticky header would stop following the viewport. */}
-      <div className="hidden rounded-xl border border-border bg-card md:block">
+    /* One scroll box holds the whole list. The page underneath stays still no
+       matter how many members there are, the table header sticks to the top of
+       the box, and the loading sentinel at the end of the list sits inside the
+       box, so scrolling it starts the next batch. */
+    <div className="max-h-[65dvh] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card md:max-h-[calc(100dvh-16rem)]">
+      {/* Desktop / tablet table. The header cells use top-0 because their
+          nearest scroll container is this box, not the page. */}
+      <div className="hidden md:block">
         <table className="w-full text-sm">
           <thead className="text-left text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
               {heading("member-id", "Member ID")}
               {heading("name-asc", "Name")}
-              <th className={STICKY_HEADER_CELL}>Mobile</th>
+              <th className={cn(STICKY_HEADER_CELL, "top-0")}>Mobile</th>
               {heading("seat", "Seat")}
               {heading("oldest", "Joining date")}
-              <th className={STICKY_HEADER_CELL}>Status</th>
-              <th className={cn(STICKY_HEADER_CELL, "text-right")}>Actions</th>
+              <th className={cn(STICKY_HEADER_CELL, "top-0")}>Status</th>
+              <th className={cn(STICKY_HEADER_CELL, "top-0 text-right")}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((member) => (
-
               <tr key={member.id} className="hover:bg-muted/30">
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                   {member.memberId}
@@ -378,8 +384,8 @@ export function MemberTable({
         </table>
       </div>
 
-      {/* Mobile cards */}
-      <div className="grid gap-2.5 md:hidden">
+      {/* Mobile cards, in the same scroll box so the page stays still. */}
+      <div className="grid gap-2.5 p-2 md:hidden">
         {rows.map((member) => (
           <div key={member.id} className="rounded-xl border border-border bg-card p-3">
             <div className="flex items-start justify-between gap-2">
@@ -425,14 +431,16 @@ export function MemberTable({
         ))}
       </div>
 
-      <LoadMoreFooter
-        loaded={rows.length}
-        total={total}
-        unit="members"
-        hasMore={hasMore}
-        loading={loading}
-        onLoadMore={loadMore}
-      />
-    </>
+      <div className="border-t border-border p-3">
+        <LoadMoreFooter
+          loaded={rows.length}
+          total={total}
+          unit="members"
+          hasMore={hasMore}
+          loading={loading}
+          onLoadMore={loadMore}
+        />
+      </div>
+    </div>
   );
 }

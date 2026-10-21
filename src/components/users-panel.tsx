@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Mail, Power, UserPlus, UserRound } from "lucide-react";
+import { KeyRound, Mail, Pencil, Power, UserPlus, UserRound } from "lucide-react";
+import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,13 +32,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PasswordInput } from "@/components/password-input";
 import { SubmitButton } from "@/components/submit-button";
-import { IDLE_STATE, type ActionState } from "@/lib/action-result";
+import { IDLE_STATE } from "@/lib/action-result";
 import type { PanelRole } from "@/components/roles-panel";
 import {
   createUserAction,
   resetUserPasswordAction,
   toggleUserActiveAction,
+  updateUserAction,
   updateUserRoleAction,
 } from "@/app/(app)/users/actions";
 import type { RoleLevel } from "@/generated/prisma/enums";
@@ -52,14 +55,6 @@ export type PanelUser = {
   active: boolean;
   lastLoginAt: string | null;
 };
-
-/** Runs a form action and reports the outcome as a toast, for the row actions
- *  that have no fields to validate inline. */
-async function runAndToast(action: (formData: FormData) => Promise<ActionState>, fd: FormData) {
-  const state = await action(fd);
-  if (state.status === "error") toast.error(state.message ?? "Something went wrong.");
-  else if (state.status === "success") toast.success(state.message ?? "Saved.");
-}
 
 function RoleOptions({ roles }: { roles: PanelRole[] }) {
   return (
@@ -143,17 +138,18 @@ function AddUserDialog({
             <Label htmlFor="user-password">
               Password <span className="text-destructive">*</span>
             </Label>
-            <Input
+            <PasswordInput
               id="user-password"
               name="password"
-              type="password"
               autoComplete="new-password"
               aria-invalid={Boolean(state.fieldErrors?.password)}
             />
             {state.fieldErrors?.password && (
               <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
             )}
-            <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+            <p className="text-xs text-muted-foreground">
+              At least 8 characters. Use the eye button to check it before saving.
+            </p>
           </div>
           {state.status === "error" && state.message && (
             <p className="text-sm text-destructive">{state.message}</p>
@@ -210,6 +206,140 @@ function RoleSelect({ user, roles }: { user: PanelUser; roles: PanelRole[] }) {
   );
 }
 
+function EditUserDialog({
+  user,
+  roles,
+  currentUserId,
+  onOpenChange,
+}: {
+  user: PanelUser | null;
+  roles: PanelRole[];
+  currentUserId: number;
+  onOpenChange: (user: PanelUser | null) => void;
+}) {
+  const [state, formAction] = useActionState(updateUserAction, IDLE_STATE);
+  const [roleId, setRoleId] = useState(String(user?.roleId ?? ""));
+  const [active, setActive] = useState(user?.active ?? true);
+
+  useEffect(() => {
+    if (state.done) {
+      toast.success(state.message ?? "Changes saved.");
+      onOpenChange(null);
+    }
+  }, [state, onOpenChange]);
+
+  return (
+    <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onOpenChange(null)}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit user</DialogTitle>
+          <DialogDescription>
+            {user ? `Change every detail for ${user.email}.` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {user && (
+          <form action={formAction} className="grid gap-4">
+            <input type="hidden" name="userId" value={user.id} />
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-name">Name (optional)</Label>
+              <Input
+                id="edit-user-name"
+                name="name"
+                defaultValue={user.name ?? ""}
+                placeholder="e.g. Sister"
+                maxLength={60}
+              />
+              {state.fieldErrors?.name && (
+                <p className="text-xs text-destructive">{state.fieldErrors.name}</p>
+              )}
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-email">
+                Email <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-user-email"
+                name="email"
+                type="email"
+                defaultValue={user.email}
+                autoComplete="off"
+                aria-invalid={Boolean(state.fieldErrors?.email)}
+              />
+              {state.fieldErrors?.email && (
+                <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
+              )}
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Role</Label>
+              <input type="hidden" name="roleId" value={roleId} />
+              <Select value={roleId} onValueChange={setRoleId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <RoleOptions roles={roles} />
+                </SelectContent>
+              </Select>
+              {state.fieldErrors?.roleId && (
+                <p className="text-xs text-destructive">{state.fieldErrors.roleId}</p>
+              )}
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-password">New password (optional)</Label>
+              <PasswordInput
+                id="edit-user-password"
+                name="password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(state.fieldErrors?.password)}
+              />
+              {state.fieldErrors?.password && (
+                <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Leave this blank to keep the current password. At least 8 characters otherwise.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 rounded-lg border border-border p-3">
+              <Checkbox
+                id="edit-user-active"
+                name="active"
+                checked={active}
+                disabled={user.id === currentUserId}
+                onCheckedChange={(checked) => setActive(checked === true)}
+                className="mt-0.5"
+              />
+              <span className="grid gap-0.5">
+                <span className="text-sm font-medium">Can sign in</span>
+                <span className="text-xs text-muted-foreground">
+                  {user.id === currentUserId
+                    ? "You cannot turn off your own account."
+                    : "Turn this off to keep the record but block sign-in."}
+                </span>
+              </span>
+            </label>
+
+            {state.status === "error" && state.message && (
+              <p className="text-sm text-destructive">{state.message}</p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(null)}>
+                Cancel
+              </Button>
+              <SubmitButton pendingLabel="Saving">Save changes</SubmitButton>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ResetPasswordDialog({
   user,
   onOpenChange,
@@ -240,17 +370,18 @@ function ResetPasswordDialog({
               <Label htmlFor="reset-password">
                 New password <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <PasswordInput
                 id="reset-password"
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 aria-invalid={Boolean(state.fieldErrors?.password)}
               />
               {state.fieldErrors?.password && (
                 <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
               )}
-              <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+              <p className="text-xs text-muted-foreground">
+                At least 8 characters. Use the eye button to check it before saving.
+              </p>
             </div>
             {state.status === "error" && state.message && (
               <p className="text-sm text-destructive">{state.message}</p>
@@ -275,6 +406,23 @@ function ToggleActiveDialog({
   user: PanelUser | null;
   onOpenChange: (user: PanelUser | null) => void;
 }) {
+  const [pending, startTransition] = useTransition();
+
+  const toggle = () => {
+    if (!user) return;
+    const fd = new FormData();
+    fd.set("userId", String(user.id));
+    startTransition(async () => {
+      const state = await toggleUserActiveAction(fd);
+      if (state.status === "error") {
+        toast.error(state.message ?? "Something went wrong.");
+        return;
+      }
+      toast.success(state.message ?? "Saved.");
+      onOpenChange(null);
+    });
+  };
+
   return (
     <AlertDialog open={Boolean(user)} onOpenChange={(open) => !open && onOpenChange(null)}>
       <AlertDialogContent>
@@ -289,13 +437,10 @@ function ToggleActiveDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <form action={runAndToast.bind(null, toggleUserActiveAction)} className="contents">
-            <input type="hidden" name="userId" value={user?.id ?? 0} />
-            <AlertDialogAction type="submit" onClick={() => onOpenChange(null)}>
-              {user?.active ? "Deactivate" : "Reactivate"}
-            </AlertDialogAction>
-          </form>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <Button type="button" onClick={toggle} disabled={pending}>
+            {pending ? "Saving…" : user?.active ? "Deactivate" : "Reactivate"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -303,28 +448,33 @@ function ToggleActiveDialog({
 }
 
 /** One account as a card: who it is, its role, when it last signed in, and the
- *  row actions. Works the same on a phone and a wide screen. */
+ *  row actions. Works the same on a phone and a wide screen. Clicking the card
+ *  opens the full editor; the controls inside stop the click so they still do
+ *  their own job. */
 function UserCard({
   user,
   roles,
   isSelf,
+  onEdit,
   onReset,
   onToggle,
 }: {
   user: PanelUser;
   roles: PanelRole[];
   isSelf: boolean;
+  onEdit: () => void;
   onReset: () => void;
   onToggle: () => void;
 }) {
   const isAdmin = user.level === "ADMIN";
+
   return (
     <div
-      className={
-        user.active
-          ? "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20"
-          : "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 opacity-70 transition-colors hover:opacity-100"
-      }
+      onClick={onEdit}
+      className={cn(
+        "flex cursor-pointer flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20",
+        !user.active && "opacity-70 hover:opacity-100",
+      )}
     >
       <div className="flex items-start gap-3">
         <span
@@ -356,9 +506,18 @@ function UserCard({
         </Badge>
       </div>
 
-      <RoleSelect user={user} roles={roles} />
+      <div onClick={(event) => event.stopPropagation()}>
+        <RoleSelect user={user} roles={roles} />
+      </div>
 
-      <div className="mt-auto flex items-center gap-1.5 border-t border-border pt-3">
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-3"
+      >
+        <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
+          <Pencil className="size-3.5" />
+          Edit details
+        </Button>
         <Button type="button" variant="outline" size="sm" onClick={onReset}>
           <KeyRound className="size-3.5" />
           Reset password
@@ -389,6 +548,7 @@ export function UsersPanel({
   currentUserId: number;
 }) {
   const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<PanelUser | null>(null);
   const [resetTarget, setResetTarget] = useState<PanelUser | null>(null);
   const [toggleTarget, setToggleTarget] = useState<PanelUser | null>(null);
 
@@ -402,7 +562,8 @@ export function UsersPanel({
           <div>
             <h2 className="font-heading text-base font-semibold tracking-tight">People</h2>
             <p className="text-sm text-muted-foreground">
-              Everyone who can sign in, and the role each one uses.
+              Everyone who can sign in, and the role each one uses. Click a card to edit every
+              detail.
             </p>
           </div>
         </div>
@@ -410,7 +571,12 @@ export function UsersPanel({
           <UserPlus className="size-4" />
           Add user
         </Button>
-        <AddUserDialog open={addOpen} onOpenChange={setAddOpen} roles={roles} />
+        <AddUserDialog
+          key={addOpen ? "add-open" : "add-closed"}
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          roles={roles}
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -420,6 +586,7 @@ export function UsersPanel({
             user={user}
             roles={roles}
             isSelf={user.id === currentUserId}
+            onEdit={() => setEditTarget(user)}
             onReset={() => setResetTarget(user)}
             onToggle={() => setToggleTarget(user)}
           />
@@ -427,11 +594,22 @@ export function UsersPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Pick a role to move someone between roles right away. A deactivated account keeps its
-        history but cannot sign in.
+        Click a card to change the name, email, role, password, or whether the account can sign in.
+        A deactivated account keeps its history but cannot sign in.
       </p>
 
-      <ResetPasswordDialog user={resetTarget} onOpenChange={setResetTarget} />
+      <EditUserDialog
+        key={`edit-${editTarget?.id ?? "none"}`}
+        user={editTarget}
+        roles={roles}
+        currentUserId={currentUserId}
+        onOpenChange={setEditTarget}
+      />
+      <ResetPasswordDialog
+        key={`reset-${resetTarget?.id ?? "none"}`}
+        user={resetTarget}
+        onOpenChange={setResetTarget}
+      />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
     </section>
   );

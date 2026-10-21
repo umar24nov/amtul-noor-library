@@ -354,9 +354,10 @@ export const PAGE_SIZE = 12;
  * which would otherwise sit on top of the header; from `lg` up there is no top
  * bar, so the header can park at `top-0`.
  *
- * For this to work at all, no ancestor may set `overflow-hidden` or
- * `overflow-auto`: either one makes that box a scroll container and the header
- * sticks to it instead of to the viewport, so it appears not to work at all.
+ * By default the page is the scroll container. If a list is deliberately given
+ * its own `overflow-auto` box (the members table does this to keep the page
+ * still), add `top-0` at the call site: the header then sticks to that box,
+ * and the `top-14` offset would leave a gap under its top edge.
  */
 export const STICKY_HEADER_CELL =
   "sticky top-14 z-10 rounded-t-xl border-b border-border bg-muted px-3 py-2.5 text-left font-medium first:rounded-tl-xl last:rounded-tr-xl lg:top-0";

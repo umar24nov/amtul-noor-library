@@ -400,7 +400,7 @@ export default async function MemberDetailPage({
                       <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>
                     )}
                     {payment.status === "PAID" && (
-                      <div className="mt-2">
+                      <div className="mt-2 flex justify-end">
                         <ReceiptActions
                           paymentPk={payment.id}
                           status={payment.status}

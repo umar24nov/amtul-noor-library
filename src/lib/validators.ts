@@ -294,6 +294,22 @@ export const createUserSchema = z.object({
 
 export type CreateUserFormValues = z.input<typeof createUserSchema>;
 
+/** A full edit of an existing account. The password is optional: leaving it
+ *  blank keeps the current one, and a value replaces it. */
+export const updateUserSchema = z.object({
+  userId: z.coerce.number().int().positive("Account not found"),
+  name: optionalText(60),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Email is required")
+    .max(120, "Email must be 120 characters or fewer")
+    .email("Enter a valid email address"),
+  roleId: z.coerce.number().int().positive("Choose a role"),
+  password: z.preprocess(emptyToUndefined, accountPasswordSchema.optional()),
+});
+
 export const resetPasswordSchema = z.object({
   userId: z.coerce.number().int().positive("Account not found"),
   password: accountPasswordSchema,

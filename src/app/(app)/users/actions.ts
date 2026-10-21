@@ -10,6 +10,7 @@ import {
   createUserSchema,
   fieldErrors,
   resetPasswordSchema,
+  updateUserSchema,
   userRoleChangeSchema,
   userToggleSchema,
 } from "@/lib/validators";
@@ -78,6 +79,109 @@ export async function createUserAction(
 
     revalidateUsers();
     return successState(`${email} can now sign in as ${role.name}.`);
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Edits every field on an account in one save: name, sign-in email, role,
+ * optional new password, and whether the account can sign in. The same
+ * last-admin and self-lockout guards as the smaller actions apply here, so the
+ * combined form cannot be used to bypass them.
+ */
+export async function updateUserAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
+  const session = gate.session;
+
+  const parsed = updateUserSchema.safeParse({
+    userId: formData.get("userId"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    roleId: formData.get("roleId"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
+  }
+
+  const { userId, name, email, roleId, password } = parsed.data;
+  // The self checkbox is disabled in the editor, so a disabled input would
+  // otherwise look like "off" and this action would reject the whole save.
+  // Editing yourself always keeps your own account active.
+  const active = userId === session.userId ? true : formData.get("active") === "on";
+
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        active: true,
+        role: { select: { name: true, level: true } },
+      },
+    });
+    if (!target) return errorState("That account no longer exists.");
+
+    const role = await prisma.role.findUnique({
+      where: { id: roleId },
+      select: { name: true, level: true },
+    });
+    if (!role) {
+      return errorState("Please check the highlighted fields.", {
+        roleId: "That role no longer exists",
+      });
+    }
+
+    const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (taken && taken.id !== target.id) {
+      return errorState("Please check the highlighted fields.", {
+        email: "An account with that email already exists",
+      });
+    }
+
+    if (target.active && !active && session.userId === target.id) {
+      return errorState("You cannot deactivate your own account.");
+    }
+
+    const losesAdmin =
+      target.active && target.role.level === "ADMIN" && (role.level !== "ADMIN" || !active);
+    if (losesAdmin && (await countActiveAdmins()) <= 1) {
+      return errorState("At least one active admin must remain. Give someone else full admin first.");
+    }
+
+    await prisma.user.update({
+      where: { id: target.id },
+      data: {
+        name: name ?? null,
+        email,
+        roleId,
+        active,
+        ...(password ? { passwordHash: bcrypt.hashSync(password, BCRYPT_COST) } : {}),
+      },
+    });
+
+    if (target.role.name !== role.name) {
+      await logActivity(
+        "ROLE_CHANGED",
+        { id: target.id, email },
+        `${target.role.name} → ${role.name}`,
+      );
+    }
+    if (target.active !== active) {
+      await logActivity(
+        active ? "REACTIVATED" : "DEACTIVATED",
+        { id: target.id, email },
+        `by ${session.email}`,
+      );
+    }
+
+    revalidateUsers();
+    return successState(`Saved changes for ${email}.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

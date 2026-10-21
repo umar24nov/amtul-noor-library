@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
 import { Pencil, ShieldCheck, ShieldHalf, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -67,13 +66,6 @@ const LEVEL_DESCRIPTIONS: Record<RoleLevel, string> = {
 };
 
 const TOTAL_AREAS = PERMISSION_GROUPS.reduce((n, g) => n + g.options.length, 0);
-
-/** Runs a form action and reports the outcome as a toast. */
-async function runAndToast(action: (formData: FormData) => Promise<ActionState>, fd: FormData) {
-  const state = await action(fd);
-  if (state.status === "error") toast.error(state.message ?? "Something went wrong.");
-  else if (state.status === "success") toast.success(state.message ?? "Saved.");
-}
 
 /**
  * The name, level and permission selector shared by the add and edit dialogs.
@@ -336,6 +328,27 @@ function DeleteRoleDialog({
   role: PanelRole | null;
   onOpenChange: (role: PanelRole | null) => void;
 }) {
+  const [pending, startTransition] = useTransition();
+
+  const remove = () => {
+    if (!role) return;
+    // Build the FormData from the role captured when the dialog opened. The
+    // old version submitted a hidden input inside the alert dialog, but the
+    // dialog unmounts on click before the form serialises, so the action saw
+    // no roleId at all and reported "Please check the highlighted fields."
+    const fd = new FormData();
+    fd.set("roleId", String(role.id));
+    startTransition(async () => {
+      const state = await deleteRoleAction(fd);
+      if (state.status === "error") {
+        toast.error(state.message ?? "Could not delete the role.");
+        return;
+      }
+      toast.success(state.message ?? "Role deleted.");
+      onOpenChange(null);
+    });
+  };
+
   return (
     <AlertDialog open={Boolean(role)} onOpenChange={(open) => !open && onOpenChange(null)}>
       <AlertDialogContent>
@@ -346,13 +359,10 @@ function DeleteRoleDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <form action={runAndToast.bind(null, deleteRoleAction)} className="contents">
-            <input type="hidden" name="roleId" value={role?.id ?? 0} />
-            <AlertDialogAction type="submit" onClick={() => onOpenChange(null)}>
-              Delete
-            </AlertDialogAction>
-          </form>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <Button type="button" variant="destructive" onClick={remove} disabled={pending}>
+            {pending ? "Deleting…" : "Delete"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
