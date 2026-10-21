@@ -14,7 +14,7 @@ export const LIBRARY_TAGLINE = "Your Gateway to Knowledge and Success";
  * next to the QR so a member can pay a fee from their phone.
  *
  * This is the address actually encoded in the owner's bank-generated QR
- * (`UPI QR.jpeg`, served at `LIBRARY_UPI_QR_PATH`). The display name shown to
+ * (served at `LIBRARY_UPI_QR_PATH`). The display name shown to
  * the payer comes from `LIBRARY_UPI_NAME`. The pay sections are hidden until
  * the address is set.
  */

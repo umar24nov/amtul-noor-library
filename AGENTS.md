@@ -54,8 +54,8 @@ the file that holds it, because most of these are easy to undo by accident.
 ## Dependencies
 
 - `.env*` is gitignored; only `.env.example` is tracked.
-- `npm audit` reports high advisories in `xlsx`, `eslint-config-next` and
-  `shadcn`. None is reachable at runtime: `xlsx` is **write-only** here
-  (`XLSX.write` in `src/lib/export-workbook.ts`; the advisories are parse-side),
-  and the other two are dev/build tooling. `npm audit fix` cannot clear them.
-  Replacing `xlsx` with `exceljs` is the clean fix if that ever matters.
+- Spreadsheets are written with `exceljs` (`src/lib/export-workbook.ts`); the
+  old `xlsx` dependency and its one-off import script were removed.
+- `npm audit` reports high advisories in `eslint-config-next` and `shadcn`.
+  Both are dev/build tooling, not reachable at runtime, and `npm audit fix`
+  cannot clear them.

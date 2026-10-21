@@ -1,8 +1,8 @@
 /**
  * Vector layouts for the reading-room seat maps.
  *
- * These are transcribed from the two design files the owner supplied
- * (`room 1.svg` and `room 2.svg`), which share a 900x650 viewBox. Keeping the
+ * These are transcribed from the seat-plan designs the owner supplied, which
+ * share a 900x650 viewBox. Keeping the
  * geometry here as plain data, rather than as two large SVG files, lets the
  * same map be rendered with live seat status on the landing page and used as
  * an interactive picker on the join form.
