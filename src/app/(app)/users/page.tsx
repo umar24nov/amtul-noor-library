@@ -6,6 +6,7 @@ import { UsersPanel, type PanelUser } from "@/components/users-panel";
 import { listRecentActivity } from "@/lib/activity";
 import { formatDate } from "@/lib/format";
 import { effectivePermissions, PERMISSION_KEYS } from "@/lib/permission-defs";
+import { canRevealPassword } from "@/lib/password-reveal";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
@@ -76,7 +77,12 @@ export default async function UsersPage() {
         title="Users"
         description="Everyone who can sign in to the app, the roles they use, and who has been signing in."
       />
-      <UsersPanel users={users} roles={roleOptions} currentUserId={session.userId} />
+      <UsersPanel
+        users={users}
+        roles={roleOptions}
+        currentUserId={session.userId}
+        canReveal={canRevealPassword(session.level)}
+      />
       <RolesPanel roles={roleOptions} />
       <ActivityPanel entries={activity} />
     </div>

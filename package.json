@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test --conditions=react-server src/lib/fees.test.ts src/lib/password-vault.test.ts",
+    "test": "tsx --test --conditions=react-server src/lib/fees.test.ts src/lib/password-vault.test.ts src/lib/password-reveal.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",

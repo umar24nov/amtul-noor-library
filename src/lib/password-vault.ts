@@ -8,13 +8,16 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:cr
  * The bcrypt hash in `User.passwordHash` stays the real credential and is
  * never reversible. This is a second, encrypted copy of the plain text, used
  * only for the "show me the password I set" button on the Users screen. It is
- * encrypted with AES-256-GCM under a key derived from `AUTH_SECRET` (the same
- * secret that signs the session cookie), so the ciphertext is useless on its
- * own and no new environment variable is needed.
+ * encrypted with AES-256-GCM under a key derived from `PASSWORD_VAULT_SECRET`,
+ * a secret of its own so the session secret (`AUTH_SECRET`) can be rotated
+ * without making the stored copies unreadable. With no vault secret set, the
+ * key is derived from `AUTH_SECRET` instead, so an existing installation keeps
+ * working.
  *
- * Changing `AUTH_SECRET` changes the key, so passwords saved before that
- * change can no longer be read. `decryptPassword` returns null in that case
- * and the screen asks for a new password instead of failing.
+ * The key is derived with HKDF, so it cannot be recovered from the ciphertext.
+ * Changing either secret makes the copies unreadable; `decryptPassword`
+ * returns null in that case and the screen asks for a new password instead of
+ * failing.
  */
 
 /** Bumped if the format ever changes, so old payloads are rejected cleanly. */
@@ -26,11 +29,10 @@ const KEY_INFO = "amtul-noor-library:password-vault:v1";
 /** 12 bytes, the size GCM expects for a fresh nonce. */
 const IV_BYTES = 12;
 
-function vaultKey(): Buffer {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("AUTH_SECRET must be set to a random string of at least 32 characters.");
-  }
+/** The shortest secret worth deriving a key from. */
+const MIN_SECRET_LENGTH = 32;
+
+function deriveKey(secret: string): Buffer {
   return Buffer.from(
     hkdfSync(
       "sha256",
@@ -43,6 +45,30 @@ function vaultKey(): Buffer {
 }
 
 /**
+ * The keys the vault can use, best first.
+ *
+ * The dedicated vault secret comes first, so new copies are written with it.
+ * The session secret stays as a second choice: it reads copies that were
+ * written before the vault secret was added, which is what makes adding the
+ * secret to a live site safe.
+ */
+function vaultKeys(): Buffer[] {
+  const keys: Buffer[] = [];
+  for (const secret of [process.env.PASSWORD_VAULT_SECRET, process.env.AUTH_SECRET]) {
+    const trimmed = secret?.trim();
+    if (!trimmed || trimmed.length < MIN_SECRET_LENGTH) continue;
+    const key = deriveKey(trimmed);
+    if (!keys.some((existing) => existing.equals(key))) keys.push(key);
+  }
+  if (keys.length === 0) {
+    throw new Error(
+      "PASSWORD_VAULT_SECRET must be set to a random string of at least 32 characters.",
+    );
+  }
+  return keys;
+}
+
+/**
  * Encrypts a plain password for storage.
  *
  * The result is `v1.<iv>.<tag>.<ciphertext>`, each part base64, so the whole
@@ -50,7 +76,7 @@ function vaultKey(): Buffer {
  */
 export function encryptPassword(plaintext: string): string {
   const iv = randomBytes(IV_BYTES);
-  const cipher = createCipheriv("aes-256-gcm", vaultKey(), iv);
+  const cipher = createCipheriv("aes-256-gcm", vaultKeys()[0], iv);
   const data = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return [
@@ -63,7 +89,7 @@ export function encryptPassword(plaintext: string): string {
 
 /**
  * Reads a stored password back, or null when it cannot be read: nothing was
- * saved, the payload is from an older format, or the key has changed.
+ * saved, the payload is from an older format, or no key fits it.
  */
 export function decryptPassword(payload: string | null): string | null {
   if (!payload) return null;
@@ -71,20 +97,19 @@ export function decryptPassword(payload: string | null): string | null {
   const parts = payload.split(".");
   if (parts.length !== 4 || parts[0] !== VAULT_VERSION) return null;
 
-  try {
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      vaultKey(),
-      Buffer.from(parts[1], "base64"),
-    );
-    decipher.setAuthTag(Buffer.from(parts[2], "base64"));
-    const data = Buffer.concat([
-      decipher.update(Buffer.from(parts[3], "base64")),
-      decipher.final(),
-    ]);
-    return data.toString("utf8");
-  } catch {
-    // Wrong key or damaged payload. The caller asks for a new password.
-    return null;
+  const iv = Buffer.from(parts[1], "base64");
+  const tag = Buffer.from(parts[2], "base64");
+  const data = Buffer.from(parts[3], "base64");
+
+  for (const key of vaultKeys()) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", key, iv);
+      decipher.setAuthTag(tag);
+      const plain = Buffer.concat([decipher.update(data), decipher.final()]);
+      return plain.toString("utf8");
+    } catch {
+      // This key does not fit. Try the next one.
+    }
   }
+  return null;
 }

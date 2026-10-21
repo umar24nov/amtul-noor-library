@@ -10,7 +10,12 @@ import {
   type PasswordRevealState,
 } from "@/lib/action-result";
 import { logActivity } from "@/lib/activity";
-import { decryptPassword, encryptPassword } from "@/lib/password-vault";
+import { encryptPassword } from "@/lib/password-vault";
+import {
+  canRevealPassword,
+  REVEAL_DENIED_MESSAGE,
+  revealPassword,
+} from "@/lib/password-reveal";
 import { actionPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
@@ -313,10 +318,12 @@ export async function resetUserPasswordAction(
  * Reads back the last password the owner set for an account, so they do not
  * have to reset somebody's password because they forgot what they handed out.
  *
- * The account must be one the caller is allowed to manage, and every read is
- * written to the activity log, because showing somebody's password is exactly
- * the kind of thing the owner wants to see later. The plain password only
- * travels to the browser that asked for it; it is never written to the log.
+ * Reading a password is more than managing one, so it needs full access: a
+ * role that merely holds the Users permission can set a new password but
+ * cannot read the old one back. Every read is written to the activity log,
+ * because showing somebody's password is exactly the kind of thing the owner
+ * wants to see later. The plain password only travels to the browser that
+ * asked for it; it is never written to the log.
  */
 export async function revealUserPasswordAction(userId: number): Promise<PasswordRevealState> {
   const gate = await requireUsers();
@@ -325,6 +332,10 @@ export async function revealUserPasswordAction(userId: number): Promise<Password
   }
   const session = gate.session;
 
+  if (!canRevealPassword(session.level)) {
+    return { status: "error", message: REVEAL_DENIED_MESSAGE };
+  }
+
   try {
     const target = await prisma.user.findUnique({
       where: { id: userId },
@@ -332,14 +343,8 @@ export async function revealUserPasswordAction(userId: number): Promise<Password
     });
     if (!target) return { status: "error", message: "That account no longer exists." };
 
-    const password = decryptPassword(target.passwordCiphertext);
-    if (!password) {
-      return {
-        status: "error",
-        message:
-          "This password cannot be read back. Passwords set before this feature were never stored, and a changed encryption key makes older ones unreadable. Set a new password instead.",
-      };
-    }
+    const revealed = revealPassword(target.passwordCiphertext);
+    if (revealed.status === "error") return revealed;
 
     await logActivity(
       "PASSWORD_VIEWED",
@@ -347,7 +352,7 @@ export async function revealUserPasswordAction(userId: number): Promise<Password
       `by ${session.email}`,
     );
 
-    return { status: "success", password };
+    return revealed;
   } catch {
     return { status: "error", message: "Something went wrong while reading the password." };
   }

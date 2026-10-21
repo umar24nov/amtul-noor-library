@@ -47,7 +47,9 @@ It is two things in one:
 - **Seats** — a visual map of the rooms. Assign a member to a free seat, release
   it, and add rooms or seats.
 - **Users** — admin accounts with role-based access, so each staff member only
-  sees the areas they are given.
+  sees the areas they are given. A full-access admin can also read back the
+  last password they set for an account, instead of handing out a new one every
+  time they forget it.
 
 Members are kept forever. Marking someone as *left* frees their seat and stores
 the leaving date, but their payment history stays.
@@ -74,6 +76,16 @@ A single Next.js application (App Router) with a PostgreSQL database.
   checked again on each page and action by role.
 - Configuration that the owner is likely to change — fees, timings, phone
   numbers, the address, the rules — lives in `src/lib/constants.ts`.
+- The Users screen keeps an encrypted copy of the last password that was set
+  for an account, so a full-access admin can read it back. The copy is
+  encrypted with AES-256-GCM under a key derived from `PASSWORD_VAULT_SECRET`
+  (falling back to `AUTH_SECRET` when that variable is not set), and the
+  bcrypt hash stays the real credential. Keep the secret: change it and the
+  stored copies can no longer be read, so those accounts need a new password.
+- `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH` and
+  `PASSWORD_VAULT_SECRET` are the variables the app needs. They live in `.env`
+  locally and in the Vercel project settings in production; `.env` is
+  gitignored and there is no template in the repo on purpose.
 
 ## License
 

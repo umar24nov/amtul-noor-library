@@ -346,13 +346,18 @@ function EditUserDialog({
  * they do not have to hand out a new one every time they forget it, and a form
  * to set a new one. Reading the password is written to the activity log, so
  * the owner can see afterwards that it was read.
+ *
+ * Only a full-access admin can read it back, so the read block is not drawn
+ * for anybody else. Setting a new one still needs the Users permission.
  */
 function PasswordDialog({
   user,
   onOpenChange,
+  canReveal,
 }: {
   user: PanelUser | null;
   onOpenChange: (user: PanelUser | null) => void;
+  canReveal: boolean;
 }) {
   const [state, formAction] = useActionState(resetUserPasswordAction, IDLE_STATE);
   const [reveal, setReveal] = useState<{
@@ -402,57 +407,63 @@ function PasswordDialog({
         </DialogHeader>
         {user && (
           <div className="grid gap-4">
-            <div className="grid gap-2 rounded-lg border border-border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium">Last password you set</span>
-                {reveal.status === "shown" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setReveal({ status: "idle" })}
-                  >
-                    Hide
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={showPassword}
-                    disabled={pending}
-                  >
-                    {pending ? "Reading…" : "Show password"}
-                  </Button>
-                )}
-              </div>
-              {reveal.status === "shown" && reveal.password ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={reveal.password}
-                    aria-label="The password you last set"
-                    className="font-mono"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    onClick={copyPassword}
-                    aria-label="Copy the password"
-                    title="Copy the password"
-                  >
-                    <Copy className="size-4" />
-                  </Button>
+            {canReveal ? (
+              <div className="grid gap-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">Last password you set</span>
+                  {reveal.status === "shown" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReveal({ status: "idle" })}
+                    >
+                      Hide
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={showPassword}
+                      disabled={pending}
+                    >
+                      {pending ? "Reading…" : "Show password"}
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Hidden. Anyone with the Users permission can read it, and every read is written
-                  to the activity log.
-                </p>
-              )}
-              {reveal.message && <p className="text-xs text-destructive">{reveal.message}</p>}
-            </div>
+                {reveal.status === "shown" && reveal.password ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={reveal.password}
+                      aria-label="The password you last set"
+                      className="font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      onClick={copyPassword}
+                      aria-label="Copy the password"
+                      title="Copy the password"
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Hidden. Only a full-access admin can read it, and every read is written to the
+                    activity log.
+                  </p>
+                )}
+                {reveal.message && <p className="text-xs text-destructive">{reveal.message}</p>}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Only a full-access admin can read a password back. You can still set a new one.
+              </p>
+            )}
 
             <form action={formAction} className="grid gap-4">
               <input type="hidden" name="userId" value={user.id} />
@@ -633,10 +644,12 @@ export function UsersPanel({
   users,
   roles,
   currentUserId,
+  canReveal,
 }: {
   users: PanelUser[];
   roles: PanelRole[];
   currentUserId: number;
+  canReveal: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PanelUser | null>(null);
@@ -686,8 +699,8 @@ export function UsersPanel({
 
       <p className="text-xs text-muted-foreground">
         Click a card to change the name, email, role, password, or whether the account can sign in.
-        The Password button shows the last password you set for an account. A deactivated account
-        keeps its history but cannot sign in.
+        The Password button sets a new password and, for a full-access admin, shows the last one
+        you set. A deactivated account keeps its history but cannot sign in.
       </p>
 
       <EditUserDialog
@@ -701,6 +714,7 @@ export function UsersPanel({
         key={`password-${passwordTarget?.id ?? "none"}`}
         user={passwordTarget}
         onOpenChange={setPasswordTarget}
+        canReveal={canReveal}
       />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
     </section>

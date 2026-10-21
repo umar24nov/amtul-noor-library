@@ -46,3 +46,18 @@ test("changing the secret makes the old copy unreadable", () => {
   assert.equal(decryptPassword(saved), null);
   process.env.AUTH_SECRET = SECRET;
 });
+
+test("a copy saved before the vault secret was added is still readable", () => {
+  const saved = encryptPassword("Sister-2026!");
+  process.env.PASSWORD_VAULT_SECRET = "a-vault-secret-that-is-long-enough-to-pass";
+  assert.equal(decryptPassword(saved), "Sister-2026!");
+  delete process.env.PASSWORD_VAULT_SECRET;
+});
+
+test("a copy saved with the vault secret is readable and needs the vault secret", () => {
+  process.env.PASSWORD_VAULT_SECRET = "a-vault-secret-that-is-long-enough-to-pass";
+  const saved = encryptPassword("Sister-2026!");
+  assert.equal(decryptPassword(saved), "Sister-2026!");
+  delete process.env.PASSWORD_VAULT_SECRET;
+  assert.equal(decryptPassword(saved), null);
+});
