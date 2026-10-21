@@ -57,7 +57,7 @@ export function ActivityPanel({ entries }: { entries: ActivityEntry[] }) {
         {entries.length === 0 ? (
           <p className="py-2 text-sm text-muted-foreground">Nothing recorded yet.</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="max-h-[22rem] divide-y divide-border overflow-y-auto">
             {entries.map((entry) => {
               const Icon = ACTION_ICONS[entry.action];
               return (
