@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Braces,
   Clock,
+  Code2,
   Database,
   Globe,
   Link2,
@@ -40,6 +41,7 @@ const DEVELOPER = {
   location: "Roorkee, Uttarakhand, India",
   github: "https://github.com/umar24nov",
   linkedin: "https://linkedin.com/in/mohammadumarfarook",
+  leetcode: "https://leetcode.com/u/umar24nov/",
   portfolio: "https://www.mohammadumarportfoloi.online/",
 };
 
@@ -182,22 +184,22 @@ export default function DeveloperPage() {
                 </a>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button asChild>
+                <Button asChild variant="outline">
                   <a href={DEVELOPER.emailUrl}>
                     <Mail className="size-4" aria-hidden="true" />
-                    Email me
-                  </a>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href={DEVELOPER.portfolio} target="_blank" rel="noreferrer">
-                    <Globe className="size-4" aria-hidden="true" />
-                    View portfolio
+                    Email
                   </a>
                 </Button>
                 <Button asChild variant="outline">
                   <a href={DEVELOPER.github} target="_blank" rel="noreferrer">
                     <Braces className="size-4" aria-hidden="true" />
                     GitHub
+                  </a>
+                </Button>
+                <Button asChild variant="outline">
+                  <a href={DEVELOPER.leetcode} target="_blank" rel="noreferrer">
+                    <Code2 className="size-4" aria-hidden="true" />
+                    LeetCode
                   </a>
                 </Button>
                 <Button asChild variant="outline">
