@@ -90,6 +90,7 @@ A single Next.js application (App Router) with a PostgreSQL database.
 - Database migrations are applied by the production build itself
   (`scripts/vercel-migrate.mjs`), so a deployment never runs against a schema
   it does not have. A preview build never touches the database.
+
 ## License
 
 Released under the MIT License. See [LICENSE](LICENSE).
