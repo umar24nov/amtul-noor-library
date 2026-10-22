@@ -4,6 +4,7 @@ import { getSession, type SessionPayload } from "@/lib/auth";
 import type { ActionState } from "@/lib/action-result";
 import { errorState } from "@/lib/action-result";
 import type { PermissionKey } from "@/lib/permission-defs";
+import { roleCanEditPayments, roleCanViewPayments } from "@/lib/permission-defs";
 
 export {
   DAY_TO_DAY_DEFAULTS,
@@ -35,6 +36,23 @@ export function canAny(session: SessionPayload, keys: PermissionKey[]): boolean 
 }
 
 /**
+ * Whether the session may look at the payments area.
+ *
+ * `PAYMENTS` is the permission to record and edit payments. `PAYMENTS_VIEW` is
+ * the read-only one: enough to see what has been collected and what is owed,
+ * not enough to change a record. A role with the full permission can do both,
+ * so it is checked first.
+ */
+export function canViewPayments(session: SessionPayload): boolean {
+  return roleCanViewPayments(session.level, session.permissions);
+}
+
+/** Whether the session may change a payment record. */
+export function canEditPayments(session: SessionPayload): boolean {
+  return roleCanEditPayments(session.level, session.permissions);
+}
+
+/**
  * The session for a page, or a redirect away when the role lacks the area.
  *
  * Pages call this so a hand-typed URL cannot reach an area the role was not
@@ -45,6 +63,21 @@ export async function requirePermission(key: PermissionKey): Promise<SessionPayl
   const session = await getSession();
   if (!session) redirect("/login");
   if (!can(session, key)) redirect("/dashboard");
+  return session;
+}
+
+/**
+ * The session for a page that any one of several areas opens.
+ *
+ * The payments page is opened by two permissions — the one that records
+ * payments and the read-only one — so the page asks for "either of these".
+ */
+export async function requireAnyPermission(
+  keys: PermissionKey[],
+): Promise<SessionPayload> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!canAny(session, keys)) redirect("/dashboard");
   return session;
 }
 

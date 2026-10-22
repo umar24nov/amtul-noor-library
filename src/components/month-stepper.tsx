@@ -31,9 +31,10 @@ export type MonthStepperProps = {
  * stops being something the user has to look at.
  *
  * A hidden input carries the selected month, so any submit button in the same
- * GET form ("Show dues", "Apply filters") filters by the month shown, and the
- * other filters are submitted alongside it and never reset. The arrows and the
- * month grid update that input and submit the form straight away.
+ * GET form ("Apply member ID") filters by the month shown, and the other
+ * filters are submitted alongside it and never reset. The arrows and the
+ * month grid update that input and submit the form straight away, so a page
+ * that has no submit button at all still follows the picker.
  */
 export function MonthStepper({
   value,

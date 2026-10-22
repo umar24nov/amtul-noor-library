@@ -128,9 +128,7 @@ function buildSummaryRow(
   const settled = payments.filter(
     (payment) => payment.status === "PAID" || payment.status === "WAIVED",
   );
-  const pending = payments.filter((payment) => payment.status === "PENDING");
   const collected = settled.reduce((total, payment) => total + toNumber(payment.amount), 0);
-  const pendingAmount = pending.reduce((total, payment) => total + toNumber(payment.amount), 0);
 
   const status = deriveMonthStatus(payments, joinedAfterMonth);
   const isDue = status === "PENDING" || status === "NONE";
@@ -152,7 +150,9 @@ function buildSummaryRow(
     // stale row happened to be generated with. Unpaid months are rewritten when
     // the fee changes (see syncPendingAmounts), and this keeps the figure right
     // even for a row created before that change.
-    due: isDue ? memberFee : pendingAmount,
+    // A month that is settled owes nothing: a leftover pending row from an
+    // earlier month must not show up as money still due.
+    due: isDue ? memberFee : 0,
     modes: Array.from(new Set(payments.map((payment) => MODE_LABELS[payment.paymentMode]))),
     status,
     hasRecords: payments.length > 0,
@@ -355,6 +355,7 @@ export type PaymentFilters = {
   memberId?: string;
   memberSearch?: string;
   mode?: PaymentMode | "ALL";
+  /** The status to bring to the top of the list. Every status stays in it. */
   status?: PaymentStatus | "ALL";
   page?: number;
 };
@@ -367,6 +368,19 @@ export type PaymentListResult = {
   totalAmount: number;
 };
 
+/**
+ * The order the list is shown in: newest month first, then the newest record
+ * within it. Every option ends with a unique tiebreaker so pagination cannot
+ * show the same row twice or skip one when a whole month was recorded on one
+ * day.
+ */
+const PAYMENT_ORDER_BY = [
+  { month: "desc" as const },
+  { paymentDate: "desc" as const },
+  { createdAt: "desc" as const },
+  { id: "desc" as const },
+];
+
 export async function listPayments({
   month,
   memberId,
@@ -376,50 +390,94 @@ export async function listPayments({
   page = 1,
 }: PaymentFilters): Promise<PaymentListResult> {
   const term = memberSearch?.trim();
+  const code = memberId?.trim().toUpperCase();
   const where = {
     ...(month ? { month } : {}),
-    ...(memberId ? { member: { memberId: memberId.trim().toUpperCase() } } : {}),
-    ...(mode && mode !== "ALL" ? { paymentMode: mode } : {}),
-    ...(status && status !== "ALL" ? { status } : {}),
-    ...(term
+    // Both member filters live in one object, because two keys named "member"
+    // in the same filter would quietly lose the first one.
+    ...(code || term
       ? {
           member: {
-            OR: [
-              { name: { contains: term, mode: "insensitive" as const } },
-              { mobile: { contains: term } },
-              { memberId: { contains: term.toUpperCase() } },
-            ],
+            ...(code ? { memberId: code } : {}),
+            ...(term
+              ? {
+                  OR: [
+                    { name: { contains: term, mode: "insensitive" as const } },
+                    { mobile: { contains: term } },
+                    { memberId: { contains: term.toUpperCase() } },
+                  ],
+                }
+              : {}),
           },
         }
       : {}),
+    ...(mode && mode !== "ALL" ? { paymentMode: mode } : {}),
   };
 
-  const [total, payments, amounts] = await Promise.all([
+  const include = {
+    member: { include: { seat: { include: { room: true } } } },
+  } as const;
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const [total, amounts] = await Promise.all([
     prisma.payment.count({ where }),
-    prisma.payment.findMany({
-      where,
-      include: { member: { include: { seat: { include: { room: true } } } } },
-      orderBy: [
-        { month: "desc" },
-        { paymentDate: "desc" },
-        { createdAt: "desc" },
-        // Unique tiebreaker: month/paymentDate/createdAt can all tie (a whole
-        // month is often recorded on one day), and without a unique key the
-        // database may return the same rows across pages. The list then never
-        // reaches its total, so "Load more" spins forever.
-        { id: "desc" },
-      ],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    }),
     // The list grows by scrolling now, so the headline figure has to describe
     // every matching payment rather than whichever rows happen to be loaded.
     prisma.payment.aggregate({ where, _sum: { amount: true } }),
   ]);
 
+  if (!status || status === "ALL") {
+    const payments = await prisma.payment.findMany({
+      where,
+      include,
+      orderBy: PAYMENT_ORDER_BY,
+      skip: offset,
+      take: PAGE_SIZE,
+    });
+    return {
+      payments,
+      total,
+      page,
+      totalAmount: toNumber(amounts._sum.amount),
+    };
+  }
+
+  // The status dropdown chooses what comes first, not what is left out: every
+  // record stays in the list, and the chosen status is brought to the top.
+  // The page is split into two groups for that, so the order has to be applied
+  // before the page is cut.
+  const [topTotal, restTotal] = await Promise.all([
+    prisma.payment.count({ where: { ...where, status } }),
+    prisma.payment.count({ where: { ...where, status: { not: status } } }),
+  ]);
+
+  const takeTop = Math.max(0, Math.min(PAGE_SIZE, topTotal - offset));
+  const restOffset = Math.max(0, offset - topTotal);
+
+  const [top, rest] = await Promise.all([
+    takeTop > 0
+      ? prisma.payment.findMany({
+          where: { ...where, status },
+          include,
+          orderBy: PAYMENT_ORDER_BY,
+          skip: offset,
+          take: takeTop,
+        })
+      : Promise.resolve([]),
+    restOffset < restTotal
+      ? prisma.payment.findMany({
+          where: { ...where, status: { not: status } },
+          include,
+          orderBy: PAYMENT_ORDER_BY,
+          skip: restOffset,
+          take: PAGE_SIZE - takeTop,
+        })
+      : Promise.resolve([]),
+  ]);
+
   return {
-    payments,
-    total,
+    payments: [...top, ...rest],
+    total: topTotal + restTotal,
     page,
     totalAmount: toNumber(amounts._sum.amount),
   };

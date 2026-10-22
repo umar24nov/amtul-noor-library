@@ -3,11 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
-import { actionPermission, can } from "@/lib/permissions";
+import { actionPermission, canViewPayments } from "@/lib/permissions";
 import { parseInputDate } from "@/lib/format";
 import { nextPaymentId, newReceiptToken, bumpPaymentId } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
+import {
+  AUTO_PENDING_REMARK,
+  firstPendingMonth,
+  joinedMonthKey,
+  pendingDueDate,
+} from "@/lib/payments";
 import { feeFormSchema, fieldErrors, monthKeySchema, paymentFormSchema } from "@/lib/validators";
 import { listPayments } from "@/lib/queries";
 import {
@@ -21,6 +27,7 @@ function revalidateAll() {
   revalidatePath("/dashboard");
   revalidatePath("/members");
   revalidatePath("/payments");
+  revalidatePath("/reminders");
   revalidatePath("/seats");
 }
 
@@ -39,7 +46,9 @@ export async function loadMorePaymentsAction(filters: {
   page?: number;
 }) {
   const viewer = await getSession();
-  if (!viewer || !can(viewer, "PAYMENTS")) return { payments: [], total: 0 };
+  // Read-only viewers may scroll the list too, so the read-only permission is
+  // enough here.
+  if (!viewer || !canViewPayments(viewer)) return { payments: [], total: 0 };
   const result = await listPayments({
     month: filters.month,
     memberId: filters.memberId,
@@ -52,11 +61,9 @@ export async function loadMorePaymentsAction(filters: {
   return { payments: result.payments, total: result.total };
 }
 
-function joinedMonthOf(joiningDate: Date): string {
-  return `${joiningDate.getUTCFullYear()}-${String(joiningDate.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Every payment is its own row. Previous payments are never overwritten. */
+/** Every payment is its own row. Previous payments are never overwritten —
+ *  except the pending placeholder the generator wrote, which becomes the
+ *  payment when the money for that month actually arrives. */
 export async function recordPaymentAction(
   _prev: ActionState,
   formData: FormData,
@@ -88,7 +95,7 @@ export async function recordPaymentAction(
       return errorState("That member no longer exists.", { memberId: "Select a member" });
     }
 
-    const joinedMonth = joinedMonthOf(member.joiningDate);
+    const joinedMonth = joinedMonthKey(member.joiningDate);
     if (data.month < joinedMonth) {
       return errorState(
         `${member.name} joined in ${joinedMonth}, so an earlier month cannot be recorded.`,
@@ -96,19 +103,49 @@ export async function recordPaymentAction(
       );
     }
 
-    await prisma.payment.create({
-      data: {
-        paymentId: await nextPaymentId(),
+    const paymentDate = parseInputDate(data.paymentDate);
+
+    // The generator may already have written a pending placeholder for this
+    // month. That row says "owed", not "paid", so it is turned into the
+    // payment instead of leaving the month showing both a pending and a paid
+    // row. A pending row a person wrote by hand is a real record and is left
+    // alone.
+    const placeholder = await prisma.payment.findFirst({
+      where: {
         memberId: data.memberId,
         month: data.month,
-        amount: data.amount,
-        paymentMode: data.paymentMode,
-        paymentDate: parseInputDate(data.paymentDate),
-        status: data.status,
-        remarks: data.remarks ?? null,
-        receiptToken: newReceiptToken(),
+        status: "PENDING",
+        remarks: AUTO_PENDING_REMARK,
       },
+      select: { id: true },
     });
+
+    if (placeholder) {
+      await prisma.payment.update({
+        where: { id: placeholder.id },
+        data: {
+          amount: data.amount,
+          paymentMode: data.paymentMode,
+          paymentDate,
+          status: data.status,
+          remarks: data.remarks ?? null,
+        },
+      });
+    } else {
+      await prisma.payment.create({
+        data: {
+          paymentId: await nextPaymentId(),
+          memberId: data.memberId,
+          month: data.month,
+          amount: data.amount,
+          paymentMode: data.paymentMode,
+          paymentDate,
+          status: data.status,
+          remarks: data.remarks ?? null,
+          receiptToken: newReceiptToken(),
+        },
+      });
+    }
 
     revalidateAll();
     return successState(`Payment recorded for ${member.name}.`);
@@ -168,8 +205,18 @@ export async function updatePaymentAction(
 }
 
 /**
- * Creates one Pending row for every active member who has no record at all for
- * the chosen month. Existing records are never touched.
+ * Creates one Pending row for every active member who owes the chosen month.
+ *
+ * The rows are placeholders, not money: they say "this month is owed". Two
+ * rules keep them honest:
+ *
+ * - A member owes nothing before they joined, and their joining month is
+ *   settled when they join, so the first month they can be pending for is the
+ *   month after they joined.
+ * - The row is dated on their joining day, so it says when the fee fell due
+ *   rather than always the first of the month.
+ *
+ * Members who already have a record for the month are left alone.
  */
 export async function generatePendingAction(
   _prev: ActionState,
@@ -190,16 +237,21 @@ export async function generatePendingAction(
 
   const members = await prisma.member.findMany({
     where: { status: "ACTIVE" },
-    select: { id: true, joiningDate: true, payments: { where: { month }, select: { id: true } } },
+    select: {
+      id: true,
+      joiningDate: true,
+      payments: { where: { month }, select: { id: true } },
+    },
   });
 
   const missing = members.filter(
-    (member) => member.payments.length === 0 && joinedMonthOf(member.joiningDate) <= month,
+    (member) =>
+      member.payments.length === 0 && firstPendingMonth(member.joiningDate) <= month,
   );
 
   if (missing.length === 0) {
     return errorState(
-      "Every active member already has a record for this month, so nothing was added.",
+      "Nothing was added: every active member either already has a record for this month or joined during it.",
     );
   }
 
@@ -211,9 +263,9 @@ export async function generatePendingAction(
       month,
       amount: memberFees.get(member.id) ?? standardFee,
       paymentMode: "CASH" as const,
-      paymentDate: parseInputDate(`${month}-01`),
+      paymentDate: pendingDueDate(month, member.joiningDate),
       status: "PENDING" as const,
-      remarks: "Auto generated as pending",
+      remarks: AUTO_PENDING_REMARK,
       receiptToken: newReceiptToken(),
     })),
   });
@@ -279,7 +331,7 @@ export async function searchMembersAction(): Promise<
   { id: number; label: string; hint: string | null }[]
 > {
   const viewer = await getSession();
-  if (!viewer || !can(viewer, "PAYMENTS")) return [];
+  if (!viewer || !canViewPayments(viewer)) return [];
   const members = await prisma.member.findMany({
     where: { status: "ACTIVE" },
     include: { seat: { include: { room: true } } },

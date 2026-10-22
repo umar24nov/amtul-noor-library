@@ -42,7 +42,12 @@ It is two things in one:
 - **Applications** — review the seat applications that come in from the public
   form, and approve or reject each one.
 - **Payments** — record every payment as its own entry, filter by month, member,
-  mode or status, and generate the pending rows for a month in one go.
+  mode or status, and generate the pending rows for a month in one go. The
+  filters apply the moment they are chosen, and the status filter brings a
+  status to the top of the list rather than hiding the other records. A pending
+  row is only generated for a month after the member joined, so a new member's
+  joining month is never marked as owed; recording the payment then fills that
+  month's row in instead of leaving a pending and a paid row side by side.
 - **Reminders** — see who still owes a month, and reach them on WhatsApp.
 - **Seats** — a visual map of the rooms. Assign a member to a free seat, release
   it, and add rooms or seats.
@@ -57,6 +62,11 @@ a bigger step, and it stays with the admin level: only a full-access admin can
 manage an admin account, give somebody the admin role, create a role at that
 level, or read a password back. Without that rule, holding *Users* would be the
 same as full access one saved form away.
+
+The *View payments* permission is the read-only half of *Payments*: somebody
+with it sees what has been collected and what is owed, and can pick a month or
+bring a status to the top, but there is no button that changes a record. The
+full *Payments* permission does both.
 
 Members are kept forever. Marking someone as *left* frees their seat and stores
 the leaving date, but their payment history stays.

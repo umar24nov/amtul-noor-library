@@ -62,6 +62,7 @@ enum Permission {
   REPORTS
   SETTINGS
   USERS
+  PAYMENTS_VIEW
 }
 
 /// What someone did and when, for the owner's peace of mind. Sign-ins, sign-outs

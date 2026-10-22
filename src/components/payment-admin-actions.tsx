@@ -66,7 +66,8 @@ function PendingGenerator({ months }: { months?: MonthOption[] }) {
         {pending ? "Generating…" : "Generate pending"}
       </Button>
       <p className="text-xs text-muted-foreground">
-        This only adds missing rows. Existing records — paid or pending — are never changed.
+        This only adds missing rows, and only for members who had joined by that month. Existing
+        records — paid or pending — are never changed.
       </p>
     </form>
   );

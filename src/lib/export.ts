@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toNumber } from "@/lib/ids";
+import { prioritiseStatus } from "@/lib/payments";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 /** Which records to export. An empty month means every month. */
@@ -43,6 +44,10 @@ export type ExportResult = {
 /**
  * Reads payments for export. Unlike listPayments this ignores pagination, so the
  * spreadsheet always covers every matching record.
+ *
+ * The status filter chooses what comes first in the sheet rather than what is
+ * left out, the same way it works on the payments screen, so every record is
+ * still exported.
  */
 export async function getPaymentsForExport(filters: ExportFilters): Promise<ExportResult> {
   const { month, memberId, mode, status } = filters;
@@ -52,7 +57,6 @@ export async function getPaymentsForExport(filters: ExportFilters): Promise<Expo
       ...(month ? { month } : {}),
       ...(memberId ? { member: { memberId } } : {}),
       ...(mode && mode !== "ALL" ? { paymentMode: mode } : {}),
-      ...(status && status !== "ALL" ? { status } : {}),
     },
     include: {
       member: {
@@ -77,6 +81,9 @@ export async function getPaymentsForExport(filters: ExportFilters): Promise<Expo
     remarks: payment.remarks,
   }));
 
+  // The chosen status leads the sheet; everything else keeps the usual order.
+  const ordered = prioritiseStatus(rows, status);
+
   const sum = (list: ExportRow[]) => list.reduce((total, row) => total + row.amount, 0);
   const byStatusValue = (value: PaymentStatus) =>
     sum(rows.filter((row) => row.status === value));
@@ -98,7 +105,7 @@ export async function getPaymentsForExport(filters: ExportFilters): Promise<Expo
   const byStatusMap = groupTotals((row) => row.status);
 
   return {
-    rows,
+    rows: ordered,
     totals: {
       records: rows.length,
       amount: sum(rows),

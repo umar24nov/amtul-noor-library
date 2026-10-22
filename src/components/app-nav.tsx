@@ -30,7 +30,9 @@ function NavLinks({
   permissions: PermissionKey[];
 }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.permission || permissions.includes(item.permission));
+  const items = NAV_ITEMS.filter(
+    (item) => !item.permissions || item.permissions.some((key) => permissions.includes(key)),
+  );
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>

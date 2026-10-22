@@ -13,6 +13,7 @@ export const PERMISSION_KEYS = [
   "MEMBERS",
   "APPLICATIONS",
   "PAYMENTS",
+  "PAYMENTS_VIEW",
   "REMINDERS",
   "SEATS",
   "REPORTS",
@@ -46,6 +47,11 @@ export const PERMISSION_GROUPS: {
     description: "What the library collects.",
     options: [
       { key: "PAYMENTS", label: "Payments", hint: "Record and edit payments" },
+      {
+        key: "PAYMENTS_VIEW",
+        label: "View payments",
+        hint: "See the payments and dues without changing them",
+      },
       { key: "REPORTS", label: "Reports", hint: "See totals and export sheets" },
     ],
   },
@@ -91,4 +97,27 @@ export function effectivePermissions(
 ): PermissionKey[] {
   if (level === "ADMIN") return [...PERMISSION_KEYS];
   return PERMISSION_KEYS.filter((key) => permissions.includes(key));
+}
+
+/**
+ * The two rules that separate looking at the payments from changing them.
+ *
+ * `PAYMENTS` opens the area and allows changes. `PAYMENTS_VIEW` opens it for
+ * looking only: what has been collected and what is owed, with nothing to
+ * change. A full admin may always do both.
+ */
+export function roleCanViewPayments(
+  level: "ADMIN" | "DAY_TO_DAY",
+  permissions: readonly Permission[],
+): boolean {
+  if (level === "ADMIN") return true;
+  return permissions.includes("PAYMENTS") || permissions.includes("PAYMENTS_VIEW");
+}
+
+export function roleCanEditPayments(
+  level: "ADMIN" | "DAY_TO_DAY",
+  permissions: readonly Permission[],
+): boolean {
+  if (level === "ADMIN") return true;
+  return permissions.includes("PAYMENTS");
 }

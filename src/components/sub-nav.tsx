@@ -8,7 +8,8 @@ import type { PermissionKey } from "@/lib/permission-defs";
 export type SubNavItem = {
   href: string;
   label: string;
-  permission: PermissionKey;
+  /** The permissions that open this tab. One of them is enough. */
+  permissions: readonly PermissionKey[];
 };
 
 /**
@@ -27,7 +28,9 @@ export function SubNav({
   permissions: PermissionKey[];
 }) {
   const pathname = usePathname();
-  const visible = items.filter((item) => permissions.includes(item.permission));
+  const visible = items.filter((item) =>
+    item.permissions.some((key) => permissions.includes(key)),
+  );
 
   if (visible.length < 2) return null;
 

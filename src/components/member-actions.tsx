@@ -49,11 +49,14 @@ export function MemberActions({
   seats,
   seatLabel,
   defaultFee,
+  canRecordPayment = true,
 }: {
   member: MemberActionTarget;
   seats: SeatOption[];
   seatLabel: string | null;
   defaultFee: number;
+  /** Set to false for a read-only viewer of the payments area. */
+  canRecordPayment?: boolean;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [leftOpen, setLeftOpen] = useState(false);
@@ -68,12 +71,14 @@ export function MemberActions({
         </Link>
       </Button>
 
-      <Button asChild variant="outline" size="lg" className="h-11 flex-1 sm:flex-none">
-        <a href={`/payments?record=${member.id}`}>
-          <ReceiptIndianRupee className="size-4" />
-          Record payment
-        </a>
-      </Button>
+      {canRecordPayment ? (
+        <Button asChild variant="outline" size="lg" className="h-11 flex-1 sm:flex-none">
+          <a href={`/payments?record=${member.id}`}>
+            <ReceiptIndianRupee className="size-4" />
+            Record payment
+          </a>
+        </Button>
+      ) : null}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogTrigger asChild>

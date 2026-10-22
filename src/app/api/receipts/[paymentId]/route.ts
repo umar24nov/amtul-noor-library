@@ -1,10 +1,13 @@
-import { requireExport } from "@/lib/export-response";
+import { requireExportAny } from "@/lib/export-response";
 import { buildReceiptBytes } from "@/lib/receipts";
 
 /**
  * Serves the receipt PDF for one payment. Kept as a route (not a server action)
  * so the browser can download it as a file, and so it can be linked from the
  * receipt email later if needed.
+ *
+ * A receipt is part of looking at a payment, so the read-only payments
+ * permission may fetch one too.
  */
 export const dynamic = "force-dynamic";
 
@@ -12,7 +15,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ paymentId: string }> },
 ) {
-  const denied = await requireExport("PAYMENTS");
+  const denied = await requireExportAny(["PAYMENTS", "PAYMENTS_VIEW"]);
   if (denied) return denied;
 
   const { paymentId } = await params;

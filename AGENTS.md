@@ -51,6 +51,21 @@ the file that holds it, because most of these are easy to undo by accident.
   (`src/app/(app)/users/role-actions.ts`) call both, and the Users page hides
   the roles panel and the admin role from anybody without full access. The
   check is on the server, because the screen is only the visible part.
+- The Payments area has two permissions: `PAYMENTS` (record and edit) and
+  `PAYMENTS_VIEW` (look only). The read-only rules live in
+  `src/lib/permission-defs.ts` (`roleCanViewPayments`, `roleCanEditPayments`)
+  so the server check and the hidden buttons cannot drift apart. A viewer may
+  open the payments page, scroll the list, pick a month, bring a status to the
+  top and download a receipt; every write action still asks for `PAYMENTS`.
+  A nav link or tab may list more than one permission (`NAV_ITEMS`,
+  `PAYMENT_TABS`), and the filter is "any of them".
+- A pending row is only generated for a month **after** the member joined
+  (`src/lib/payments.ts`: `firstPendingMonth`, `pendingDueDate`), and it is
+  dated on the joining day. Recording a payment fills that month's placeholder
+  in instead of adding a second row, so a month never shows a pending and a
+  paid row together (`src/app/(app)/payments/actions.ts`). The status filter
+  on the payments screen **prioritises** a status, it does not filter rows
+  out (`prioritiseStatus` in `src/lib/payments.ts`).
 - A real `CSP` is deliberately absent (`next.config.ts` explains why: Aadhaar
   scans are embedded from Vercel Blob in an iframe). The other headers are set.
 

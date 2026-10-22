@@ -3,7 +3,6 @@ import { CalendarClock, CheckCircle2, ReceiptIndianRupee, TriangleAlert } from "
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { PaymentReminders } from "@/components/payment-reminders";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterField } from "@/components/filters";
 import { MonthStepper } from "@/components/month-stepper";
@@ -66,16 +65,14 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
       </div>
 
       {/* overflow-visible so the month picker's dropdown is not clipped by the
-          Card's own overflow-hidden. */}
+          Card's own overflow-hidden. The picker applies the month itself, so
+          there is nothing to press. */}
       <Card className="overflow-visible">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-end">
           <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <FilterField label="Month" className="sm:w-64">
               <MonthStepper value={month} months={months} />
             </FilterField>
-            <Button type="submit" size="lg" variant="outline" className="h-10 sm:mb-px">
-              Show dues
-            </Button>
           </form>
         </CardContent>
       </Card>

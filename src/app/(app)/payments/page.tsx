@@ -10,6 +10,7 @@ import { PaymentsTable } from "@/components/payments-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterField, SearchInput, selectClassName } from "@/components/filters";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { MonthStepper } from "@/components/month-stepper";
 import {
   MONTH_FILTER_PAD_FORWARD,
@@ -27,7 +28,7 @@ import {
 } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
 import { effectivePermissions } from "@/lib/permission-defs";
-import { requirePermission } from "@/lib/permissions";
+import { canEditPayments, requireAnyPermission } from "@/lib/permissions";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -50,8 +51,12 @@ const ALL = "ALL";
  * PAYMENT_TABS) so this screen stays about money coming in.
  */
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
-  const session = await requirePermission("PAYMENTS");
+  // The read-only permission opens this screen too, so somebody can watch what
+  // is collected without being able to change it.
+  const session = await requireAnyPermission(["PAYMENTS", "PAYMENTS_VIEW"]);
   const permissions = effectivePermissions(session.level, session.permissions);
+  const canEdit = canEditPayments(session);
+  const canExport = permissions.includes("REPORTS");
   const params = await searchParams;
 
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "") ? params.month! : currentMonthKey();
@@ -88,18 +93,22 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         below={<SubNav items={PAYMENT_TABS} permissions={permissions} />}
         actions={
           <div className="grid w-full gap-2 sm:w-auto">
-            <PaymentsToolbar
-              members={members}
-              fee={fee}
-              months={monthOptions}
-              autoOpenMemberId={recordMemberId}
-            />
-            <ExportButton
-              href={exportHref}
-              label="Export to Excel"
-              description="Download the payments shown by these filters, plus totals"
-              className="w-full"
-            />
+            {canEdit ? (
+              <PaymentsToolbar
+                members={members}
+                fee={fee}
+                months={monthOptions}
+                autoOpenMemberId={recordMemberId}
+              />
+            ) : null}
+            {canExport ? (
+              <ExportButton
+                href={exportHref}
+                label="Export to Excel"
+                description="Download the payments shown by these filters, plus totals"
+                className="w-full"
+              />
+            ) : null}
           </div>
         }
       />
@@ -164,53 +173,55 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               </FilterField>
 
               <FilterField label="Payment mode">
-                <select
+                <AutoSubmitSelect
                   name="mode"
                   defaultValue={mode}
-                  className={selectClassName}
-                  aria-label="Filter by payment mode"
-                >
-                  <option value={ALL}>All modes</option>
-                  {(Object.keys(paymentModeLabels) as PaymentMode[]).map((value) => (
-                    <option key={value} value={value}>
-                      {paymentModeLabels[value]}
-                    </option>
-                  ))}
-                </select>
+                  label="Filter by payment mode"
+                  options={[
+                    { value: ALL, label: "All modes" },
+                    ...(Object.keys(paymentModeLabels) as PaymentMode[]).map((value) => ({
+                      value,
+                      label: paymentModeLabels[value],
+                    })),
+                  ]}
+                />
               </FilterField>
 
               <FilterField label="Status">
-                <select
+                {/* The status chooses what comes first; every record stays in
+                    the list under it. */}
+                <AutoSubmitSelect
                   name="status"
                   defaultValue={status}
-                  className={selectClassName}
-                  aria-label="Filter by payment status"
-                >
-                  <option value={ALL}>All statuses</option>
-                  {(Object.keys(paymentStatusLabels) as PaymentStatus[]).map((value) => (
-                    <option key={value} value={value}>
-                      {paymentStatusLabels[value]}
-                    </option>
-                  ))}
-                </select>
+                  label="Bring a status to the top"
+                  options={[
+                    { value: ALL, label: "All statuses" },
+                    ...(Object.keys(paymentStatusLabels) as PaymentStatus[]).map((value) => ({
+                      value,
+                      label: paymentStatusLabels[value],
+                    })),
+                  ]}
+                />
               </FilterField>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" size="lg" className="h-10">
-                Apply filters
+                Apply member ID
               </Button>
               <Button asChild variant="ghost" size="lg" className="h-10">
                 <Link href="/payments">Reset</Link>
               </Button>
-              <ExportButton
-                href="/api/export/payments"
-                label="Export all months"
-                description="Download every payment record, ignoring the filters"
-                size="lg"
-                variant="ghost"
-                className="h-10"
-              />
+              {canExport ? (
+                <ExportButton
+                  href="/api/export/payments"
+                  label="Export all months"
+                  description="Download every payment record, ignoring the filters"
+                  size="lg"
+                  variant="ghost"
+                  className="h-10"
+                />
+              ) : null}
             </div>
           </form>
         </CardContent>
@@ -244,6 +255,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               fee={fee}
               months={monthOptions}
               total={result.total}
+              canEdit={canEdit}
               query={{
                 month,
                 memberId: memberFilter,

@@ -49,8 +49,10 @@ export default async function PaymentSettingsPage() {
           <CardHeader>
             <CardTitle className="text-base">Generate pending payments</CardTitle>
             <CardDescription>
-              Adds one pending record of {formatINR(fee)} for every active member who has no record
-              for the chosen month. Members who already paid are left alone. Nothing is overwritten.
+              Adds one pending record of {formatINR(fee)} for every active member who had already
+              joined by the chosen month and has no record for it. A member who joins during that
+              month is left alone — their dues are monitored from the month after they joined — and
+              so is one who already paid. Nothing is overwritten.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -242,17 +242,20 @@ export const paymentStatusHelp: Record<PaymentStatus, string> = {
 
 /**
  * The sidebar links, each mapped to the area it opens. The dashboard is open to
- * anyone signed in; every other link needs its permission, so a role that is not
- * granted an area does not see it here (and cannot open it by URL either).
+ * anyone signed in; every other link needs one of its permissions, so a role
+ * that is not granted an area does not see it here (and cannot open it by URL
+ * either). A link may list more than one permission when the area is opened by
+ * several: Payments is opened by the permission that records payments and by
+ * the read-only one.
  */
-export const NAV_ITEMS: { href: string; label: string; permission: PermissionKey | null }[] = [
-  { href: "/dashboard", label: "Dashboard", permission: null },
-  { href: "/members", label: "Members", permission: "MEMBERS" },
-  { href: "/applications", label: "Applications", permission: "APPLICATIONS" },
-  { href: "/payments", label: "Payments", permission: "PAYMENTS" },
-  { href: "/reminders", label: "Reminders", permission: "REMINDERS" },
-  { href: "/seats", label: "Seats", permission: "SEATS" },
-  { href: "/users", label: "Users", permission: "USERS" },
+export const NAV_ITEMS: { href: string; label: string; permissions: PermissionKey[] | null }[] = [
+  { href: "/dashboard", label: "Dashboard", permissions: null },
+  { href: "/members", label: "Members", permissions: ["MEMBERS"] },
+  { href: "/applications", label: "Applications", permissions: ["APPLICATIONS"] },
+  { href: "/payments", label: "Payments", permissions: ["PAYMENTS", "PAYMENTS_VIEW"] },
+  { href: "/reminders", label: "Reminders", permissions: ["REMINDERS"] },
+  { href: "/seats", label: "Seats", permissions: ["SEATS"] },
+  { href: "/users", label: "Users", permissions: ["USERS"] },
 ];
 
 /**
@@ -271,10 +274,15 @@ export const PAYMENT_TABS: {
   href: string;
   label: string;
   description: string;
-  permission: PermissionKey;
+  permissions: PermissionKey[];
 }[] = [
-  { href: "/payments", label: "Collect", description: "Every record and what came in", permission: "PAYMENTS" },
-  { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", permission: "SETTINGS" },
+  {
+    href: "/payments",
+    label: "Collect",
+    description: "Every record and what came in",
+    permissions: ["PAYMENTS", "PAYMENTS_VIEW"],
+  },
+  { href: "/payments/settings", label: "Settings", description: "Standard fee and pending rows", permissions: ["SETTINGS"] },
 ];
 
 /**

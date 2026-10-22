@@ -26,6 +26,8 @@ import {
   roomFilterOptions,
   roomFilterValue,
 } from "@/lib/room-filter";
+import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -70,6 +72,11 @@ export default async function DashboardPage({
     getRevenueTrend(month),
   ]);
 
+  // The sheet behind the button needs the reports permission, so a role without
+  // it is not offered a download that would be refused.
+  const session = await getSession();
+  const canExport = session ? can(session, "REPORTS") : false;
+
   return (
     <div className="grid gap-5">
       <PageHeader
@@ -100,13 +107,15 @@ export default async function DashboardPage({
         }
         below={
           <div className="flex flex-wrap items-center gap-2">
-            <ExportButton
-              href={`/api/export/payments?month=${month}`}
-              label="Export"
-              description={`Download ${formatMonth(month)} payments as an Excel sheet`}
-              variant="default"
-              className="h-11 flex-1 sm:flex-none sm:w-44"
-            />
+            {canExport ? (
+              <ExportButton
+                href={`/api/export/payments?month=${month}`}
+                label="Export"
+                description={`Download ${formatMonth(month)} payments as an Excel sheet`}
+                variant="default"
+                className="h-11 flex-1 sm:flex-none sm:w-44"
+              />
+            ) : null}
           </div>
         }
       />

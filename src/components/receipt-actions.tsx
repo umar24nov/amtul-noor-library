@@ -57,6 +57,7 @@ export function ReceiptActions({
   hasEmail,
   compact = false,
   publicUrl = null,
+  canSendEmail = true,
 }: {
   paymentPk: number;
   /** Only a PAID record has a receipt; anything else explains why instead. */
@@ -66,6 +67,8 @@ export function ReceiptActions({
   compact?: boolean;
   /** Public download link for the member, null until the payment has a token. */
   publicUrl?: string | null;
+  /** Set to false for a read-only viewer: they may look, but not send. */
+  canSendEmail?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -163,21 +166,23 @@ export function ReceiptActions({
               </DropdownMenuItem>
             )}
 
-            <DropdownMenuItem
-              disabled={!isPaid || !hasEmail || pending}
-              onSelect={(event) => {
-                event.preventDefault();
-                if (!isPaid || !hasEmail) return;
-                openEmailConfirm();
-              }}
-            >
-              {pending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Mail className="size-4" />
-              )}
-              {pending ? "Sending…" : "Email receipt"}
-            </DropdownMenuItem>
+            {canSendEmail ? (
+              <DropdownMenuItem
+                disabled={!isPaid || !hasEmail || pending}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  if (!isPaid || !hasEmail) return;
+                  openEmailConfirm();
+                }}
+              >
+                {pending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Mail className="size-4" />
+                )}
+                {pending ? "Sending…" : "Email receipt"}
+              </DropdownMenuItem>
+            ) : null}
 
             {isPaid && whatsappHref && (
               <DropdownMenuItem asChild>
@@ -236,18 +241,20 @@ export function ReceiptActions({
               />
             )}
 
-            <SheetAction
-              icon={
-                pending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Mail className="size-4" />
-                )
-              }
-              label={pending ? "Sending…" : "Email receipt"}
-              disabled={!isPaid || !hasEmail || pending}
-              onClick={openEmailConfirm}
-            />
+            {canSendEmail ? (
+              <SheetAction
+                icon={
+                  pending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Mail className="size-4" />
+                  )
+                }
+                label={pending ? "Sending…" : "Email receipt"}
+                disabled={!isPaid || !hasEmail || pending}
+                onClick={openEmailConfirm}
+              />
+            ) : null}
 
             {isPaid && whatsappHref && (
               <SheetAction

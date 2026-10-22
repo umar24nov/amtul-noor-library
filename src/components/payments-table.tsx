@@ -47,6 +47,7 @@ export function PaymentsTable({
   months,
   total: totalCount,
   query,
+  canEdit = true,
 }: {
   payments: PaymentRow[];
   members: PaymentMemberOption[];
@@ -54,6 +55,8 @@ export function PaymentsTable({
   months: { value: string; label: string }[];
   total: number;
   query: PaymentListQuery;
+  /** False for a read-only viewer: no edit button, no sending of receipts. */
+  canEdit?: boolean;
 }) {
   // The page hands over the first batch and remounts this component (via a key)
   // whenever a filter changes, so the accumulated rows start clean each time.
@@ -112,7 +115,9 @@ export function PaymentsTable({
               <th className={STICKY_HEADER_CELL}>Mode</th>
               <th className={STICKY_HEADER_CELL}>Date</th>
               <th className={STICKY_HEADER_CELL}>Status</th>
-              <th className={cn(STICKY_HEADER_CELL, "text-right")}>Edit</th>
+              {canEdit ? (
+                <th className={cn(STICKY_HEADER_CELL, "text-right")}>Edit</th>
+              ) : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -153,21 +158,24 @@ export function PaymentsTable({
                       whatsappHref={receiptHref(payment)}
                       hasEmail={Boolean(payment.member.email)}
                       compact
+                      canSendEmail={canEdit}
                     />
-                    <PaymentEditDialog
-                      payment={{ ...payment, amount: String(payment.amount) }}
-                      fee={fee}
-                      members={members}
-                      months={months}
-                      member={{
-                        name: payment.member.name,
-                        memberId: payment.member.memberId,
-                        mobile: payment.member.mobile,
-                        seatLabel: payment.member.seat
-                          ? `${payment.member.seat.room?.name} · Seat ${payment.member.seat.seatNumber}`
-                          : null,
-                      }}
-                    />
+                    {canEdit ? (
+                      <PaymentEditDialog
+                        payment={{ ...payment, amount: String(payment.amount) }}
+                        fee={fee}
+                        members={members}
+                        months={months}
+                        member={{
+                          name: payment.member.name,
+                          memberId: payment.member.memberId,
+                          mobile: payment.member.mobile,
+                          seatLabel: payment.member.seat
+                            ? `${payment.member.seat.room?.name} · Seat ${payment.member.seat.seatNumber}`
+                            : null,
+                        }}
+                      />
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -211,20 +219,23 @@ export function PaymentsTable({
                       whatsappHref={receiptHref(payment)}
                       hasEmail={Boolean(payment.member.email)}
                       compact
+                      canSendEmail={canEdit}
                     />
-                    <PaymentEditDialog
-                      payment={{ ...payment, amount: String(payment.amount) }}
-                      fee={fee}
-                      members={members}
-                      months={months}
-                      compact
-                      member={{
-                        name: payment.member.name,
-                        memberId: payment.member.memberId,
-                        mobile: payment.member.mobile,
-                        seatLabel: null,
-                      }}
-                    />
+                    {canEdit ? (
+                      <PaymentEditDialog
+                        payment={{ ...payment, amount: String(payment.amount) }}
+                        fee={fee}
+                        members={members}
+                        months={months}
+                        compact
+                        member={{
+                          name: payment.member.name,
+                          memberId: payment.member.memberId,
+                          mobile: payment.member.mobile,
+                          seatLabel: null,
+                        }}
+                      />
+                    ) : null}
                   </div>
                 </div>
 

@@ -21,7 +21,7 @@ import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { UpiPayCard } from "@/components/upi-pay-card";
-import { can, requirePermission } from "@/lib/permissions";
+import { can, canEditPayments, requirePermission } from "@/lib/permissions";
 import { getSession } from "@/lib/auth";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
 
@@ -57,7 +57,10 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ joined?: string; email?: string }>;
 }) {
-  await requirePermission("MEMBERS");
+  const session = await requirePermission("MEMBERS");
+  // Recording a payment needs the payments permission, not just the read-only
+  // one, so a viewer of the payments area sees no buttons to change anything.
+  const canRecordPayment = canEditPayments(session);
   const { id } = await params;
   const { joined, email } = await searchParams;
   const memberId = Number(id);
@@ -152,6 +155,7 @@ export default async function MemberDetailPage({
                 : null
             }
             defaultFee={monthlyFee}
+            canRecordPayment={canRecordPayment}
           />
         }
       />
@@ -360,6 +364,7 @@ export default async function MemberDetailPage({
                               whatsappHref={receiptHref(payment)}
                               hasEmail={Boolean(member.email)}
                               publicUrl={receiptPublicUrl(payment)}
+                              canSendEmail={canRecordPayment}
                             />
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -408,6 +413,7 @@ export default async function MemberDetailPage({
                           hasEmail={Boolean(member.email)}
                           publicUrl={receiptPublicUrl(payment)}
                           compact
+                          canSendEmail={canRecordPayment}
                         />
                       </div>
                     )}

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { canAny } from "@/lib/permissions";
 import type { PermissionKey } from "@/lib/permission-defs";
 
 const XLSX_MIME =
@@ -11,9 +11,19 @@ const XLSX_MIME =
  * in person still needs the area the sheet covers.
  */
 export async function requireExport(key: PermissionKey): Promise<Response | null> {
+  return requireExportAny([key]);
+}
+
+/**
+ * The same guard for an area that more than one permission opens.
+ *
+ * A receipt PDF is part of looking at a payment, so the read-only payments
+ * permission may fetch one as well.
+ */
+export async function requireExportAny(keys: PermissionKey[]): Promise<Response | null> {
   const session = await getSession();
   if (!session) return new Response("Not signed in.", { status: 401 });
-  if (!can(session, key)) return new Response("Not allowed.", { status: 403 });
+  if (!canAny(session, keys)) return new Response("Not allowed.", { status: 403 });
   return null;
 }
 
