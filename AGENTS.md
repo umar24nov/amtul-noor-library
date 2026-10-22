@@ -51,8 +51,8 @@ the file that holds it, because most of these are easy to undo by accident.
   (`src/app/(app)/users/role-actions.ts`) call both, and the Users page hides
   the roles panel and the admin role from anybody without full access. The
   check is on the server, because the screen is only the visible part.
-- The Payments area has two permissions: `PAYMENTS` (record and edit) and
-  `PAYMENTS_VIEW` (look only). The read-only rules live in
+- The Payments area has two permissions: `PAYMENTS` (*Edit payments*: record and
+  edit) and `PAYMENTS_VIEW` (*View payments*: look only). The read-only rules live in
   `src/lib/permission-defs.ts` (`roleCanViewPayments`, `roleCanEditPayments`)
   so the server check and the hidden buttons cannot drift apart. A viewer may
   open the payments page, scroll the list, pick a month, bring a status to the

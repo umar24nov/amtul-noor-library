@@ -1,4 +1,4 @@
-import type { Permission } from "@/generated/prisma/enums";
+﻿import type { Permission } from "@/generated/prisma/enums";
 
 /**
  * The permission keys, labels and groups.
@@ -46,13 +46,13 @@ export const PERMISSION_GROUPS: {
     title: "Money",
     description: "What the library collects.",
     options: [
-      { key: "PAYMENTS", label: "Payments", hint: "Record and edit payments" },
+      { key: "PAYMENTS", label: "Edit payments", hint: "Record and edit payments" },
       {
         key: "PAYMENTS_VIEW",
         label: "View payments",
         hint: "See the payments and dues without changing them",
       },
-      { key: "REPORTS", label: "Reports", hint: "See totals and export sheets" },
+      { key: "REPORTS", label: "Reports", hint: "Download the Excel exports" },
     ],
   },
   {
