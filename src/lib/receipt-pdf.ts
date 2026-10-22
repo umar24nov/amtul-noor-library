@@ -1,7 +1,7 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { LIBRARY_ADDRESS, LIBRARY_EMAIL, LIBRARY_NAME, LIBRARY_PHONE } from "@/lib/constants";
-import { formatDate, formatMonth, formatNumber } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 
 /**
  * A receipt is rendered as a PDF on the server so the exact same document can be
@@ -144,7 +144,7 @@ export async function buildReceiptPdf(info: ReceiptPdfInfo): Promise<Uint8Array>
 
   // Detail table.
   const rows: [string, string][] = [
-    ["Fee for month", formatMonth(info.month)],
+    ["Fee per month", money(info.amount)],
     ["Payment mode", info.mode],
     ["Payment date", formatDate(info.date)],
     ["Remarks", info.remarks || "—"],
