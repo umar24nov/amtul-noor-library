@@ -43,6 +43,8 @@ export default async function UsersPage() {
         email: true,
         active: true,
         lastLoginAt: true,
+        // Only whether a copy exists, never the copy itself.
+        passwordCiphertext: true,
         role: { select: { id: true, name: true, level: true } },
       },
     }),
@@ -69,7 +71,13 @@ export default async function UsersPage() {
     level: row.role.level,
     active: row.active,
     lastLoginAt: row.lastLoginAt ? formatDate(row.lastLoginAt) : null,
+    hasStoredPassword: row.passwordCiphertext !== null,
   }));
+
+  // Full access is what lets somebody read a password back, manage an admin
+  // account, and hand out the admin role. Holding the Users permission alone
+  // is not enough for any of that.
+  const fullAccess = canRevealPassword(session.level);
 
   return (
     <div className="grid gap-6">
@@ -81,9 +89,9 @@ export default async function UsersPage() {
         users={users}
         roles={roleOptions}
         currentUserId={session.userId}
-        canReveal={canRevealPassword(session.level)}
+        fullAccess={fullAccess}
       />
-      <RolesPanel roles={roleOptions} />
+      {fullAccess && <RolesPanel roles={roleOptions} />}
       <ActivityPanel entries={activity} />
     </div>
   );

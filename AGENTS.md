@@ -43,6 +43,14 @@ the file that holds it, because most of these are easy to undo by accident.
   *hides* links, it is not a control. Pages call `requirePermission`, server
   actions call `actionPermission`, and the export/receipt routes call
   `requireExport`. A new action must add its own check.
+- The Users permission is not full access. `src/lib/user-management.ts` holds
+  the two rules that keep it from being: `canManageLevel` (only a full admin
+  may manage an admin account or an admin-level role) and `canAssignLevel`
+  (only a full admin may hand out the admin level, for an account or a role).
+  The account actions (`src/app/(app)/users/actions.ts`) and the role actions
+  (`src/app/(app)/users/role-actions.ts`) call both, and the Users page hides
+  the roles panel and the admin role from anybody without full access. The
+  check is on the server, because the screen is only the visible part.
 - A real `CSP` is deliberately absent (`next.config.ts` explains why: Aadhaar
   scans are embedded from Vercel Blob in an iframe). The other headers are set.
 

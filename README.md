@@ -51,6 +51,13 @@ It is two things in one:
   last password they set for an account, instead of handing out a new one every
   time they forget it.
 
+Holding the *Users* permission does the day-to-day account work: add people,
+edit their details, set a password, switch an account off and on. Full access is
+a bigger step, and it stays with the admin level: only a full-access admin can
+manage an admin account, give somebody the admin role, create a role at that
+level, or read a password back. Without that rule, holding *Users* would be the
+same as full access one saved form away.
+
 Members are kept forever. Marking someone as *left* frees their seat and stores
 the leaving date, but their payment history stays.
 
@@ -90,6 +97,11 @@ A single Next.js application (App Router) with a PostgreSQL database.
 - Database migrations are applied by the production build itself
   (`scripts/vercel-migrate.mjs`), so a deployment never runs against a schema
   it does not have. A preview build never touches the database.
+- After a deploy, `npm run check-routes` asks the live site for the public
+  routes and for the private ones, and fails if a private screen answers
+  without a session instead of sending the visitor to the sign-in page.
+- Continuous integration runs the type check, the lint and the tests on every
+  push and pull request (`.github/workflows/ci.yml`).
 
 ## License
 

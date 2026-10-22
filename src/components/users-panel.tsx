@@ -55,12 +55,21 @@ export type PanelUser = {
   level: RoleLevel;
   active: boolean;
   lastLoginAt: string | null;
+  /** Whether the last password set on this account can be read back. */
+  hasStoredPassword: boolean;
 };
 
-function RoleOptions({ roles }: { roles: PanelRole[] }) {
+/** The roles this person may hand out. Full access is only on offer to a full
+ *  admin, so a day-to-day manager never sees the admin role in the list. */
+function assignableRoles(roles: PanelRole[], fullAccess: boolean): PanelRole[] {
+  if (fullAccess) return roles;
+  return roles.filter((role) => role.level !== "ADMIN");
+}
+
+function RoleOptions({ roles, fullAccess }: { roles: PanelRole[]; fullAccess: boolean }) {
   return (
     <>
-      {roles.map((role) => (
+      {assignableRoles(roles, fullAccess).map((role) => (
         <SelectItem key={role.id} value={String(role.id)}>
           {role.name} — {role.level === "ADMIN" ? "full access" : "standard"}
         </SelectItem>
@@ -73,13 +82,16 @@ function AddUserDialog({
   open,
   onOpenChange,
   roles,
+  fullAccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   roles: PanelRole[];
+  fullAccess: boolean;
 }) {
   const [state, formAction] = useActionState(createUserAction, IDLE_STATE);
-  const initialRole = roles.find((role) => role.level === "DAY_TO_DAY") ?? roles[0];
+  const offered = assignableRoles(roles, fullAccess);
+  const initialRole = offered.find((role) => role.level === "DAY_TO_DAY") ?? offered[0];
   const [roleId, setRoleId] = useState(String(initialRole?.id ?? ""));
 
   useEffect(() => {
@@ -128,7 +140,7 @@ function AddUserDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <RoleOptions roles={roles} />
+                <RoleOptions roles={roles} fullAccess={fullAccess} />
               </SelectContent>
             </Select>
             {state.fieldErrors?.roleId && (
@@ -171,7 +183,7 @@ function AddUserDialog({
  *  away, so changing someone's role is one action rather than a form plus a
  *  save. The action is invoked directly with FormData so there is no hidden
  *  field that could still hold the previous choice when it is read. */
-function RoleSelect({ user, roles }: { user: PanelUser; roles: PanelRole[] }) {
+function RoleSelect({ user, roles, fullAccess }: { user: PanelUser; roles: PanelRole[]; fullAccess: boolean }) {
   const [value, setValue] = useState(String(user.roleId));
   const [pending, startTransition] = useTransition();
 
@@ -201,7 +213,7 @@ function RoleSelect({ user, roles }: { user: PanelUser; roles: PanelRole[] }) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <RoleOptions roles={roles} />
+        <RoleOptions roles={roles} fullAccess={fullAccess} />
       </SelectContent>
     </Select>
   );
@@ -211,11 +223,13 @@ function EditUserDialog({
   user,
   roles,
   currentUserId,
+  fullAccess,
   onOpenChange,
 }: {
   user: PanelUser | null;
   roles: PanelRole[];
   currentUserId: number;
+  fullAccess: boolean;
   onOpenChange: (user: PanelUser | null) => void;
 }) {
   const [state, formAction] = useActionState(updateUserAction, IDLE_STATE);
@@ -276,14 +290,20 @@ function EditUserDialog({
             <div className="grid gap-1.5">
               <Label>Role</Label>
               <input type="hidden" name="roleId" value={roleId} />
-              <Select value={roleId} onValueChange={setRoleId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <RoleOptions roles={roles} />
-                </SelectContent>
-              </Select>
+              {user.level === "ADMIN" && !fullAccess ? (
+                <p className="text-xs text-muted-foreground">
+                  {user.roleName} — full access. Only a full-access admin can change this account.
+                </p>
+              ) : (
+                <Select value={roleId} onValueChange={setRoleId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <RoleOptions roles={roles} fullAccess={fullAccess} />
+                  </SelectContent>
+                </Select>
+              )}
               {state.fieldErrors?.roleId && (
                 <p className="text-xs text-destructive">{state.fieldErrors.roleId}</p>
               )}
@@ -353,11 +373,11 @@ function EditUserDialog({
 function PasswordDialog({
   user,
   onOpenChange,
-  canReveal,
+  fullAccess,
 }: {
   user: PanelUser | null;
   onOpenChange: (user: PanelUser | null) => void;
-  canReveal: boolean;
+  fullAccess: boolean;
 }) {
   const [state, formAction] = useActionState(resetUserPasswordAction, IDLE_STATE);
   const [reveal, setReveal] = useState<{
@@ -402,12 +422,14 @@ function PasswordDialog({
         <DialogHeader>
           <DialogTitle>Password for {user?.email}</DialogTitle>
           <DialogDescription>
-            Read back the last password you set, or set a new one.
+            {fullAccess
+              ? "Read back the last password you set, or set a new one."
+              : "Set a new password for this account."}
           </DialogDescription>
         </DialogHeader>
         {user && (
           <div className="grid gap-4">
-            {canReveal ? (
+            {fullAccess ? (
               <div className="grid gap-2 rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">Last password you set</span>
@@ -458,6 +480,12 @@ function PasswordDialog({
                   </p>
                 )}
                 {reveal.message && <p className="text-xs text-destructive">{reveal.message}</p>}
+                {!user.hasStoredPassword && !reveal.message && (
+                  <p className="text-xs text-muted-foreground">
+                    No password has been saved for this account yet. Set one now and you will be able
+                    to read it back next time.
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -557,6 +585,7 @@ function UserCard({
   user,
   roles,
   isSelf,
+  fullAccess,
   onEdit,
   onPassword,
   onToggle,
@@ -564,18 +593,23 @@ function UserCard({
   user: PanelUser;
   roles: PanelRole[];
   isSelf: boolean;
+  fullAccess: boolean;
   onEdit: () => void;
   onPassword: () => void;
   onToggle: () => void;
 }) {
   const isAdmin = user.level === "ADMIN";
+  // An admin account is a full admin's to change. Somebody who only holds the
+  // Users permission can see it, but cannot edit it, move it, or reset it.
+  const locked = isAdmin && !fullAccess;
 
   return (
     <div
-      onClick={onEdit}
+      onClick={locked ? undefined : onEdit}
       className={cn(
         "flex cursor-pointer flex-col gap-4 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 transition-colors hover:border-foreground/20",
         !user.active && "opacity-70 hover:opacity-100",
+        locked && "cursor-default",
       )}
     >
       <div className="flex items-start gap-3">
@@ -609,18 +643,24 @@ function UserCard({
       </div>
 
       <div onClick={(event) => event.stopPropagation()}>
-        <RoleSelect user={user} roles={roles} />
+        {locked ? (
+          <p className="text-xs text-muted-foreground">
+            {user.roleName} — full access. Only a full-access admin can change this account.
+          </p>
+        ) : (
+          <RoleSelect user={user} roles={roles} fullAccess={fullAccess} />
+        )}
       </div>
 
       <div
         onClick={(event) => event.stopPropagation()}
         className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-3"
       >
-        <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
+        <Button type="button" variant="secondary" size="sm" onClick={onEdit} disabled={locked}>
           <Pencil className="size-3.5" />
           Edit details
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onPassword}>
+        <Button type="button" variant="outline" size="sm" onClick={onPassword} disabled={locked}>
           <KeyRound className="size-3.5" />
           Password
         </Button>
@@ -629,7 +669,7 @@ function UserCard({
           variant="ghost"
           size="sm"
           onClick={onToggle}
-          disabled={isSelf}
+          disabled={isSelf || locked}
           className="text-muted-foreground hover:text-foreground"
         >
           <Power className="size-3.5" />
@@ -644,12 +684,12 @@ export function UsersPanel({
   users,
   roles,
   currentUserId,
-  canReveal,
+  fullAccess,
 }: {
   users: PanelUser[];
   roles: PanelRole[];
   currentUserId: number;
-  canReveal: boolean;
+  fullAccess: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PanelUser | null>(null);
@@ -680,6 +720,7 @@ export function UsersPanel({
           open={addOpen}
           onOpenChange={setAddOpen}
           roles={roles}
+          fullAccess={fullAccess}
         />
       </div>
 
@@ -690,6 +731,7 @@ export function UsersPanel({
             user={user}
             roles={roles}
             isSelf={user.id === currentUserId}
+            fullAccess={fullAccess}
             onEdit={() => setEditTarget(user)}
             onPassword={() => setPasswordTarget(user)}
             onToggle={() => setToggleTarget(user)}
@@ -708,13 +750,14 @@ export function UsersPanel({
         user={editTarget}
         roles={roles}
         currentUserId={currentUserId}
+        fullAccess={fullAccess}
         onOpenChange={setEditTarget}
       />
       <PasswordDialog
         key={`password-${passwordTarget?.id ?? "none"}`}
         user={passwordTarget}
         onOpenChange={setPasswordTarget}
-        canReveal={canReveal}
+        fullAccess={fullAccess}
       />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
     </section>

@@ -19,6 +19,12 @@ import {
 import { actionPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
+  ASSIGN_ADMIN_MESSAGE,
+  canAssignLevel,
+  canManageLevel,
+  MANAGE_ADMIN_MESSAGE,
+} from "@/lib/user-management";
+import {
   createUserSchema,
   fieldErrors,
   resetPasswordSchema,
@@ -67,11 +73,20 @@ export async function createUserAction(
   const { name, email, roleId, password } = parsed.data;
 
   try {
-    const role = await prisma.role.findUnique({ where: { id: roleId }, select: { name: true } });
+    const role = await prisma.role.findUnique({
+      where: { id: roleId },
+      select: { name: true, level: true },
+    });
     if (!role) {
       return errorState("Please check the highlighted fields.", {
         roleId: "Choose a role",
       });
+    }
+
+    // Handing out full access is a full-admin job, or the Users permission
+    // would be the same as full access with one extra field.
+    if (!canAssignLevel(session.level, role.level)) {
+      return errorState(ASSIGN_ADMIN_MESSAGE);
     }
 
     const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
@@ -158,6 +173,17 @@ export async function updateUserAction(
       });
     }
 
+    // An admin account, and the full-admin level itself, are both a full
+    // admin's business. Otherwise a day-to-day manager could edit the owner
+    // out of the way, or promote themselves. This comes before the email
+    // check so the refusal is the answer, not a side note.
+    if (!canManageLevel(session.level, target.role.level)) {
+      return errorState(MANAGE_ADMIN_MESSAGE);
+    }
+    if (!canAssignLevel(session.level, role.level)) {
+      return errorState(ASSIGN_ADMIN_MESSAGE);
+    }
+
     const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
     if (taken && taken.id !== target.id) {
       return errorState("Please check the highlighted fields.", {
@@ -223,6 +249,7 @@ export async function updateUserAction(
 export async function updateUserRoleAction(formData: FormData): Promise<ActionState> {
   const gate = await requireUsers();
   if ("denied" in gate) return gate.denied;
+  const session = gate.session;
 
   const parsed = userRoleChangeSchema.safeParse({
     userId: formData.get("userId"),
@@ -244,6 +271,15 @@ export async function updateUserRoleAction(formData: FormData): Promise<ActionSt
       select: { name: true, level: true },
     });
     if (!role) return errorState("That role no longer exists.");
+
+    // Moving somebody on, and moving them up to full access, are both
+    // full-admin jobs.
+    if (!canManageLevel(session.level, target.role.level)) {
+      return errorState(MANAGE_ADMIN_MESSAGE);
+    }
+    if (!canAssignLevel(session.level, role.level)) {
+      return errorState(ASSIGN_ADMIN_MESSAGE);
+    }
 
     if (target.role.level === "ADMIN" && role.level !== "ADMIN" && target.active) {
       if ((await countActiveAdmins()) <= 1) {
@@ -288,9 +324,15 @@ export async function resetUserPasswordAction(
   try {
     const target = await prisma.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, role: { select: { level: true } } },
     });
     if (!target) return errorState("That account no longer exists.");
+
+    // Setting somebody's password is how you take their account over, so an
+    // admin account is a full admin's business.
+    if (!canManageLevel(session.level, target.role.level)) {
+      return errorState(MANAGE_ADMIN_MESSAGE);
+    }
 
     await prisma.user.update({
       where: { id: target.id },
@@ -379,6 +421,12 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
       select: { id: true, email: true, active: true, role: { select: { level: true } } },
     });
     if (!target) return errorState("That account no longer exists.");
+
+    // Switching off somebody's account is a full-admin job when the account
+    // is an admin's.
+    if (!canManageLevel(session.level, target.role.level)) {
+      return errorState(MANAGE_ADMIN_MESSAGE);
+    }
 
     if (target.active && session.userId === target.id) {
       return errorState("You cannot deactivate your own account.");
