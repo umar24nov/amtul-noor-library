@@ -1,4 +1,4 @@
-﻿import type { Permission } from "@/generated/prisma/enums";
+import type { Permission } from "@/generated/prisma/enums";
 
 /**
  * The permission keys, labels and groups.
