@@ -87,7 +87,6 @@ export function SupportForm({ className }: { className?: string }) {
               id={`${id}-name`}
               name="name"
               autoComplete="name"
-              placeholder="e.g. Mohammad Umar"
               required
               aria-invalid={Boolean(state.fieldErrors?.name)}
               className={inputClass}

@@ -166,7 +166,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                   type="text"
                   name="memberId"
                   defaultValue={memberFilter ?? ""}
-                  placeholder="e.g. ATN003"
                   className={selectClassName}
                   aria-label="Filter by member ID"
                 />

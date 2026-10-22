@@ -49,7 +49,6 @@ export function JoinForm() {
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Umar"
             required
             autoComplete="name"
             className="h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -64,7 +63,6 @@ export function JoinForm() {
             type="text"
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="e.g. Is there a seat free today?"
             className="h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         </div>

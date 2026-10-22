@@ -47,7 +47,6 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
                 id="profile-name"
                 name="name"
                 defaultValue={name}
-                placeholder="e.g. Sister"
                 maxLength={60}
                 aria-invalid={Boolean(profileState.fieldErrors?.name)}
               />

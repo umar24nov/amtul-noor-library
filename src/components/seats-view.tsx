@@ -156,7 +156,6 @@ function ManageSeatsDialog({ rooms }: { rooms: RoomData[] }) {
                 <Input
                   id="new-room"
                   name="name"
-                  placeholder="e.g. Room 2"
                   className="h-11"
                   required
                 />

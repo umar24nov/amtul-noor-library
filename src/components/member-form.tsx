@@ -93,7 +93,6 @@ export function MemberForm({
             id={`${id}-name`}
             name="name"
             defaultValue={defaults?.name}
-            placeholder="e.g. Mohammad Umar"
             autoComplete="name"
             required
             aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -143,7 +142,6 @@ export function MemberForm({
               id={`${id}-guardianName`}
               name="guardianName"
               defaultValue={defaults?.guardianName}
-              placeholder="e.g. Mubassir Hussain"
               className="h-11"
             />
             <FieldError message={state.fieldErrors?.guardianName} />
@@ -332,7 +330,6 @@ export function MemberForm({
                     min="0"
                     step="1"
                     defaultValue={defaultFee?.toString() ?? ""}
-                    placeholder="e.g. 700"
                     aria-invalid={Boolean(state.fieldErrors?.payAmount)}
                     className="h-11"
                   />

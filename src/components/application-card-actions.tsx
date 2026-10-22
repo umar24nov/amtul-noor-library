@@ -313,7 +313,6 @@ function RejectApplicationDialog({ application }: { application: EditableApplica
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="e.g. We could not verify the Aadhaar details you provided."
           />
           <p className="text-xs text-muted-foreground">
             This reason is shown on the application and included in the email.

@@ -56,8 +56,8 @@ export type PanelRole = {
 };
 
 const LEVEL_LABELS: Record<RoleLevel, string> = {
-  ADMIN: "Full access",
-  DAY_TO_DAY: "Standard",
+  ADMIN: "Full Access",
+  DAY_TO_DAY: "Limited",
 };
 
 const LEVEL_DESCRIPTIONS: Record<RoleLevel, string> = {
@@ -120,7 +120,6 @@ function RoleFields({
           <Input
             id="role-name"
             name="name"
-            placeholder="e.g. Front desk"
             maxLength={30}
             defaultValue={defaultName}
             aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -149,7 +148,7 @@ function RoleFields({
           <p className="text-xs text-muted-foreground">{LEVEL_DESCRIPTIONS[level]}</p>
           {lockLevel && (
             <p className="text-xs text-muted-foreground">
-              The built-in admin role always keeps full access. Its name can still be changed.
+              The built-in admin role always keeps Full Access. Its name can still be changed.
             </p>
           )}
           {state.fieldErrors?.level && (
@@ -169,7 +168,7 @@ function RoleFields({
 
         {isAdmin && (
           <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-            A full-access role can do everything, so every area is on and cannot be turned off.
+            A Full Access role can do everything, so every area is on and cannot be turned off.
             Choose &ldquo;{LEVEL_LABELS.DAY_TO_DAY}&rdquo; to select areas one by one.
           </p>
         )}
@@ -487,8 +486,8 @@ export function RolesPanel({ roles }: { roles: PanelRole[] }) {
 
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Users className="size-3.5 shrink-0" aria-hidden="true" />
-        A standard role can only open the areas shown on its card; the rest are hidden from the
-        sidebar and blocked at the address bar. Full-access roles can do everything.
+        A Limited role can only open the areas shown on its card; the rest are hidden from the
+        sidebar and blocked at the address bar. Full Access roles can do everything.
       </p>
 
       <EditRoleDialog role={editTarget} onOpenChange={setEditTarget} />

@@ -71,7 +71,7 @@ function RoleOptions({ roles, fullAccess }: { roles: PanelRole[]; fullAccess: bo
     <>
       {assignableRoles(roles, fullAccess).map((role) => (
         <SelectItem key={role.id} value={String(role.id)}>
-          {role.name} — {role.level === "ADMIN" ? "full access" : "standard"}
+          {role.name} — {role.level === "ADMIN" ? "Full Access" : "Limited"}
         </SelectItem>
       ))}
     </>
@@ -113,7 +113,7 @@ function AddUserDialog({
         <form action={formAction} className="grid gap-4">
           <div className="grid gap-1.5">
             <Label htmlFor="user-name">Name (optional)</Label>
-            <Input id="user-name" name="name" placeholder="e.g. Sister" maxLength={60} />
+            <Input id="user-name" name="name" maxLength={60} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="user-email">
@@ -262,7 +262,6 @@ function EditUserDialog({
                 id="edit-user-name"
                 name="name"
                 defaultValue={user.name ?? ""}
-                placeholder="e.g. Sister"
                 maxLength={60}
               />
               {state.fieldErrors?.name && (

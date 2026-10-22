@@ -215,7 +215,6 @@ export function ApplicationForm({
             <Input
               id={`${id}-name`}
               name="name"
-              placeholder="e.g. Mohammad Umar"
               autoComplete="name"
               required
               aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -298,7 +297,6 @@ export function ApplicationForm({
               name="guardianName"
               autoComplete="family-name"
               required
-              placeholder="e.g. Mubassir Hussain"
               aria-invalid={Boolean(state.fieldErrors?.guardianName)}
               className={inputClass}
             />
@@ -341,7 +339,6 @@ export function ApplicationForm({
               id={`${id}-preparingFor`}
               name="preparingFor"
               required
-              placeholder="e.g. SSC, HSSC, NEET, JEE, other..."
               aria-invalid={Boolean(state.fieldErrors?.preparingFor)}
               className={inputClass}
             />
