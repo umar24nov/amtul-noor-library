@@ -44,7 +44,6 @@ export function PaymentsTable({
   payments,
   members,
   fee,
-  months,
   total: totalCount,
   query,
   canEdit = true,
@@ -52,7 +51,6 @@ export function PaymentsTable({
   payments: PaymentRow[];
   members: PaymentMemberOption[];
   fee: number;
-  months: { value: string; label: string }[];
   total: number;
   query: PaymentListQuery;
   /** False for a read-only viewer: no edit button, no sending of receipts. */
@@ -165,7 +163,6 @@ export function PaymentsTable({
                         payment={{ ...payment, amount: String(payment.amount) }}
                         fee={fee}
                         members={members}
-                        months={months}
                         member={{
                           name: payment.member.name,
                           memberId: payment.member.memberId,
@@ -226,8 +223,6 @@ export function PaymentsTable({
                         payment={{ ...payment, amount: String(payment.amount) }}
                         fee={fee}
                         members={members}
-                        months={months}
-                        compact
                         member={{
                           name: payment.member.name,
                           memberId: payment.member.memberId,
