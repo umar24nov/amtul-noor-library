@@ -255,6 +255,7 @@ export const NAV_ITEMS: { href: string; label: string; permissions: PermissionKe
   { href: "/payments", label: "Payments", permissions: ["PAYMENTS", "PAYMENTS_VIEW"] },
   { href: "/reminders", label: "Reminders", permissions: ["REMINDERS"] },
   { href: "/seats", label: "Seats", permissions: ["SEATS"] },
+  { href: "/expenses", label: "Expenses", permissions: ["EXPENSES"] },
   { href: "/users", label: "Users", permissions: ["USERS"] },
 ];
 

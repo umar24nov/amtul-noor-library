@@ -58,11 +58,13 @@ export type PanelRole = {
 const LEVEL_LABELS: Record<RoleLevel, string> = {
   ADMIN: "Full Access",
   DAY_TO_DAY: "Limited",
+  VIEW_ONLY: "View only",
 };
 
 const LEVEL_DESCRIPTIONS: Record<RoleLevel, string> = {
   ADMIN: "Everything, always — the areas below are all included",
   DAY_TO_DAY: "Only the areas selected below",
+  VIEW_ONLY: "See only the areas selected below, with no changes allowed",
 };
 
 const TOTAL_AREAS = PERMISSION_GROUPS.reduce((n, g) => n + g.options.length, 0);

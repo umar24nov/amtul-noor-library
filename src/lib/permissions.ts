@@ -26,6 +26,7 @@ export type { PermissionKey } from "@/lib/permission-defs";
  */
 export function can(session: SessionPayload, key: PermissionKey): boolean {
   if (session.level === "ADMIN") return true;
+  if (session.level === "VIEW_ONLY") return session.permissions.includes(key);
   return session.permissions.includes(key);
 }
 

@@ -19,6 +19,7 @@ export const PERMISSION_KEYS = [
   "REPORTS",
   "SETTINGS",
   "USERS",
+  "EXPENSES",
 ] as const satisfies readonly Permission[];
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -61,6 +62,7 @@ export const PERMISSION_GROUPS: {
     options: [
       { key: "SETTINGS", label: "Settings", hint: "The monthly fee and pending rows" },
       { key: "USERS", label: "Users", hint: "Manage accounts and roles" },
+      { key: "EXPENSES", label: "Expenses", hint: "View and manage library expenses" },
     ],
   },
 ];
@@ -92,10 +94,11 @@ export function isPermissionKey(value: unknown): value is PermissionKey {
 /** The permissions a role actually has. A full admin has every one, so callers
  *  only ever deal with one list rather than a level plus a list. */
 export function effectivePermissions(
-  level: "ADMIN" | "DAY_TO_DAY",
+  level: "ADMIN" | "DAY_TO_DAY" | "VIEW_ONLY",
   permissions: readonly Permission[],
 ): PermissionKey[] {
   if (level === "ADMIN") return [...PERMISSION_KEYS];
+  if (level === "VIEW_ONLY") return PERMISSION_KEYS.filter((key) => permissions.includes(key));
   return PERMISSION_KEYS.filter((key) => permissions.includes(key));
 }
 
@@ -107,17 +110,20 @@ export function effectivePermissions(
  * change. A full admin may always do both.
  */
 export function roleCanViewPayments(
-  level: "ADMIN" | "DAY_TO_DAY",
+  level: "ADMIN" | "DAY_TO_DAY" | "VIEW_ONLY",
   permissions: readonly Permission[],
 ): boolean {
   if (level === "ADMIN") return true;
+  if (level === "VIEW_ONLY")
+    return permissions.includes("PAYMENTS") || permissions.includes("PAYMENTS_VIEW");
   return permissions.includes("PAYMENTS") || permissions.includes("PAYMENTS_VIEW");
 }
 
 export function roleCanEditPayments(
-  level: "ADMIN" | "DAY_TO_DAY",
+  level: "ADMIN" | "DAY_TO_DAY" | "VIEW_ONLY",
   permissions: readonly Permission[],
 ): boolean {
   if (level === "ADMIN") return true;
+  if (level === "VIEW_ONLY") return false;
   return permissions.includes("PAYMENTS");
 }
