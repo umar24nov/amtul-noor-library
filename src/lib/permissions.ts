@@ -6,6 +6,9 @@ import { errorState } from "@/lib/action-result";
 import type { PermissionKey } from "@/lib/permission-defs";
 import { roleCanEditPayments, roleCanViewPayments } from "@/lib/permission-defs";
 
+export { getSession } from "@/lib/auth";
+export type { SessionPayload } from "@/lib/auth";
+
 export {
   DAY_TO_DAY_DEFAULTS,
   PERMISSION_GROUPS,

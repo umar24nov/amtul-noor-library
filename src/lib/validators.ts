@@ -11,6 +11,8 @@ const emptyToUndefined = (value: unknown) => {
 const optionalText = (max: number) =>
   z.preprocess(emptyToUndefined, z.string().max(max, `Must be ${max} characters or fewer`).optional());
 
+export { optionalText };
+
 /**
  * Indian mobile numbers: 10 digits starting with 6-9. Spaces, dashes and a
  * leading +91 are tolerated and normalised away.
@@ -101,7 +103,6 @@ export type MemberFormOutput = z.output<typeof memberFormSchema>;
 export const paymentFormSchema = z
   .object({
     memberId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive("Select a member")),
-    month: monthKeySchema,
     amount: z.coerce
       .number({ message: "Amount is required" })
       .min(0, "Amount cannot be negative")

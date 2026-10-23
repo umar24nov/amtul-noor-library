@@ -3,6 +3,7 @@ import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { ExportResult } from "@/lib/export";
 import type { MemberExportRow, SeatExportRow } from "@/lib/export";
+import type { Expense } from "@/generated/prisma/client";
 
 /** Money cells are written as numbers so Excel can total and chart them. */
 const RUPEE_FORMAT = "#,##0";
@@ -171,6 +172,35 @@ export async function buildSeatsWorkbook(rows: SeatExportRow[]): Promise<Buffer>
       { Item: "Seats", Detail: rows.length },
       { Item: "Occupied", Detail: occupied },
       { Item: "Free", Detail: rows.length - occupied },
+    ],
+  };
+
+  return toWorkbook([sheet, totals]);
+}
+
+export async function buildExpensesWorkbook(rows: Expense[]): Promise<Buffer> {
+  const sheet: Sheet = {
+    name: "Expenses",
+    widths: [14, 12, 28, 16, 16, 14, 28],
+    rows: rows.map((row) => ({
+      Date: formatDate(row.date),
+      "Expense ID": row.expenseId,
+      Purpose: row.purpose,
+      Category: row.category ?? "",
+      "Paid To": row.paidTo ?? "",
+      Amount: Number(row.amount),
+      Remarks: row.remarks ?? "",
+    })),
+  };
+
+  const totals: Sheet = {
+    name: "Summary",
+    widths: [30, 16, 16],
+    rows: [
+      { Item: "Generated", Detail: formatDate(new Date()), Amount: "" },
+      { Item: "", Detail: "", Amount: "" },
+      { Item: "Entries", Detail: rows.length, Amount: "" },
+      { Item: "Total", Detail: "", Amount: rows.reduce((sum, row) => sum + Number(row.amount), 0) },
     ],
   };
 

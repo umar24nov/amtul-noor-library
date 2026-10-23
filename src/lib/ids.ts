@@ -3,6 +3,18 @@ import { MEMBER_ID_PREFIX, PAYMENT_ID_PREFIX } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import type { Payment, Prisma } from "@/generated/prisma/client";
 
+/** Next EXP number, never reused. */
+export async function nextExpenseId(db: Db = prisma): Promise<string> {
+  const last = await db.expense.findFirst({
+    orderBy: { id: "desc" },
+    select: { expenseId: true },
+  });
+  if (!last) return "EXP0001";
+  const match = last.expenseId.match(/EXP(\d+)/);
+  const next = match ? Number(match[1]) + 1 : 1;
+  return `EXP${String(next).padStart(4, "0")}`;
+}
+
 type Db = Prisma.TransactionClient | typeof prisma;
 
 function nextPaddedId(prefix: string, lastId: string | null | undefined, width: number): string {
