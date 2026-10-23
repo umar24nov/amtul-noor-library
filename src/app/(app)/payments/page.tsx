@@ -62,7 +62,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const memberFilter = params.memberId?.trim().toUpperCase() || undefined;
   const search = params.q ?? "";
   const mode = (params.mode as PaymentMode | undefined) ?? ALL;
-  const status = (params.status as PaymentStatus | undefined) ?? ALL;
+  const status = (params.status as PaymentStatus | undefined) ?? "ALL";
   // "Record payment" on a member page lands here; the dialog opens with that
   // member already selected so the fee can be collected without searching.
   const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : null;
@@ -184,12 +184,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               </FilterField>
 
               <FilterField label="Status">
-                {/* The status chooses what comes first; every record stays in
-                    the list under it. */}
                 <AutoSubmitSelect
                   name="status"
                   defaultValue={status}
-                  label="Bring a status to the top"
+                  label="Sort by status"
                   options={[
                     { value: ALL, label: "All statuses" },
                     ...(Object.keys(paymentStatusLabels) as PaymentStatus[]).map((value) => ({

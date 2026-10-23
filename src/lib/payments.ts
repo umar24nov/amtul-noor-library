@@ -54,19 +54,15 @@ export function isAutoPendingRow(row: {
 }
 
 /**
- * Brings the chosen status to the top of a list, keeping every row in it.
- *
- * The status dropdown on the payments screen chooses what comes first, not
- * what is left out: picking "Pending" shows the pending records at the top
- * and the paid ones below them, rather than hiding the paid ones. The rows
- * that are not chosen keep the order they arrived in.
+ * Brings pending payments to the top by default; otherwise brings the chosen status to the top.
  */
 export function prioritiseStatus<T extends { status: PaymentStatus }>(
   rows: T[],
   status: PaymentStatus | "ALL" | undefined,
 ): T[] {
-  if (!status || status === "ALL") return rows;
-  const chosen = rows.filter((row) => row.status === status);
-  const rest = rows.filter((row) => row.status !== status);
+  const target = status === "ALL" ? "PENDING" : status;
+  if (!target) return rows;
+  const chosen = rows.filter((row) => row.status === target);
+  const rest = rows.filter((row) => row.status !== target);
   return [...chosen, ...rest];
 }

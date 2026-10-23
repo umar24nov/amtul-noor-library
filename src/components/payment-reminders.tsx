@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
@@ -51,7 +52,12 @@ export function PaymentReminders({
             return (
               <li key={row.memberPk} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{row.name}</p>
+                <Link
+                  href={`/payments?memberId=${row.memberId}&status=PENDING`}
+                  className="truncate text-sm font-medium underline-offset-2 hover:underline"
+                >
+                  {row.name}
+                </Link>
                   <p className="font-mono text-xs text-muted-foreground">
                     {row.memberId} · {formatINR(row.due)} · due {formatDate(row.dueDate)}
                   </p>
