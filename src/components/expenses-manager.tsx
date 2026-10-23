@@ -169,10 +169,11 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
                 <DialogTitle>Add expense</DialogTitle>
                 <DialogDescription>Record money spent on the library.</DialogDescription>
               </DialogHeader>
-              <ExpenseForm
-                action={createExpenseAction}
-                submitLabel="Save expense"
-              />
+          <ExpenseForm
+            action={createExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
+            defaults={{ date: new Date() } as Partial<Expense>}
+            submitLabel="Save expense"
+          />
             </DialogContent>
           </Dialog>
         </div>
@@ -230,11 +231,11 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
             <DialogDescription>{edit?.expenseId}</DialogDescription>
           </DialogHeader>
           {edit ? (
-            <ExpenseForm
-              action={updateExpenseAction}
-              defaults={edit}
-              submitLabel="Save changes"
-            />
+          <ExpenseForm
+            action={updateExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
+            defaults={edit}
+            submitLabel="Save changes"
+          />
           ) : null}
         </DialogContent>
       </Dialog>
