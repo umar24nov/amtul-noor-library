@@ -53,7 +53,7 @@ export function ScrollToTop() {
       tabIndex={visible ? 0 : -1}
       onClick={scrollToTop}
       className={cn(
-        "fixed right-4 bottom-16 z-40 size-12 rounded-full border border-white/10 bg-black text-white shadow-lg shadow-black/30 transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-neutral-900 hover:shadow-xl focus-visible:ring-white/30 active:translate-y-0 sm:right-6 sm:bottom-32",
+        "fixed right-4 bottom-12 z-40 size-12 rounded-full border border-white/10 bg-black text-white shadow-lg shadow-black/30 transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-neutral-900 hover:shadow-xl focus-visible:ring-white/30 active:translate-y-0 sm:right-6 sm:bottom-16",
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0",
       )}
     >
