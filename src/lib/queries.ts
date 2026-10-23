@@ -20,6 +20,7 @@ import {
 import { getMonthlyFee, memberFeesByMemberId } from "@/lib/settings";
 import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
 import { deriveMonthStatus, summarizeArrears, type MonthStatus } from "@/lib/fees";
+import { pendingDueDate } from "@/lib/payments";
 import type {
   Member,
   Payment,
@@ -130,7 +131,13 @@ function buildSummaryRow(
   );
   const collected = settled.reduce((total, payment) => total + toNumber(payment.amount), 0);
 
-  const status = deriveMonthStatus(payments, joinedAfterMonth);
+  const rawStatus = deriveMonthStatus(payments, joinedAfterMonth);
+  // A member on a zero fee owes nothing: an unpaid month says nothing about
+  // them, so it is shown as not applicable instead of as money still due.
+  const status =
+    memberFee <= 0 && (rawStatus === "PENDING" || rawStatus === "NONE")
+      ? "NOT_APPLICABLE"
+      : rawStatus;
   const isDue = status === "PENDING" || status === "NONE";
 
   return {
@@ -215,7 +222,7 @@ export const getDashboardData = cache(
 
     const monthCollection = monthSummary.reduce((total, row) => total + row.collected, 0);
     const pendingRows = monthSummary.filter(
-      (row) => row.memberStatus === "ACTIVE" && row.status === "PENDING",
+      (row) => row.fee > 0 && row.memberStatus === "ACTIVE" && row.status === "PENDING",
     );
 
     return {
@@ -704,6 +711,8 @@ export type PaymentReminderRow = {
   memberId: string;
   mobile: string | null;
   due: number;
+  /** When the fee for the chosen month fell due: the member's joining day. */
+  dueDate: Date;
   status: "PENDING" | "NONE";
 };
 
@@ -719,7 +728,8 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
   return summary
     .filter(
       (row): row is typeof row & { status: "PENDING" | "NONE" } =>
-        row.status === "PENDING" || row.status === "NONE",
+        // Only members with a real fee owe anything. Skip zero-fee members entirely.
+        row.fee > 0 && row.due > 0 && (row.status === "PENDING" || row.status === "NONE"),
     )
     .map((row) => ({
       memberPk: row.memberPk,
@@ -727,6 +737,7 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
       memberId: row.memberId,
       mobile: row.mobile,
       due: row.due,
+      dueDate: pendingDueDate(month, row.joiningDate),
       status: row.status,
     }));
 }

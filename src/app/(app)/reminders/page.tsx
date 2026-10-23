@@ -38,7 +38,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
     <div className="grid gap-5">
       <PageHeader
         title="Reminders"
-        description={`Active members who still owe ${formatMonth(month)}, each with a one-tap reminder.`}
+        description={`Active members who still owe ${formatMonth(month)} (by joining-date cycle).`}
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -52,13 +52,13 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
         <StatCard
           label="Amount Due"
           value={formatINR(dueTotal)}
-          hint="Across those members"
+          hint="Across those members (fees vary)"
           icon={ReceiptIndianRupee}
         />
         <StatCard
           label="Month"
           value={formatMonth(month)}
-          hint="Change it below"
+          hint="Due date follows each member's joining day"
           icon={CalendarClock}
           tone="muted"
         />
