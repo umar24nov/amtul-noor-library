@@ -29,7 +29,7 @@ export type ReminderInfo = {
 
 /** The message asking one member for a month they have not paid yet. */
 export function paymentReminderMessage(info: ReminderInfo & { dueDate?: string | Date | null }): string {
-  const dueLabel = info.dueDate ? ` due on ${formatDate(info.dueDate)}` : "";
+  const dueLabel = info.dueDate ? ` on ${formatDate(info.dueDate)}` : "";
   return [
     `Hi ${info.name},`,
     ``,
