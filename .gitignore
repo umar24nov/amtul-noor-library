@@ -67,6 +67,10 @@ prod.err.log
 # stores them in production instead, so this folder is only a dev fallback.
 /public/uploads/
 
+# Loose papers that get dropped in the project folder by hand (not site files).
+/Expenditure.pdf
+
+
 # agent tooling installed by `npx prisma init` (regenerated on demand)
 .agents/
 .claude/
