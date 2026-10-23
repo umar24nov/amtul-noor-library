@@ -53,11 +53,11 @@ export function ScrollToTop() {
       tabIndex={visible ? 0 : -1}
       onClick={scrollToTop}
       className={cn(
-        "fixed right-4 bottom-24 z-40 size-11 rounded-full border-border bg-background/90 shadow-lg backdrop-blur transition-opacity duration-200 sm:right-6 sm:bottom-1/4",
-        visible ? "opacity-100" : "pointer-events-none opacity-0",
+        "fixed right-4 bottom-20 z-40 size-12 rounded-full border border-emerald-700/40 bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-950/25 transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:from-emerald-600 hover:to-emerald-800 hover:shadow-xl focus-visible:ring-emerald-400/50 active:translate-y-0 sm:right-6 sm:bottom-40",
+        visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0",
       )}
     >
-      <ArrowUp className="size-5" aria-hidden="true" />
+      <ArrowUp className="size-5" strokeWidth={2.5} aria-hidden="true" />
     </Button>
   );
 }
