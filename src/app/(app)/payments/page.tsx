@@ -23,7 +23,6 @@ import {
   getPaymentStats,
   listMemberOptions,
   listPayments,
-  listSelectableMonthOptions,
   listSelectableMonths,
 } from "@/lib/queries";
 import { getMonthlyFee } from "@/lib/settings";
@@ -68,13 +67,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   // member already selected so the fee can be collected without searching.
   const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : null;
 
-  const [result, stats, fee, members, months, monthOptions] = await Promise.all([
+  const [result, stats, fee, members, months] = await Promise.all([
     listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
     getPaymentStats(month),
     getMonthlyFee(),
     listMemberOptions(),
     listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
-    listSelectableMonthOptions(),
   ]);
 
   // Export mirrors the filters above, so the spreadsheet matches what is on screen.
@@ -97,7 +95,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               <PaymentsToolbar
                 members={members}
                 fee={fee}
-                months={monthOptions}
                 autoOpenMemberId={recordMemberId}
               />
             ) : null}
@@ -252,7 +249,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               payments={result.payments}
               members={members}
               fee={fee}
-              months={monthOptions}
               total={result.total}
               canEdit={canEdit}
               query={{

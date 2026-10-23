@@ -40,8 +40,10 @@ enum ApplicationStatus {
   REJECTED
 }
 
-/// The two abilities a role can grant. The owner picks a role's name freely,
-/// so several day-to-day names can exist, but only these two levels do.
+/// The abilities a role can grant. The owner picks a role's name freely,
+/// so several day-to-day names can exist. A full admin is always allowed
+/// everything, day-to-day can do the library work, and view-only can look
+/// without changing anything.
 enum RoleLevel {
   /// Full access: the day-to-day library work, plus user accounts and the
   /// monthly fee / settings.
@@ -49,6 +51,9 @@ enum RoleLevel {
   /// Day-to-day work only: members, applications, payments, reminders and seats.
   /// Cannot open the Users screen or change the monthly fee.
   DAY_TO_DAY
+  /// Read-only access: can see pages they are granted, but cannot create,
+  /// edit, delete, release seats or mark anyone as left.
+  VIEW_ONLY
 }
 
 /// The areas a role can be granted. Stored as a list on each role; a full-admin
@@ -63,6 +68,7 @@ enum Permission {
   SETTINGS
   USERS
   PAYMENTS_VIEW
+  EXPENSES
 }
 
 /// What someone did and when, for the owner's peace of mind. Sign-ins, sign-outs
@@ -307,6 +313,19 @@ model ActivityLog {
 
   @@index([userId, createdAt])
   @@index([createdAt])
+}
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  expenseId String   @unique
+  date      DateTime
+  amount    Decimal  @db.Decimal(10, 2)
+  category  String?
+  purpose   String
+  paidTo    String?
+  remarks   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// A message sent from the public help & support page. Anyone can write in

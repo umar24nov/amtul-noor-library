@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
 import { actionPermission, canViewPayments } from "@/lib/permissions";
-import { parseInputDate } from "@/lib/format";
+import { parseInputDate, monthKeyFromInputDate } from "@/lib/format";
 import { nextPaymentId, newReceiptToken, bumpPaymentId } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId, setMonthlyFee } from "@/lib/settings";
@@ -72,7 +72,6 @@ export async function recordPaymentAction(
   if ("denied" in gate) return gate.denied;
   const parsed = paymentFormSchema.safeParse({
     memberId: formData.get("memberId"),
-    month: formData.get("month"),
     amount: formData.get("amount"),
     paymentMode: formData.get("paymentMode"),
     paymentDate: formData.get("paymentDate"),
@@ -85,6 +84,10 @@ export async function recordPaymentAction(
   }
 
   const data = parsed.data;
+  // The fee runs by the member's joining day, so the month is read from the
+  // payment date rather than picked separately: paying on 8 October settles
+  // October.
+  const month = monthKeyFromInputDate(data.paymentDate);
 
   try {
     const member = await prisma.member.findUnique({
@@ -96,10 +99,10 @@ export async function recordPaymentAction(
     }
 
     const joinedMonth = joinedMonthKey(member.joiningDate);
-    if (data.month < joinedMonth) {
+    if (month < joinedMonth) {
       return errorState(
         `${member.name} joined in ${joinedMonth}, so an earlier month cannot be recorded.`,
-        { month: "Month is before the joining date" },
+        { paymentDate: "Date is before the joining date" },
       );
     }
 
@@ -113,7 +116,7 @@ export async function recordPaymentAction(
     const placeholder = await prisma.payment.findFirst({
       where: {
         memberId: data.memberId,
-        month: data.month,
+        month,
         status: "PENDING",
         remarks: AUTO_PENDING_REMARK,
       },
@@ -136,7 +139,7 @@ export async function recordPaymentAction(
         data: {
           paymentId: await nextPaymentId(),
           memberId: data.memberId,
-          month: data.month,
+          month,
           amount: data.amount,
           paymentMode: data.paymentMode,
           paymentDate,
@@ -165,7 +168,6 @@ export async function updatePaymentAction(
 
   const parsed = paymentFormSchema.safeParse({
     memberId: formData.get("memberId"),
-    month: formData.get("month"),
     amount: formData.get("amount"),
     paymentMode: formData.get("paymentMode"),
     paymentDate: formData.get("paymentDate"),
@@ -184,14 +186,17 @@ export async function updatePaymentAction(
     });
     if (!existing) return errorState("Payment not found.");
 
+    const paymentDate = parseInputDate(parsed.data.paymentDate);
+
     await prisma.payment.update({
       where: { id },
       data: {
         memberId: parsed.data.memberId,
-        month: parsed.data.month,
+        // Moving a payment to another date moves it to that month.
+        month: monthKeyFromInputDate(parsed.data.paymentDate),
         amount: parsed.data.amount,
         paymentMode: parsed.data.paymentMode,
-        paymentDate: parseInputDate(parsed.data.paymentDate),
+        paymentDate,
         status: parsed.data.status,
         remarks: parsed.data.remarks ?? null,
       },
@@ -199,6 +204,41 @@ export async function updatePaymentAction(
 
     revalidateAll();
     return successState(`Payment updated for ${existing.member.name}.`);
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Removes one payment record for good.
+ *
+ * The record may be a receipt someone already holds a link to, so the row and
+ * its receipt token go together; anyone opening the old receipt link after
+ * this gets "not available". Editing is the reversible option; this one is not.
+ */
+export async function deletePaymentAction(recordId: number): Promise<ActionState> {
+  const gate = await actionPermission("PAYMENTS");
+  if ("denied" in gate) return gate.denied;
+  if (!Number.isInteger(recordId) || recordId <= 0) return errorState("Payment not found.");
+
+  try {
+    const existing = await prisma.payment.findUnique({
+      where: { id: recordId },
+      select: {
+        id: true,
+        paymentId: true,
+        month: true,
+        member: { select: { name: true } },
+      },
+    });
+    if (!existing) return errorState("Payment not found.");
+
+    await prisma.payment.delete({ where: { id: recordId } });
+
+    revalidateAll();
+    return successState(
+      `Deleted ${existing.paymentId} for ${existing.member.name} (${existing.month}).`,
+    );
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

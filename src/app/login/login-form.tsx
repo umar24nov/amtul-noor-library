@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ function SubmitButton() {
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState(loginAction, IDLE_STATE);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -40,7 +41,6 @@ export function LoginForm({ next }: { next?: string }) {
           type="email"
           inputMode="email"
           autoComplete="username"
-          placeholder="admin@amtulnoorlibrary.com"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
           className="h-11"
@@ -52,16 +52,30 @@ export function LoginForm({ next }: { next?: string }) {
 
       <div className="grid gap-1.5">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          required
-          aria-invalid={Boolean(state.fieldErrors?.password)}
-          className="h-11"
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            aria-invalid={Boolean(state.fieldErrors?.password)}
+            className="h-11 pr-11"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((shown) => !shown)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {showPassword ? (
+              <EyeOff className="size-4" aria-hidden="true" />
+            ) : (
+              <Eye className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
         {state.fieldErrors?.password && (
           <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
         )}
