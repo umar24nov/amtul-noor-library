@@ -49,19 +49,21 @@ function ExpenseForm({
   action,
   defaults,
   submitLabel,
-  onSuccess,
 }: {
-  action: (prev: any, formData: FormData) => Promise<any>;
+  action: (prev: unknown, formData: FormData) => Promise<unknown>;
   defaults?: Partial<Expense>;
   submitLabel: string;
-  onSuccess: () => void;
 }) {
-  const [state, formAction] = useActionState(action as any, IDLE_STATE);
-  const s = state as any;
+  const [state, formAction] = useActionState(action, IDLE_STATE as unknown);
+  const s = state as {
+    status: string;
+    message?: string;
+    fieldErrors?: Record<string, string>;
+  };
 
   return (
     <form
-      action={formAction as any}
+      action={formAction}
       className="grid gap-4"
     >
       {defaults?.id ? <input type="hidden" name="expensePk" value={defaults.id} /> : null}
@@ -170,7 +172,6 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
               <ExpenseForm
                 action={createExpenseAction}
                 submitLabel="Save expense"
-                onSuccess={() => setAddOpen(false)}
               />
             </DialogContent>
           </Dialog>
@@ -233,7 +234,6 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
               action={updateExpenseAction}
               defaults={edit}
               submitLabel="Save changes"
-              onSuccess={() => setEdit(null)}
             />
           ) : null}
         </DialogContent>
