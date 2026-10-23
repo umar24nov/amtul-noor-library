@@ -40,6 +40,7 @@ type SearchParams = Promise<{
   status?: string;
   /** Numeric member id from a member page's "Record payment" button. */
   record?: string;
+  tab?: string;
 }>;
 
 const ALL = "ALL";
@@ -65,7 +66,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const status = (params.status as PaymentStatus | undefined) ?? "ALL";
   // "Record payment" on a member page lands here; the dialog opens with that
   // member already selected so the fee can be collected without searching.
-  const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : null;
+  const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : /^\d+$/.test(params.memberId ?? "") && params.tab === "record" ? Number(params.memberId) : null;
 
   const [result, stats, fee, members, months] = await Promise.all([
     listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
