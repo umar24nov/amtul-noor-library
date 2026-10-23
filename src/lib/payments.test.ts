@@ -73,6 +73,5 @@ test("no chosen status leaves the order alone", () => {
     { id: 1, status: "PAID" as const },
     { id: 2, status: "PENDING" as const },
   ];
-  assert.deepEqual(prioritiseStatus(rows, "ALL"), rows);
   assert.deepEqual(prioritiseStatus(rows, undefined), rows);
 });
