@@ -28,13 +28,14 @@ export type ReminderInfo = {
 };
 
 /** The message asking one member for a month they have not paid yet. */
-export function paymentReminderMessage(info: ReminderInfo): string {
+export function paymentReminderMessage(info: ReminderInfo & { dueDate?: string | Date | null }): string {
+  const dueLabel = info.dueDate ? ` due on ${formatDate(info.dueDate)}` : "";
   return [
     `Hi ${info.name},`,
     ``,
     `This is ${LIBRARY_NAME}. Your fee of ${formatINR(info.due)} for ${formatMonth(
       info.month,
-    )} is still due.`,
+    )} is due${dueLabel}.`,
     `You can pay by visiting us during opening hours or on WhatsApp.`,
     ``,
     `Thank you.`,
@@ -44,7 +45,7 @@ export function paymentReminderMessage(info: ReminderInfo): string {
 /** A chat with the member asking for their pending fee. */
 export function paymentReminderUrl(
   mobile: string | null | undefined,
-  info: ReminderInfo,
+  info: ReminderInfo & { dueDate?: string | Date | null },
 ): string | null {
   const digits = mobile?.replace(/\D/g, "");
   if (!digits) return null;
@@ -64,7 +65,7 @@ export function overdueReminderMessage(info: OverdueReminderInfo): string {
   return [
     `Hi ${info.name},`,
     ``,
-    `This is ${LIBRARY_NAME}. Your membership fee is still due for ${info.months.length} ${
+    `This is ${LIBRARY_NAME}. Your membership fee is due for ${info.months.length} ${
       info.months.length === 1 ? "month" : "months"
     }:`,
     list,
