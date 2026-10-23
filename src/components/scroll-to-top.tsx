@@ -3,7 +3,6 @@
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** How far down the page the pointer stays hidden. */
@@ -44,20 +43,18 @@ export function ScrollToTop() {
   };
 
   return (
-    <Button
+    <button
       type="button"
-      variant="outline"
-      size="icon"
       aria-label="Back to top"
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       onClick={scrollToTop}
       className={cn(
-        "fixed right-4 bottom-12 z-40 size-12 cursor-pointer rounded-full border border-white/10 bg-black text-white shadow-lg shadow-black/30 transition-opacity duration-200 focus-visible:ring-white/30 active:translate-y-0 sm:right-6 sm:bottom-16",
+        "fixed right-4 bottom-12 z-40 grid size-12 cursor-pointer place-items-center rounded-full border border-white/10 bg-black text-white shadow-lg shadow-black/30 transition-opacity duration-200 outline-none focus-visible:ring-3 focus-visible:ring-white/30 sm:right-6 sm:bottom-16",
         visible ? "opacity-100" : "pointer-events-none opacity-0",
       )}
     >
       <ArrowUp className="size-5" strokeWidth={2.5} aria-hidden="true" />
-    </Button>
+    </button>
   );
 }
