@@ -60,7 +60,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="flex items-center justify-between gap-3 py-3">
+        <div className="relative flex items-center justify-between gap-3 py-3">
           <Link
             href="/"
             className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -70,7 +70,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
 
           <nav
             aria-label="Page sections"
-            className="hidden items-center gap-1 rounded-full border border-border/70 bg-background/60 p-1 shadow-sm lg:flex"
+            className="hidden items-center gap-1 rounded-full border border-border/70 bg-background/60 p-1 shadow-sm lg:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2"
           >
             {items.map((item) => (
               <DesktopLink key={item.href} {...item} />
