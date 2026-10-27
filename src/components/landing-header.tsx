@@ -63,7 +63,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
         <div className="flex items-center justify-between gap-3 py-3">
           <Link
             href="/"
-            className="min-w-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="min-w-0 flex-1 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Brand compact />
           </Link>
@@ -77,8 +77,8 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <Button asChild size="lg" className="h-9">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <Button asChild size="sm" className="h-8 px-2.5 text-xs sm:h-9 sm:px-4 sm:text-sm">
               <Link href="/join">Book your seat</Link>
             </Button>
 
@@ -86,8 +86,8 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
-                  size="icon-lg"
-                  className="size-9 md:hidden"
+                  size="icon"
+                  className="size-8 sm:size-9 md:hidden"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="size-5" />
