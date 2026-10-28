@@ -23,6 +23,9 @@ export function RevenueChart({
 }) {
   const max = Math.max(1, ...series.map((point) => point.total));
   const focused = series.find((point) => point.month === highlighted);
+  // Drawn oldest month first, left to right, because that is the way a chart is
+  // read: time moves to the right. The query hands them over newest first.
+  const points = series.slice();
 
   return (
     <Card>
@@ -38,7 +41,7 @@ export function RevenueChart({
       </CardHeader>
       <CardContent>
         <div className="flex h-44 items-end gap-1.5" aria-hidden="true">
-          {series.map((point) => {
+          {points.map((point) => {
             const share = Math.max(point.total / max, 0.02);
             const isFocused = point.month === highlighted;
             return (
@@ -56,7 +59,7 @@ export function RevenueChart({
           })}
         </div>
         <div className="mt-2 flex gap-1.5" aria-hidden="true">
-          {series.map((point) => (
+          {points.map((point) => (
             <span
               key={point.month}
               className="flex-1 truncate text-center text-[0.65rem] text-muted-foreground"
