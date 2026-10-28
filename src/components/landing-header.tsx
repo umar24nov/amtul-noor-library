@@ -70,7 +70,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
 
           <nav
             aria-label="Page sections"
-            className="hidden items-center gap-1 rounded-full border border-border/70 bg-background/60 p-1 shadow-sm md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2"
+            className="hidden items-center gap-1 rounded-full border border-border/70 bg-background/60 p-1 shadow-sm md:flex md:absolute md:left-1/2 md:-translate-x-1/2"
           >
             {items.map((item) => (
               <DesktopLink key={item.href} {...item} />
@@ -78,7 +78,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <Button asChild size="sm" className="h-8 px-2.5 text-xs sm:h-9 sm:px-4 sm:text-sm max-[380px]:hidden">
+            <Button asChild size="sm" className="h-8 px-2.5 text-xs sm:h-9 sm:px-4 sm:text-sm">
               <Link href="/join">Book your seat</Link>
             </Button>
 
@@ -87,7 +87,7 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-8 sm:size-9"
+                  className="size-8 sm:size-9 md:hidden"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="size-5" />
@@ -102,14 +102,6 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
                   aria-label="Page sections"
                   className="flex flex-col gap-1 p-3"
                 >
-                  <Link
-                    href="/join"
-                    onClick={() => setOpen(false)}
-                    className="group hidden items-center gap-2 rounded-lg border border-foreground/10 bg-foreground px-3 py-2.5 text-sm font-medium text-background transition-all duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-[380px]:flex"
-                  >
-                    Book your seat
-                    <ArrowRight className="size-4 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
-                  </Link>
                   {items.map((item) => (
                     <MobileLink
                       key={item.href}
