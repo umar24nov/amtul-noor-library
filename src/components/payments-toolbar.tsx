@@ -12,7 +12,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PaymentForm, type MemberOption } from "@/components/payment-form";
-import type { MonthOption } from "@/lib/format";
 import { recordPaymentAction } from "@/app/(app)/payments/actions";
 
 /**
@@ -27,13 +26,10 @@ import { recordPaymentAction } from "@/app/(app)/payments/actions";
 export function PaymentsToolbar({
   members,
   fee,
-  months,
   autoOpenMemberId,
 }: {
   members: MemberOption[];
   fee: number;
-  /** Months offered by the pickers, derived from the data. */
-  months?: MonthOption[];
   /** Member id pulled from the `record` query param; opens the dialog for them. */
   autoOpenMemberId?: number | null;
 }) {
@@ -68,7 +64,6 @@ export function PaymentsToolbar({
           action={recordPaymentAction}
           members={members}
           defaultFee={fee}
-          months={months}
           defaults={preselectedMemberId != null ? { memberId: preselectedMemberId } : undefined}
           onSuccess={() => setOpen(false)}
         />
