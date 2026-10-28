@@ -53,7 +53,7 @@ export function PaymentReminders({
               <li key={row.memberPk} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
                 <Link
-                  href={`/payments?memberId=${row.memberId}&tab=record`}
+                  href={`/payments?memberId=${row.memberId}&record=1&tab=record`}
                   className="truncate text-sm font-medium underline-offset-2 hover:underline"
                 >
                   {row.name}
