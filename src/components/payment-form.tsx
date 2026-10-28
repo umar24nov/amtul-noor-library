@@ -4,13 +4,12 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import { AlertCircle, Check, Search } from "lucide-react";
-import { cn } from "cn";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
-import { currentMonthKey, formatINR, monthOptions, todayInputValue, type MonthOption } from "@/lib/format";
+import { formatINR, todayInputValue } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
@@ -25,7 +24,6 @@ export type MemberOption = {
 export type PaymentFormDefaults = {
   recordId?: number;
   memberId?: number;
-  month?: string;
   amount?: string;
   paymentMode?: PaymentMode;
   paymentDate?: string;
@@ -162,7 +160,6 @@ export function PaymentForm({
   members,
   defaults,
   defaultFee,
-  months,
   submitLabel = "Record payment",
   onSuccess,
 }: {
@@ -170,8 +167,6 @@ export function PaymentForm({
   members: MemberOption[];
   defaults?: PaymentFormDefaults;
   defaultFee: number;
-  /** Months offered by the picker, derived from the data. Falls back when absent. */
-  months?: MonthOption[];
   submitLabel?: string;
   onSuccess?: () => void;
 }) {
@@ -210,25 +205,6 @@ export function PaymentForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label htmlFor={`${defaults?.recordId ?? "new"}-month`}>
-            Month <span className="text-destructive">*</span>
-          </Label>
-          <select
-            id={`${defaults?.recordId ?? "new"}-month`}
-            name="month"
-            defaultValue={defaults?.month ?? currentMonthKey()}
-            className={cn(FIELD_CLASS, state.fieldErrors?.month && "border-destructive")}
-          >
-            {(months ?? monthOptions(24, 1)).map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <FieldError message={state.fieldErrors?.month} />
-        </div>
-
-        <div className="grid gap-1.5">
           <Label htmlFor={`${defaults?.recordId ?? "new"}-date`}>
             Payment date <span className="text-destructive">*</span>
           </Label>
@@ -239,7 +215,11 @@ export function PaymentForm({
             defaultValue={defaults?.paymentDate ?? todayInputValue()}
             required
             className="h-11"
+            aria-invalid={Boolean(state.fieldErrors?.paymentDate)}
           />
+          <p className="text-xs text-muted-foreground">
+            Month is derived from the payment date.
+          </p>
           <FieldError message={state.fieldErrors?.paymentDate} />
         </div>
 
