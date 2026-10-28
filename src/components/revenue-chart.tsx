@@ -25,7 +25,7 @@ export function RevenueChart({
   const focused = series.find((point) => point.month === highlighted);
   // Drawn oldest month first, left to right, because that is the way a chart is
   // read: time moves to the right. The query hands them over newest first.
-  const points = series.slice();
+  const points = series.slice().reverse();
 
   return (
     <Card>
