@@ -57,6 +57,9 @@ export function summarizeArrears({
   paymentsByMonth,
 }: ArrearsInput): ArrearsSummary {
   const joinedMonth = monthKeyFromInputDate(joiningDate);
+  // No fee means nothing to owe, whatever the month.
+  if (fee <= 0) return { months: [], totalDue: 0 };
+
   const owed: string[] = [];
   let totalDue = 0;
 
