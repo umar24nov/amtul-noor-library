@@ -151,7 +151,7 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
               <Label htmlFor="mk-edit-date">
                 Date <span className="text-destructive">*</span>
               </Label>
-              <Input id="mk-edit-date" name="date" type="text" defaultValue={formatDate(item.date)} required className="h-11" />
+              <Input id="mk-edit-date" name="date" type="text" defaultValue={(() => { const d = formatDate(item.date); const m = d.match(/(\d{2}) [A-Za-z]{3} (\d{4})/); return m ? m[1] + '/' + m[2] : d; })()} required className="h-11" />
               <FieldError message={s.fieldErrors?.date} />
             </div>
 

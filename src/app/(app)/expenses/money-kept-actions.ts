@@ -39,6 +39,31 @@ function parseFlexibleDate(input: string): Date {
     const month = parseInt(yymm[2], 10);
     return new Date(year, month - 1, 1);
   }
+  // Try formats like 01 Nov 2026 or 1 Nov 2026
+  const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
+  if (dMonY) {
+    const day = parseInt(dMonY[1], 10);
+    const monthName = dMonY[2].toLowerCase();
+    const year = parseInt(dMonY[3], 10);
+    const months: Record<string, number> = {
+      jan: 0, january: 0,
+      feb: 1, february: 1,
+      mar: 2, march: 2,
+      apr: 3, april: 3,
+      may: 4,
+      jun: 5, june: 5,
+      jul: 6, july: 6,
+      aug: 7, august: 7,
+      sep: 8, sept: 8, september: 8,
+      oct: 9, october: 9,
+      nov: 10, november: 10,
+      dec: 11, december: 11,
+    };
+    const m = months[monthName.slice(0,3)] !== undefined ? months[monthName.slice(0,3)] : months[monthName];
+    if (m !== undefined) {
+      return new Date(year, m, day);
+    }
+  }
   return parseInputDate(s);
 }
 
