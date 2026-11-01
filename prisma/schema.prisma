@@ -328,6 +328,18 @@ model Expense {
   updatedAt DateTime @updatedAt
 }
 
+model MoneyKept {
+  id           Int      @id @default(autoincrement())
+  moneyKeptId  String   @unique
+  date         DateTime
+  amount       Decimal  @db.Decimal(10, 2)
+  person       String
+  purpose      String?
+  remarks      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 /// A message sent from the public help & support page. Anyone can write in
 /// without an account, so this is deliberately separate from a membership
 /// application: it is a question, a bug report or a note for the owner rather

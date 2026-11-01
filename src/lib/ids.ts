@@ -15,6 +15,18 @@ export async function nextExpenseId(db: Db = prisma): Promise<string> {
   return `EXP${String(next).padStart(4, "0")}`;
 }
 
+/** Next MK number, never reused. */
+export async function nextMoneyKeptId(db: Db = prisma): Promise<string> {
+  const last = await db.moneyKept.findFirst({
+    orderBy: { id: "desc" },
+    select: { moneyKeptId: true },
+  });
+  if (!last) return "MK0001";
+  const match = last.moneyKeptId.match(/MK(\d+)/);
+  const next = match ? Number(match[1]) + 1 : 1;
+  return `MK${String(next).padStart(4, "0")}`;
+}
+
 type Db = Prisma.TransactionClient | typeof prisma;
 
 function nextPaddedId(prefix: string, lastId: string | null | undefined, width: number): string {

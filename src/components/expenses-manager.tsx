@@ -189,10 +189,7 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
                 <th className="px-3 py-2 font-medium">Date</th>
                 <th className="px-3 py-2 font-medium">ID</th>
                 <th className="px-3 py-2 font-medium">Purpose</th>
-                <th className="px-3 py-2 font-medium">Category</th>
-                <th className="px-3 py-2 font-medium">Paid to</th>
                 <th className="px-3 py-2 text-right font-medium">Amount</th>
-                <th className="px-3 py-2 font-medium">Remarks</th>
                 {canEdit ? <th className="px-3 py-2 text-right font-medium">Actions</th> : null}
               </tr>
             </thead>
@@ -202,10 +199,7 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
                   <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatDate(item.date)}</td>
                   <td className="px-3 py-2.5 font-mono text-xs">{item.expenseId}</td>
                   <td className="px-3 py-2.5">{item.purpose}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{item.category ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{item.paidTo ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{item.remarks ?? "—"}</td>
                   {canEdit ? (
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1">
