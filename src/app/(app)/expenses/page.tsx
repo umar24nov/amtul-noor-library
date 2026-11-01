@@ -24,7 +24,7 @@ export default async function ExpensesPage({
 
   const [expenses, moneyKept, session] = await Promise.all([
     prisma.expense.findMany({
-      orderBy: [{ date: "asc" }, { id: "asc" }, { expenseId: "asc" }],
+      orderBy: [{ date: "asc" }, { expenseId: "asc" }, { id: "asc" }],
     }),
     prisma.moneyKept.findMany({
       orderBy: [{ date: "asc" }, { id: "asc" }],
