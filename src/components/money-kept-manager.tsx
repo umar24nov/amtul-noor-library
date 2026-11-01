@@ -34,7 +34,7 @@ function SaveButton({ label }: { label: string }) {
 
 export function MoneyKeptAddButton() {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(createMoneyKeptAction, IDLE_STATE as unknown);
+  const [state, formAction] = useActionState(createMoneyKeptAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>, IDLE_STATE as unknown);
   const s = state as {
     status: string;
     message?: string;

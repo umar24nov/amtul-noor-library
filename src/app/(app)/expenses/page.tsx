@@ -148,7 +148,3 @@ export default async function ExpensesPage({
     </div>
   );
 }
-
-    </div>
-  );
-}
