@@ -78,7 +78,7 @@ export default async function ExpensesPage({
         <Link
           href="/expenses"
           className={cn(
-            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
+            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors border border-transparent hover:border-border",
             currentView === "expenses"
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -89,7 +89,7 @@ export default async function ExpensesPage({
         <Link
           href="/expenses?view=money-kept"
           className={cn(
-            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
+            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors border border-transparent hover:border-border",
             currentView === "money-kept"
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground hover:bg-muted/80"

@@ -119,16 +119,7 @@ function ExpenseForm({
         <FieldError message={s.fieldErrors?.purpose} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-1.5">
-          <Label htmlFor="exp-category">Category</Label>
-          <Input id="exp-category" name="category" defaultValue={defaults?.category ?? ""} placeholder="Optional" className="h-11" />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="exp-paidto">Paid to</Label>
-          <Input id="exp-paidto" name="paidTo" defaultValue={defaults?.paidTo ?? ""} placeholder="Person or shop" className="h-11" />
-        </div>
-      </div>
+
 
       <div className="grid gap-1.5">
         <Label htmlFor="exp-remarks">Remarks</Label>
