@@ -9,6 +9,7 @@ import { formatDate, formatINR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSession, requirePermission } from "@/lib/permissions";
 import { ExpensesManager } from "@/components/expenses-manager";
+import { MoneyKeptAddButton } from "@/components/money-kept-manager";
 
 export const metadata: Metadata = { title: "Expenses" };
 
@@ -110,8 +111,9 @@ export default async function ExpensesPage({
         </div>
       ) : (
         <div className="rounded-lg border border-border">
-          <div className="border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-medium">Money Kept</h2>
+            {canEdit ? <MoneyKeptAddButton /> : null}
           </div>
           <div className="p-4">
             {moneyKept.length === 0 ? (
@@ -143,6 +145,10 @@ export default async function ExpensesPage({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
     </div>
   );
 }
