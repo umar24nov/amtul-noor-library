@@ -185,10 +185,10 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {expenses.map((item) => (
+              {expenses.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-muted/30">
                   <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatDate(item.date)}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{item.expenseId}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{String(expenses.length - idx).padStart(3, "0")}</td>
                   <td className="px-3 py-2.5">{item.purpose}</td>
                   <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
                   {canEdit ? (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +15,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { IDLE_STATE } from "@/lib/action-result";
-import { todayInputValue } from "@/lib/format";
-import { createMoneyKeptAction } from "@/app/(app)/expenses/money-kept-actions";
+import { formatDate } from "@/lib/format";
+import { createMoneyKeptAction, deleteMoneyKeptAction, updateMoneyKeptAction } from "@/app/(app)/expenses/money-kept-actions";
+import type { MoneyKept } from "@/generated/prisma/client";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -92,5 +104,110 @@ export function MoneyKeptAddButton() {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function MoneyKeptActions({ item }: { item: MoneyKept }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [state, formAction] = useActionState(updateMoneyKeptAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>, IDLE_STATE as unknown);
+  const s = state as {
+    status: string;
+    message?: string;
+    fieldErrors?: Record<string, string>;
+  };
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" className="size-9">
+            <Pencil className="size-3.5" />
+            <span className="sr-only">Edit</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit money kept</DialogTitle>
+            <DialogDescription>{item.moneyKeptId}</DialogDescription>
+          </DialogHeader>
+          <form action={formAction} className="grid gap-4">
+            <input type="hidden" name="moneyKeptPk" value={item.id} />
+            {s.status === "error" && s.message ? (
+              <p className="text-sm text-destructive">{s.message}</p>
+            ) : null}
+            {s.status === "success" ? (
+              <p className="text-sm text-green-600">{s.message}</p>
+            ) : null}
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="mk-edit-date">
+                Date <span className="text-destructive">*</span>
+              </Label>
+              <Input id="mk-edit-date" name="date" type="text" defaultValue={formatDate(item.date)} required className="h-11" />
+              <FieldError message={s.fieldErrors?.date} />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="mk-edit-person">
+                Person <span className="text-destructive">*</span>
+              </Label>
+              <Input id="mk-edit-person" name="person" defaultValue={item.person} className="h-11" />
+              <FieldError message={s.fieldErrors?.person} />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="mk-edit-amount">
+                Amount (₹) <span className="text-destructive">*</span>
+              </Label>
+              <Input id="mk-edit-amount" name="amount" type="number" inputMode="decimal" min="0" step="1" defaultValue={String(item.amount)} className="h-11" />
+              <FieldError message={s.fieldErrors?.amount} />
+            </div>
+
+            <div className="flex justify-end">
+              <SaveButton label="Save changes" />
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <DeleteMoneyKeptButton moneyKeptPk={item.id} person={item.person} />
+    </div>
+  );
+}
+
+function DeleteMoneyKeptButton({ moneyKeptPk, person }: { moneyKeptPk: number; person: string }) {
+  const [pending, startTransition] = useTransition();
+  const remove = () => {
+    startTransition(async () => {
+      const result = await deleteMoneyKeptAction(moneyKeptPk);
+      if (result.status === "error") {
+        toast.error(result.message ?? "Could not delete");
+        return;
+      }
+      toast.success(result.message ?? "Deleted");
+    });
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="icon" className="size-9 text-destructive">
+          <Trash2 className="size-3.5" />
+          <span className="sr-only">Delete</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+          <AlertDialogDescription>{person}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <Button variant="destructive" onClick={remove} disabled={pending}>
+            {pending ? "Deleting…" : "Delete"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

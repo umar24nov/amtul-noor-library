@@ -9,7 +9,7 @@ import { formatDate, formatINR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSession, requirePermission } from "@/lib/permissions";
 import { ExpensesManager } from "@/components/expenses-manager";
-import { MoneyKeptAddButton } from "@/components/money-kept-manager";
+import { MoneyKeptAddButton, MoneyKeptActions } from "@/components/money-kept-manager";
 
 export const metadata: Metadata = { title: "Expenses" };
 
@@ -24,10 +24,10 @@ export default async function ExpensesPage({
 
   const [expenses, moneyKept, session] = await Promise.all([
     prisma.expense.findMany({
-      orderBy: [{ date: "asc" }, { expenseId: "asc" }, { id: "asc" }],
+      orderBy: [{ date: "desc" }, { id: "desc" }],
     }),
     prisma.moneyKept.findMany({
-      orderBy: [{ date: "asc" }, { id: "asc" }],
+      orderBy: [{ date: "desc" }, { id: "desc" }],
     }),
     getSession(),
   ]);
@@ -127,15 +127,21 @@ export default async function ExpensesPage({
                       <th className="px-3 py-2 font-medium">ID</th>
                       <th className="px-3 py-2 font-medium">Person</th>
                       <th className="px-3 py-2 text-right font-medium">Amount</th>
+                      {canEdit ? <th className="px-3 py-2 text-right font-medium">Actions</th> : null}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {moneyKept.map((item) => (
+                    {moneyKept.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-muted/30">
                         <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatDate(item.date)}</td>
-                        <td className="px-3 py-2.5 font-mono text-xs">{item.moneyKeptId}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs">{String(moneyKept.length - idx).padStart(3, "0")}</td>
                         <td className="px-3 py-2.5">{item.person}</td>
                         <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
+                        {canEdit ? (
+                          <td className="px-3 py-2.5 text-right">
+                            <MoneyKeptActions item={item} />
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>

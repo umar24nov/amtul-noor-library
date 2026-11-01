@@ -20,14 +20,12 @@ function revalidateAll() {
 
 function parseFlexibleDate(input: string): Date {
   const s = input.trim();
-  // Try MM/YYYY
   const mmyyyy = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
   if (mmyyyy) {
     const month = parseInt(mmyyyy[1], 10);
     const year = parseInt(mmyyyy[2], 10);
     return new Date(year, month - 1, 1);
   }
-  // Try DD/MM/YYYY
   const ddmmyyyy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (ddmmyyyy) {
     const day = parseInt(ddmmyyyy[1], 10);
@@ -35,14 +33,12 @@ function parseFlexibleDate(input: string): Date {
     const year = parseInt(ddmmyyyy[3], 10);
     return new Date(year, month - 1, day);
   }
-  // Try YYYY-MM
   const yymm = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
   if (yymm) {
     const year = parseInt(yymm[1], 10);
     const month = parseInt(yymm[2], 10);
     return new Date(year, month - 1, 1);
   }
-  // Fallback to existing parser
   return parseInputDate(s);
 }
 
@@ -80,6 +76,67 @@ export async function createMoneyKeptAction(_prev: ActionState, formData: FormDa
     });
     revalidateAll();
     return successState("Money kept added.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+export async function updateMoneyKeptAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requirePermission("EXPENSES");
+  if (session.level !== "ADMIN" && !session.permissions?.includes("EXPENSES")) {
+    return errorState("You do not have permission to edit money kept.");
+  }
+
+  const moneyKeptPk = Number(formData.get("moneyKeptPk"));
+  if (!Number.isFinite(moneyKeptPk)) {
+    return errorState("Invalid entry.");
+  }
+
+  const parsed = moneyKeptSchema.safeParse({
+    date: formData.get("date"),
+    amount: formData.get("amount"),
+    person: formData.get("person"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0];
+      if (typeof key === "string") fieldErrors[key] = issue.message;
+    }
+    return errorState("Please check the highlighted fields.", fieldErrors);
+  }
+
+  try {
+    await prisma.moneyKept.update({
+      where: { id: moneyKeptPk },
+      data: {
+        date: parseFlexibleDate(parsed.data.date),
+        amount: parsed.data.amount,
+        person: parsed.data.person,
+      },
+    });
+    revalidateAll();
+    return successState("Money kept updated.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+export async function deleteMoneyKeptAction(moneyKeptPk: number): Promise<ActionState> {
+  const session = await requirePermission("EXPENSES");
+  if (session.level !== "ADMIN" && !session.permissions?.includes("EXPENSES")) {
+    return errorState("You do not have permission to delete money kept.");
+  }
+
+  if (!Number.isFinite(moneyKeptPk)) {
+    return errorState("Invalid entry.");
+  }
+
+  try {
+    await prisma.moneyKept.delete({ where: { id: moneyKeptPk } });
+    revalidateAll();
+    return successState("Money kept deleted.");
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
