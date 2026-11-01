@@ -33,9 +33,9 @@ export async function createExpenseAction(
     date: formData.get("date"),
     amount: formData.get("amount"),
     purpose: formData.get("purpose"),
-    category: formData.get("category"),
-    paidTo: formData.get("paidTo"),
-    remarks: formData.get("remarks"),
+    category: formData.get("category") ?? "",
+    paidTo: formData.get("paidTo") ?? "",
+    remarks: formData.get("remarks") ?? "",
   });
 
   if (!parsed.success) {
@@ -76,9 +76,9 @@ export async function updateExpenseAction(
     date: formData.get("date"),
     amount: formData.get("amount"),
     purpose: formData.get("purpose"),
-    category: formData.get("category"),
-    paidTo: formData.get("paidTo"),
-    remarks: formData.get("remarks"),
+    category: formData.get("category") ?? "",
+    paidTo: formData.get("paidTo") ?? "",
+    remarks: formData.get("remarks") ?? "",
   });
 
   if (!parsed.success) {

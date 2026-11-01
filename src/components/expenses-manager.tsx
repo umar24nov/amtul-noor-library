@@ -49,10 +49,12 @@ function ExpenseForm({
   action,
   defaults,
   submitLabel,
+  onSuccess,
 }: {
   action: (prev: unknown, formData: FormData) => Promise<unknown>;
   defaults?: Partial<Expense>;
   submitLabel: string;
+  onSuccess?: () => void;
 }) {
   const [state, formAction] = useActionState(action, IDLE_STATE as unknown);
   const s = state as {
@@ -60,6 +62,13 @@ function ExpenseForm({
     message?: string;
     fieldErrors?: Record<string, string>;
   };
+
+  if (s.status === "success") {
+    if (onSuccess) {
+      // Close on success
+      setTimeout(() => onSuccess(), 300);
+    }
+  }
 
   return (
     <form
@@ -81,7 +90,7 @@ function ExpenseForm({
             id="exp-date"
             name="date"
             type="date"
-            defaultValue={defaults?.date ? new Date(defaults.date).toISOString().slice(0, 10) : todayInputValue()}
+            defaultValue={defaults?.date ? (defaults.date instanceof Date ? defaults.date.toISOString().slice(0, 10) : new Date(defaults.date).toISOString().slice(0, 10)) : todayInputValue()}
             required
             className="h-11"
           />
@@ -113,7 +122,6 @@ function ExpenseForm({
           id="exp-purpose"
           name="purpose"
           defaultValue={defaults?.purpose ?? ""}
-          placeholder="e.g. Electricity bill, repair, snacks"
           className="h-11"
         />
         <FieldError message={s.fieldErrors?.purpose} />
@@ -127,7 +135,6 @@ function ExpenseForm({
           id="exp-remarks"
           name="remarks"
           defaultValue={defaults?.remarks ?? ""}
-          placeholder="Extra details (e.g. 700 × 5 = 3500)"
           rows={3}
         />
         <FieldError message={s.fieldErrors?.remarks} />
@@ -164,6 +171,7 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
             action={createExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
             defaults={{ date: new Date() } as Partial<Expense>}
             submitLabel="Save expense"
+            onSuccess={() => setAddOpen(false)}
           />
             </DialogContent>
           </Dialog>
@@ -213,13 +221,14 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit expense</DialogTitle>
-            <DialogDescription>{edit?.expenseId}</DialogDescription>
+            <DialogDescription>{edit?.expenseId ? String(edit.expenseId).replace(/^EXP/, "") : ""}</DialogDescription>
           </DialogHeader>
           {edit ? (
           <ExpenseForm
             action={updateExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
             defaults={edit}
             submitLabel="Save changes"
+            onSuccess={() => setEdit(null)}
           />
           ) : null}
         </DialogContent>

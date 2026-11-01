@@ -53,6 +53,10 @@ export function MoneyKeptAddButton() {
     fieldErrors?: Record<string, string>;
   };
 
+  if (s.status === "success") {
+    setTimeout(() => setOpen(false), 300);
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -86,7 +90,7 @@ export function MoneyKeptAddButton() {
             <Label htmlFor="mk-person">
               Person <span className="text-destructive">*</span>
             </Label>
-            <Input id="mk-person" name="person" placeholder="Name" className="h-11" />
+            <Input id="mk-person" name="person" className="h-11" />
             <FieldError message={s.fieldErrors?.person} />
           </div>
 
@@ -116,6 +120,10 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
     fieldErrors?: Record<string, string>;
   };
 
+  if (s.status === "success") {
+    setTimeout(() => setEditOpen(false), 300);
+  }
+
   return (
     <div className="flex items-center justify-end gap-1">
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -128,7 +136,7 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit money kept</DialogTitle>
-            <DialogDescription>{item.moneyKeptId}</DialogDescription>
+            <DialogDescription>{String(item.moneyKeptId).replace(/^MK/, "")}</DialogDescription>
           </DialogHeader>
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="moneyKeptPk" value={item.id} />
