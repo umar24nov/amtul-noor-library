@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FileDown, ReceiptText } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { ExportButton } from "@/components/export-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { formatDate, formatINR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSession, requirePermission } from "@/lib/permissions";
@@ -11,8 +12,15 @@ import { ExpensesManager } from "@/components/expenses-manager";
 
 export const metadata: Metadata = { title: "Expenses" };
 
-export default async function ExpensesPage() {
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   await requirePermission("EXPENSES");
+  const { view } = await searchParams;
+  const currentView = view === "money-kept" ? "money-kept" : "expenses";
+
   const [expenses, moneyKept, session] = await Promise.all([
     prisma.expense.findMany({
       orderBy: [{ date: "desc" }, { id: "desc" }],
@@ -30,17 +38,17 @@ export default async function ExpensesPage() {
     <div className="grid gap-5">
       <PageHeader
         title="Expenses"
-        description="Money going out. Add expenses and track money kept."
-      actions={
-        session && (session.level === "ADMIN" || session.permissions?.includes("REPORTS")) ? (
-          <ExportButton
-            href="/api/export/expenses"
-            label="Export to Excel"
-            description="Download all expenses"
-            className="h-11"
-          />
-        ) : null
-      }
+        description="Money going out and money kept."
+        actions={
+          session && (session.level === "ADMIN" || session.permissions?.includes("REPORTS")) ? (
+            <ExportButton
+              href="/api/export/expenses"
+              label="Export to Excel"
+              description="Download all expenses"
+              className="h-11"
+            />
+          ) : null
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -66,50 +74,75 @@ export default async function ExpensesPage() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Expenses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ExpensesManager expenses={expenses} canEdit={canEdit} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Money Kept</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {moneyKept.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">No entries yet.</p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Date</th>
-                    <th className="px-3 py-2 font-medium">ID</th>
-                    <th className="px-3 py-2 font-medium">Person</th>
-                    <th className="px-3 py-2 font-medium">Purpose</th>
-                    <th className="px-3 py-2 text-right font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {moneyKept.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/30">
-                      <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatDate(item.date)}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs">{item.moneyKeptId}</td>
-                      <td className="px-3 py-2.5">{item.person}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{item.purpose ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href="/expenses"
+          className={cn(
+            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
+            currentView === "expenses"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
           )}
-        </CardContent>
-      </Card>
+        >
+          Expenses
+        </Link>
+        <Link
+          href="/expenses?view=money-kept"
+          className={cn(
+            "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
+            currentView === "money-kept"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          )}
+        >
+          Money Kept
+        </Link>
+      </div>
+
+      {currentView === "expenses" ? (
+        <div className="rounded-lg border border-border">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-medium">Expenses</h2>
+          </div>
+          <div className="p-4">
+            <ExpensesManager expenses={expenses} canEdit={canEdit} />
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-medium">Money Kept</h2>
+          </div>
+          <div className="p-4">
+            {moneyKept.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No entries yet.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Date</th>
+                      <th className="px-3 py-2 font-medium">ID</th>
+                      <th className="px-3 py-2 font-medium">Person</th>
+                      <th className="px-3 py-2 text-right font-medium">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {moneyKept.map((item) => (
+                      <tr key={item.id} className="hover:bg-muted/30">
+                        <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatDate(item.date)}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs">{item.moneyKeptId}</td>
+                        <td className="px-3 py-2.5">{item.person}</td>
+                        <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
