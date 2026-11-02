@@ -109,11 +109,12 @@ export async function createMoneyKeptAction(_prev: ActionState, formData: FormDa
       data: {
         moneyKeptId: await nextMoneyKeptId(),
         date: parseFlexibleDate(parsed.data.date),
+        dateLabel: parsed.data.date,
         amount: parsed.data.amount,
         person: parsed.data.person,
         purpose: null,
         remarks: null,
-      },
+      } as any,
     });
     revalidateAll();
     return successState("Money kept added.");
@@ -153,9 +154,10 @@ export async function updateMoneyKeptAction(_prev: ActionState, formData: FormDa
       where: { id: moneyKeptPk },
       data: {
         date: parseFlexibleDate(parsed.data.date),
+        dateLabel: parsed.data.date,
         amount: parsed.data.amount,
         person: parsed.data.person,
-      },
+      } as any,
     });
     revalidateAll();
     return successState("Money kept updated.");

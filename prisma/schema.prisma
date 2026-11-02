@@ -332,6 +332,7 @@ model MoneyKept {
   id           Int      @id @default(autoincrement())
   moneyKeptId  String   @unique
   date         DateTime
+  dateLabel    String?
   amount       Decimal  @db.Decimal(10, 2)
   person       String
   purpose      String?
