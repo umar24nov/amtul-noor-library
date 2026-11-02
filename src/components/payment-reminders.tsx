@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
@@ -25,6 +28,31 @@ export function PaymentReminders({
   rows: ReminderRow[];
   month: string;
 }) {
+  const [sentCount, setSentCount] = useState(0);
+
+  useEffect(() => {
+    try {
+      const key = "reminders-sent-count";
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        setSentCount(Number(stored) || 0);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const incrementCount = () => {
+    try {
+      const key = "reminders-sent-count";
+      const next = sentCount + 1;
+      setSentCount(next);
+      localStorage.setItem(key, String(next));
+    } catch {
+      // ignore
+    }
+  };
+
   if (rows.length === 0) return null;
 
   const dueTotal = rows.reduce((total, row) => total + row.due, 0);
@@ -37,6 +65,9 @@ export function PaymentReminders({
           <span className="font-normal text-muted-foreground">
             {rows.length} {rows.length === 1 ? "member" : "members"} ·{" "}
             {formatINR(dueTotal)} due for {formatMonth(month)}
+          </span>
+          <span className="ml-auto inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            Reminders sent: {sentCount}
           </span>
         </CardTitle>
       </CardHeader>
@@ -67,6 +98,7 @@ export function PaymentReminders({
                     href={href}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={incrementCount}
                     className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium underline-offset-2 hover:border-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     <MessageCircle className="size-4" />
