@@ -20,51 +20,68 @@ function revalidateAll() {
 
 function parseFlexibleDate(input: string): Date {
   const s = input.trim();
-  const mmyyyy = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
-  if (mmyyyy) {
-    const month = parseInt(mmyyyy[1], 10);
-    const year = parseInt(mmyyyy[2], 10);
-    return new Date(year, month - 1, 1);
+  if (!s) {
+    return new Date();
   }
-  const ddmmyyyy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (ddmmyyyy) {
-    const day = parseInt(ddmmyyyy[1], 10);
-    const month = parseInt(ddmmyyyy[2], 10);
-    const year = parseInt(ddmmyyyy[3], 10);
-    return new Date(year, month - 1, day);
-  }
-  const yymm = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
-  if (yymm) {
-    const year = parseInt(yymm[1], 10);
-    const month = parseInt(yymm[2], 10);
-    return new Date(year, month - 1, 1);
-  }
-  // Try formats like 01 Nov 2026 or 1 Nov 2026
-  const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
-  if (dMonY) {
-    const day = parseInt(dMonY[1], 10);
-    const monthName = dMonY[2].toLowerCase();
-    const year = parseInt(dMonY[3], 10);
-    const months: Record<string, number> = {
-      jan: 0, january: 0,
-      feb: 1, february: 1,
-      mar: 2, march: 2,
-      apr: 3, april: 3,
-      may: 4,
-      jun: 5, june: 5,
-      jul: 6, july: 6,
-      aug: 7, august: 7,
-      sep: 8, sept: 8, september: 8,
-      oct: 9, october: 9,
-      nov: 10, november: 10,
-      dec: 11, december: 11,
-    };
-    const m = months[monthName.slice(0,3)] !== undefined ? months[monthName.slice(0,3)] : months[monthName];
-    if (m !== undefined) {
-      return new Date(year, m, day);
+  try {
+    const mmyyyy = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+    if (mmyyyy) {
+      const month = parseInt(mmyyyy[1], 10);
+      const year = parseInt(mmyyyy[2], 10);
+      if (month >= 1 && month <= 12) {
+        return new Date(year, month - 1, 1);
+      }
     }
+    const ddmmyyyy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (ddmmyyyy) {
+      const day = parseInt(ddmmyyyy[1], 10);
+      const month = parseInt(ddmmyyyy[2], 10);
+      const year = parseInt(ddmmyyyy[3], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return new Date(year, month - 1, day);
+      }
+    }
+    const yymm = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
+    if (yymm) {
+      const year = parseInt(yymm[1], 10);
+      const month = parseInt(yymm[2], 10);
+      if (month >= 1 && month <= 12) {
+        return new Date(year, month - 1, 1);
+      }
+    }
+    const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
+    if (dMonY) {
+      const day = parseInt(dMonY[1], 10);
+      const monthName = dMonY[2].toLowerCase();
+      const year = parseInt(dMonY[3], 10);
+      const months: Record<string, number> = {
+        jan: 0, january: 0,
+        feb: 1, february: 1,
+        mar: 2, march: 2,
+        apr: 3, april: 3,
+        may: 4,
+        jun: 5, june: 5,
+        jul: 6, july: 6,
+        aug: 7, august: 7,
+        sep: 8, sept: 8, september: 8,
+        oct: 9, october: 9,
+        nov: 10, november: 10,
+        dec: 11, december: 11,
+      };
+      const m = months[monthName.slice(0,3)];
+      if (m !== undefined && day >= 1 && day <= 31) {
+        return new Date(year, m, day);
+      }
+    }
+    // Try native parse as last resort
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  } catch {
+    // ignore
   }
-  return parseInputDate(s);
+  return new Date();
 }
 
 export async function createMoneyKeptAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
