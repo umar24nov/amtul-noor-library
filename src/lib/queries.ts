@@ -751,7 +751,10 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
     if (dayA !== dayB) return dayA - dayB;
     return da.getTime() - db.getTime();
   });
-  return sorted.map(({ joiningDate: _joiningDate, ...row }) => row as PaymentReminderRow);
+  return sorted.map(({ joiningDate, ...row }) => {
+    void joiningDate;
+    return row as PaymentReminderRow;
+  });
 }
 
 export type OverdueReminder = {
