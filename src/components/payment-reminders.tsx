@@ -17,6 +17,48 @@ export type ReminderRow = {
   status: "PENDING" | "NONE";
 };
 
+function ReminderButton({ href, memberId }: { href: string; memberId: string }) {
+  const [count, setCount] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const key = `reminder-sent-${memberId}`;
+      const stored = localStorage.getItem(key);
+      return stored ? Number(stored) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const incrementCount = () => {
+    try {
+      const key = `reminder-sent-${memberId}`;
+      const next = count + 1;
+      setCount(next);
+      localStorage.setItem(key, String(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        Sent: {count}
+      </span>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        onClick={incrementCount}
+        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium underline-offset-2 hover:border-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <MessageCircle className="size-4" />
+        Send reminder
+      </a>
+    </div>
+  );
+}
+
 /**
  * The members who still owe a month, each with a WhatsApp button that opens a
  * ready message in the owner's WhatsApp. Sending is one tap per member.
@@ -28,28 +70,6 @@ export function PaymentReminders({
   rows: ReminderRow[];
   month: string;
 }) {
-  const [sentCount, setSentCount] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    try {
-      const key = "reminders-sent-count";
-      const stored = localStorage.getItem(key);
-      return stored ? Number(stored) || 0 : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  const incrementCount = () => {
-    try {
-      const key = "reminders-sent-count";
-      const next = sentCount + 1;
-      setSentCount(next);
-      localStorage.setItem(key, String(next));
-    } catch {
-      // ignore
-    }
-  };
-
   if (rows.length === 0) return null;
 
   const dueTotal = rows.reduce((total, row) => total + row.due, 0);
@@ -62,9 +82,6 @@ export function PaymentReminders({
           <span className="font-normal text-muted-foreground">
             {rows.length} {rows.length === 1 ? "member" : "members"} ·{" "}
             {formatINR(dueTotal)} due for {formatMonth(month)}
-          </span>
-          <span className="ml-auto inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            Reminders sent: {sentCount}
           </span>
         </CardTitle>
       </CardHeader>
@@ -91,16 +108,7 @@ export function PaymentReminders({
                   </p>
                 </div>
                 {href ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={incrementCount}
-                    className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium underline-offset-2 hover:border-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <MessageCircle className="size-4" />
-                    Send reminder
-                  </a>
+                  <ReminderButton href={href} memberId={row.memberId} />
                 ) : (
                   <span className="shrink-0 text-xs text-muted-foreground">
                     No mobile on record
