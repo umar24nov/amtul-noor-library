@@ -82,7 +82,7 @@ export function MoneyKeptAddButton() {
             <Label htmlFor="mk-date">
               Date <span className="text-destructive">*</span>
             </Label>
-            <Input id="mk-date" name="date" type="text" placeholder="MM/YYYY or DD/MM/YYYY" required className="h-11" />
+            <Input id="mk-date" name="date" type="text" placeholder="" required className="h-11" />
             <FieldError message={s.fieldErrors?.date} />
           </div>
 
