@@ -6,7 +6,6 @@ import { errorState, prismaErrorMessage, successState, type ActionState } from "
 import { prisma } from "@/lib/prisma";
 import { nextMoneyKeptId } from "@/lib/ids";
 import { requirePermission } from "@/lib/permissions";
-import { parseInputDate } from "@/lib/format";
 
 const moneyKeptSchema = z.object({
   date: z.string().trim().min(1, "Enter a date"),

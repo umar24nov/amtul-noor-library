@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
@@ -28,19 +28,16 @@ export function PaymentReminders({
   rows: ReminderRow[];
   month: string;
 }) {
-  const [sentCount, setSentCount] = useState(0);
-
-  useEffect(() => {
+  const [sentCount, setSentCount] = useState(() => {
+    if (typeof window === "undefined") return 0;
     try {
       const key = "reminders-sent-count";
       const stored = localStorage.getItem(key);
-      if (stored) {
-        setSentCount(Number(stored) || 0);
-      }
+      return stored ? Number(stored) || 0 : 0;
     } catch {
-      // ignore
+      return 0;
     }
-  }, []);
+  });
 
   const incrementCount = () => {
     try {

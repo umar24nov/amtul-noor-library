@@ -743,13 +743,13 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
     }));
 
   return rows.sort((a, b) => {
-    const da = a.joiningDate instanceof Date ? a.joiningDate : new Date(a.joiningDate);
-    const db = b.joiningDate instanceof Date ? b.joiningDate : new Date(b.joiningDate);
+    const da = (a as any).joiningDate instanceof Date ? (a as any).joiningDate : new Date((a as any).joiningDate);
+    const db = (b as any).joiningDate instanceof Date ? (b as any).joiningDate : new Date((b as any).joiningDate);
     const dayA = da.getUTCDate();
     const dayB = db.getUTCDate();
     if (dayA !== dayB) return dayA - dayB;
     return da.getTime() - db.getTime();
-  }).map(({ joiningDate, ...row }) => row);
+  }).map(({ joiningDate: _j, ...row }: any) => row);
 }
 
 export type OverdueReminder = {
