@@ -53,10 +53,6 @@ export function MoneyKeptAddButton() {
     fieldErrors?: Record<string, string>;
   };
 
-  if (s.status === "success") {
-    setTimeout(() => setOpen(false), 300);
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -75,7 +71,7 @@ export function MoneyKeptAddButton() {
             <p className="text-sm text-destructive">{s.message}</p>
           ) : null}
           {s.status === "success" ? (
-            <p className="text-sm text-green-600">{s.message}</p>
+            <p className="text-sm text-green-600">Entry added successfully.</p>
           ) : null}
 
           <div className="grid gap-1.5">
@@ -120,10 +116,6 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
     fieldErrors?: Record<string, string>;
   };
 
-  if (s.status === "success") {
-    setTimeout(() => setEditOpen(false), 300);
-  }
-
   return (
     <div className="flex items-center justify-end gap-1">
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -144,7 +136,7 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
               <p className="text-sm text-destructive">{s.message}</p>
             ) : null}
             {s.status === "success" ? (
-              <p className="text-sm text-green-600">{s.message}</p>
+              <p className="text-sm text-green-600">Entry updated successfully.</p>
             ) : null}
 
             <div className="grid gap-1.5">

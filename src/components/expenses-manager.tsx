@@ -49,12 +49,10 @@ function ExpenseForm({
   action,
   defaults,
   submitLabel,
-  onSuccess,
 }: {
   action: (prev: unknown, formData: FormData) => Promise<unknown>;
   defaults?: Partial<Expense>;
   submitLabel: string;
-  onSuccess?: () => void;
 }) {
   const [state, formAction] = useActionState(action, IDLE_STATE as unknown);
   const s = state as {
@@ -62,13 +60,6 @@ function ExpenseForm({
     message?: string;
     fieldErrors?: Record<string, string>;
   };
-
-  if (s.status === "success") {
-    if (onSuccess) {
-      // Close on success
-      setTimeout(() => onSuccess(), 300);
-    }
-  }
 
   return (
     <form
@@ -79,6 +70,9 @@ function ExpenseForm({
 
       {s.status === "error" && s.message ? (
         <p className="text-sm text-destructive">{s.message}</p>
+      ) : null}
+      {s.status === "success" && s.message ? (
+        <p className="text-sm text-green-600">Entry updated successfully.</p>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -171,7 +165,6 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
             action={createExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
             defaults={{ date: new Date() } as Partial<Expense>}
             submitLabel="Save expense"
-            onSuccess={() => setAddOpen(false)}
           />
             </DialogContent>
           </Dialog>
@@ -228,7 +221,6 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
             action={updateExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
             defaults={edit}
             submitLabel="Save changes"
-            onSuccess={() => setEdit(null)}
           />
           ) : null}
         </DialogContent>
