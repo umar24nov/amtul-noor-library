@@ -114,8 +114,8 @@ export async function createMoneyKeptAction(_prev: ActionState, formData: FormDa
         person: parsed.data.person,
         purpose: null,
         remarks: null,
-      } as any,
-    });
+      },
+    } as any);
     revalidateAll();
     return successState("Money kept added.");
   } catch (error) {
@@ -157,8 +157,8 @@ export async function updateMoneyKeptAction(_prev: ActionState, formData: FormDa
         dateLabel: parsed.data.date,
         amount: parsed.data.amount,
         person: parsed.data.person,
-      } as any,
-    });
+      },
+    } as any);
     revalidateAll();
     return successState("Money kept updated.");
   } catch (error) {

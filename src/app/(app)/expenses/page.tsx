@@ -133,7 +133,7 @@ export default async function ExpensesPage({
                   <tbody className="divide-y divide-border">
                     {moneyKept.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{(item as any).dateLabel || formatDate(item.date)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{(item as { dateLabel?: string | null }).dateLabel || formatDate(item.date)}</td>
                         <td className="px-3 py-2.5 font-mono text-xs">{String(moneyKept.length - idx).padStart(3, "0")}</td>
                         <td className="px-3 py-2.5">{item.person}</td>
                         <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatINR(item.amount)}</td>
