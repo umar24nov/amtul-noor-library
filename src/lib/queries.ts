@@ -725,7 +725,7 @@ export type PaymentReminderRow = {
  */
 export async function listPaymentReminders(month: string): Promise<PaymentReminderRow[]> {
   const summary = await getMonthSummary(month, "ACTIVE");
-  return summary
+  const rows = summary
     .filter(
       (row): row is typeof row & { status: "PENDING" | "NONE" } =>
         // Only members with a real fee owe anything. Skip zero-fee members entirely.
@@ -739,7 +739,17 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
       due: row.due,
       dueDate: pendingDueDate(month, row.joiningDate),
       status: row.status,
+      joiningDate: row.joiningDate,
     }));
+
+  return rows.sort((a, b) => {
+    const da = a.joiningDate instanceof Date ? a.joiningDate : new Date(a.joiningDate);
+    const db = b.joiningDate instanceof Date ? b.joiningDate : new Date(b.joiningDate);
+    const dayA = da.getUTCDate();
+    const dayB = db.getUTCDate();
+    if (dayA !== dayB) return dayA - dayB;
+    return da.getTime() - db.getTime();
+  }).map(({ joiningDate, ...row }) => row);
 }
 
 export type OverdueReminder = {
