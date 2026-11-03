@@ -17,12 +17,19 @@ export type ReminderRow = {
   status: "PENDING" | "NONE";
 };
 
-function ReminderButton({ href, memberId }: { href: string; memberId: string }) {
+function ReminderButton({ href, memberId, month }: { href: string; memberId: string; month: string }) {
   const [count, setCount] = useState(() => {
     if (typeof window === "undefined") return 0;
     try {
-      const key = `reminder-sent-${memberId}`;
-      const stored = localStorage.getItem(key);
+      const monthKey = `reminder-month-${memberId}`;
+      const countKey = `reminder-sent-${memberId}`;
+      const storedMonth = localStorage.getItem(monthKey);
+      if (storedMonth !== month) {
+        localStorage.setItem(monthKey, month);
+        localStorage.setItem(countKey, "0");
+        return 0;
+      }
+      const stored = localStorage.getItem(countKey);
       return stored ? Number(stored) || 0 : 0;
     } catch {
       return 0;
@@ -31,10 +38,12 @@ function ReminderButton({ href, memberId }: { href: string; memberId: string }) 
 
   const incrementCount = () => {
     try {
-      const key = `reminder-sent-${memberId}`;
+      const monthKey = `reminder-month-${memberId}`;
+      const countKey = `reminder-sent-${memberId}`;
+      localStorage.setItem(monthKey, month);
       const next = count + 1;
       setCount(next);
-      localStorage.setItem(key, String(next));
+      localStorage.setItem(countKey, String(next));
     } catch {
       // ignore
     }
@@ -108,7 +117,7 @@ export function PaymentReminders({
                   </p>
                 </div>
                 {href ? (
-                  <ReminderButton href={href} memberId={row.memberId} />
+                  <ReminderButton href={href} memberId={row.memberId} month={month} />
                 ) : (
                   <span className="shrink-0 text-xs text-muted-foreground">
                     No mobile on record
