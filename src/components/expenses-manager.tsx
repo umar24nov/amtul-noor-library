@@ -71,8 +71,8 @@ function ExpenseForm({
       {s.status === "error" && s.message ? (
         <p className="text-sm text-destructive">{s.message}</p>
       ) : null}
-      {s.status === "success" && s.message ? (
-        <p className="text-sm text-green-600">Entry updated successfully.</p>
+      {s.status === "success" ? (
+        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">Entry updated successfully.</div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">

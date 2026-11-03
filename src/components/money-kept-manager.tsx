@@ -71,7 +71,7 @@ export function MoneyKeptAddButton() {
             <p className="text-sm text-destructive">{s.message}</p>
           ) : null}
           {s.status === "success" ? (
-            <p className="text-sm text-green-600">Entry added successfully.</p>
+            <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">Entry added successfully.</div>
           ) : null}
 
           <div className="grid gap-1.5">
@@ -116,6 +116,10 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
     fieldErrors?: Record<string, string>;
   };
 
+  const handleOpenChange = (open: boolean) => {
+    setEditOpen(open);
+  };
+
   return (
     <div className="flex items-center justify-end gap-1">
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -136,14 +140,14 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
               <p className="text-sm text-destructive">{s.message}</p>
             ) : null}
             {s.status === "success" ? (
-              <p className="text-sm text-green-600">Entry updated successfully.</p>
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">Entry updated successfully.</div>
             ) : null}
 
             <div className="grid gap-1.5">
               <Label htmlFor="mk-edit-date">
                 Date <span className="text-destructive">*</span>
               </Label>
-              <Input id="mk-edit-date" name="date" type="text" defaultValue={(() => { const d = formatDate(item.date); const m = d.match(/(\d{2}) [A-Za-z]{3} (\d{4})/); return m ? m[1] + '/' + m[2] : d; })()} required className="h-11" />
+              <Input id="mk-edit-date" name="date" type="text" defaultValue={(item as { dateLabel?: string | null }).dateLabel || ""} required className="h-11" />
               <FieldError message={s.fieldErrors?.date} />
             </div>
 
