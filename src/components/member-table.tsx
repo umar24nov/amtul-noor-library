@@ -347,7 +347,7 @@ export function MemberTable({
        On a phone the list flows with the page instead. Two scroll areas on a
        touch screen fight each other, so the phone gets the one scroll the hand
        already knows. */
-    <div className="md:max-h-[calc(100dvh-14rem)] md:overflow-y-auto md:overscroll-contain md:rounded-xl md:border md:border-border md:bg-card">
+    <div className="md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto md:overscroll-contain md:rounded-xl md:border md:border-border md:bg-card">
       {/* Desktop / tablet table. The header cells use top-0 because their
           nearest scroll container is this box, not the page. */}
       <div className="hidden md:block">
