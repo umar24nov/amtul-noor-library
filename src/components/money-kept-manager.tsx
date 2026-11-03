@@ -63,8 +63,8 @@ export function MoneyKeptAddButton() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add money kept</DialogTitle>
-          <DialogDescription>Add money received from someone.</DialogDescription>
+          <DialogTitle className="text-lg">Add Money Kept</DialogTitle>
+          <DialogDescription>Add money received from someone</DialogDescription>
         </DialogHeader>
         <form action={formAction} className="grid gap-4">
           {s.status === "error" && s.message ? (
@@ -131,7 +131,7 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit money kept</DialogTitle>
+            <DialogTitle className="text-lg">Edit Money Kept</DialogTitle>
             <DialogDescription>{String(item.moneyKeptId).replace(/^MK/, "")}</DialogDescription>
           </DialogHeader>
           <form action={formAction} className="grid gap-4">

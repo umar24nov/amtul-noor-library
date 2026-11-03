@@ -158,8 +158,8 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
             </DialogTrigger>
             <DialogContent className="sm:max-w-xl">
               <DialogHeader>
-                <DialogTitle>Add expense</DialogTitle>
-                <DialogDescription>Record money spent on the library.</DialogDescription>
+                <DialogTitle className="text-lg">Add Expense</DialogTitle>
+                <DialogDescription>Record a new expense entry</DialogDescription>
               </DialogHeader>
           <ExpenseForm
             action={createExpenseAction as unknown as (prev: unknown, formData: FormData) => Promise<unknown>}
@@ -213,7 +213,7 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
       <Dialog open={Boolean(edit)} onOpenChange={(open) => !open && setEdit(null)}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Edit expense</DialogTitle>
+            <DialogTitle className="text-lg">Edit Expense</DialogTitle>
             <DialogDescription>{edit?.expenseId ? String(edit.expenseId).replace(/^EXP/, "") : ""}</DialogDescription>
           </DialogHeader>
           {edit ? (
