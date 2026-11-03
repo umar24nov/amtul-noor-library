@@ -56,7 +56,7 @@ export function MoneyKeptAddButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="h-9">
+        <Button variant="outline" className="h-9 border-gray-400">
           <Plus className="size-4" />
           Add money
         </Button>

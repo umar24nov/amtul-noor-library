@@ -151,7 +151,7 @@ export function ExpensesManager({ expenses, canEdit }: { expenses: Expense[]; ca
         <div className="flex justify-end">
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button className="h-11">
+              <Button variant="outline" className="h-11 border-gray-400">
                 <Plus className="size-4" />
                 Add expense
               </Button>
