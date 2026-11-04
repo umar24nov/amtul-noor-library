@@ -14,13 +14,13 @@ const optionalText = (max: number) =>
 export { optionalText };
 
 /**
- * Indian mobile numbers: 10 digits starting with 6-9. Spaces, dashes and a
+ * Indian mobile numbers: 10 digits starting with 6-9. Spaces, dashes, + and a
  * leading +91 are tolerated and normalised away.
  */
 export const mobileSchema = z
   .string()
   .trim()
-  .transform((value) => value.replace(/[\s-]/g, "").replace(/^91(?=\d{10}$)/, ""))
+  .transform((value) => value.replace(/[\s\-\+()]/g, "").replace(/^91(?=\d{10}$)/, ""))
   .refine((value) => /^\d{10}$/.test(value), "Enter a 10 digit mobile number")
   .refine((value) => /^[6-9]/.test(value), "Mobile number must start with 6, 7, 8 or 9");
 
@@ -29,7 +29,7 @@ export const optionalMobileSchema = z.preprocess(
   z
     .string()
     .trim()
-    .transform((value) => value.replace(/[\s-]/g, "").replace(/^91(?=\d{10}$)/, ""))
+    .transform((value) => value.replace(/[\s\-\+()]/g, "").replace(/^91(?=\d{10}$)/, ""))
     .refine((value) => /^\d{10}$/.test(value), "Enter a 10 digit mobile number")
     .refine((value) => /^[6-9]/.test(value), "Mobile number must start with 6, 7, 8 or 9")
     .optional(),
@@ -142,11 +142,11 @@ export const roomEditSchema = roomFormSchema.extend({
   roomId: z.coerce.number().int().positive("Room not found"),
 });
 
-/** Aadhaar number: twelve digits, spaces tolerated and stripped. */
+/** Aadhaar number: twelve digits, spaces/dashes tolerated and stripped. */
 export const aadhaarNumberSchema = z
   .string()
   .trim()
-  .transform((value) => value.replace(/\s/g, ""))
+  .transform((value) => value.replace(/[\s\-]/g, ""))
   .refine((value) => /^\d{12}$/.test(value), "Aadhaar number must be 12 digits");
 
 /**
