@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, Mail } from "lucide-react";
+import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, Mail, History } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PaymentStatusBadge, MemberStatusBadge } from "@/components/status-badges";
 import { MemberActions } from "@/components/member-actions";
@@ -421,6 +421,48 @@ export default async function MemberDetailPage({
                 ))}
               </ul>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <History className="size-4" />
+            Change History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(member as any).auditLogs && (member as any).auditLogs.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {(member as any).auditLogs.map((log: any) => (
+                <li key={log.id} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{log.summary || log.action}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {log.actorName ? `${log.actorName}` : "System"}
+                        {log.actorName ? " • " : ""}
+                        {formatDate(log.createdAt)}
+                      </p>
+                      {log.changes && Array.isArray(log.changes) && log.changes.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {log.changes.map((change: any, idx: number) => (
+                            <li key={idx} className="text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">{change.label}:</span>{" "}
+                              <span className="line-through">{change.old ?? "-"}</span> → <span className="text-foreground">{change.new ?? "-"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatDate(log.createdAt).split(",")[0]}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
           )}
         </CardContent>
       </Card>

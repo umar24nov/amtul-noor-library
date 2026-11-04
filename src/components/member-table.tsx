@@ -2,8 +2,9 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUpDown, Pencil, Eye } from "lucide-react";
+import { ArrowDown, ArrowUpDown, Pencil, CreditCard } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { LoadMoreFooter } from "@/components/load-more-footer";
@@ -220,10 +221,10 @@ function RowActions({
   return (
     <div className="flex items-center justify-end gap-1.5">
       <Button asChild variant="outline" size="sm" className="h-9">
-        <a href={`/members/${member.id}`}>
-          <Eye className="size-3.5" />
-          View
-        </a>
+        <Link href="/payments">
+          <CreditCard className="size-3.5" />
+          Payments
+        </Link>
       </Button>
       <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={onUpdated} />
       {member.status === "ACTIVE" ? (
@@ -260,6 +261,7 @@ export function MemberTable({
   /** Filters to replay when loading the next batch. */
   query: MemberListQuery;
 }) {
+  const router = useRouter();
   // The list grows by scrolling rather than paging. The page hands over the
   // first batch and remounts this component (via a key) whenever a filter
   // changes, so these start from a clean slate every time.
@@ -365,7 +367,11 @@ export function MemberTable({
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((member) => (
-              <tr key={member.id} className="hover:bg-muted/30">
+              <tr
+                key={member.id}
+                className="cursor-pointer hover:bg-muted/30"
+                onClick={() => router.push(`/members/${member.id}`)}
+              >
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                   {member.memberId}
                 </td>
@@ -378,7 +384,7 @@ export function MemberTable({
                 <td className="px-3 py-2.5">
                   <MemberStatusBadge status={member.status} />
                 </td>
-                <td className="px-3 py-2.5 text-right">
+                <td className="px-3 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                   <RowActions member={member} seats={seats} onUpdated={refreshRow} />
                 </td>
               </tr>
@@ -420,7 +426,7 @@ export function MemberTable({
 
             <div className="mt-3 flex gap-2">
               <Button asChild variant="secondary" size="sm" className="h-10 flex-1">
-                <a href={`/members/${member.id}`}>View</a>
+                <Link href="/payments"><CreditCard className="size-3.5" />Payments</Link>
               </Button>
               <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={refreshRow} />
             </div>

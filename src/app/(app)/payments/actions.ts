@@ -22,6 +22,7 @@ import {
   sendReceiptEmail,
 } from "@/lib/receipts";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
+import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
@@ -134,8 +135,14 @@ export async function recordPaymentAction(
           remarks: data.remarks ?? null,
         },
       });
+      await logMemberChange(prisma, {
+        memberId: data.memberId,
+        action: MEMBER_AUDIT_ACTIONS.PAYMENT_RECORDED,
+        summary: `Payment recorded for ${month} (₹${data.amount})`,
+        metadata: { month, amount: String(data.amount), paymentMode: data.paymentMode, status: data.status },
+      });
     } else {
-      await prisma.payment.create({
+      const payment = await prisma.payment.create({
         data: {
           paymentId: await nextPaymentId(),
           memberId: data.memberId,
@@ -147,6 +154,12 @@ export async function recordPaymentAction(
           remarks: data.remarks ?? null,
           receiptToken: newReceiptToken(),
         },
+      });
+      await logMemberChange(prisma, {
+        memberId: data.memberId,
+        action: MEMBER_AUDIT_ACTIONS.PAYMENT_RECORDED,
+        summary: `Payment recorded for ${month} (₹${data.amount})`,
+        metadata: { paymentId: payment.paymentId, month, amount: String(data.amount), paymentMode: data.paymentMode, status: data.status },
       });
     }
 
@@ -182,24 +195,40 @@ export async function updatePaymentAction(
   try {
     const existing = await prisma.payment.findUnique({
       where: { id },
-      select: { id: true, member: { select: { name: true } } },
+      select: { id: true, memberId: true, month: true, amount: true, paymentMode: true, paymentDate: true, status: true, remarks: true, member: { select: { name: true } } },
     });
     if (!existing) return errorState("Payment not found.");
 
     const paymentDate = parseInputDate(parsed.data.paymentDate);
+    const newMonth = monthKeyFromInputDate(parsed.data.paymentDate);
 
     await prisma.payment.update({
       where: { id },
       data: {
         memberId: parsed.data.memberId,
         // Moving a payment to another date moves it to that month.
-        month: monthKeyFromInputDate(parsed.data.paymentDate),
+        month: newMonth,
         amount: parsed.data.amount,
         paymentMode: parsed.data.paymentMode,
         paymentDate,
         status: parsed.data.status,
         remarks: parsed.data.remarks ?? null,
       },
+    });
+
+    const changes: MemberAuditChange[] = [];
+    if (Number(existing.amount) !== Number(parsed.data.amount)) changes.push({ field: "amount", label: "Amount", old: String(existing.amount), new: String(parsed.data.amount) });
+    if (existing.paymentMode !== parsed.data.paymentMode) changes.push({ field: "paymentMode", label: "Payment mode", old: existing.paymentMode, new: parsed.data.paymentMode });
+    if (existing.status !== parsed.data.status) changes.push({ field: "status", label: "Status", old: existing.status, new: parsed.data.status });
+    if (existing.month !== newMonth) changes.push({ field: "month", label: "Month", old: existing.month, new: newMonth });
+    if ((existing.remarks || null) !== (parsed.data.remarks ?? null)) changes.push({ field: "remarks", label: "Remarks", old: existing.remarks, new: parsed.data.remarks ?? null });
+
+    await logMemberChange(prisma, {
+      memberId: parsed.data.memberId,
+      action: MEMBER_AUDIT_ACTIONS.PAYMENT_EDITED,
+      summary: `Payment edited for ${newMonth}`,
+      changes,
+      metadata: { paymentId: id, oldMemberId: existing.memberId, newMemberId: parsed.data.memberId },
     });
 
     revalidateAll();
@@ -228,10 +257,21 @@ export async function deletePaymentAction(recordId: number): Promise<ActionState
         id: true,
         paymentId: true,
         month: true,
+        memberId: true,
+        amount: true,
+        paymentMode: true,
+        status: true,
         member: { select: { name: true } },
       },
     });
     if (!existing) return errorState("Payment not found.");
+
+    await logMemberChange(prisma, {
+      memberId: existing.memberId,
+      action: MEMBER_AUDIT_ACTIONS.PAYMENT_DELETED,
+      summary: `Payment deleted (${existing.paymentId}) for ${existing.month}`,
+      metadata: { paymentId: existing.paymentId, month: existing.month, amount: String(existing.amount), paymentMode: existing.paymentMode, status: existing.status },
+    });
 
     await prisma.payment.delete({ where: { id: recordId } });
 

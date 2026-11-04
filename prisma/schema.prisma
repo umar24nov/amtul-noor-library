@@ -132,11 +132,12 @@ model Member {
   /// A secret, unguessable token that gives this member a permanent, reusable
   /// link (/pay/<token>) for paying their fee and downloading their receipts.
   payToken       String?       @unique
-  seat           Seat?         @relation(fields: [seatId], references: [id], onDelete: SetNull)
+  seat           Seat?            @relation(fields: [seatId], references: [id], onDelete: SetNull)
   payments       Payment[]
   applications   Application[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  auditLogs      MemberAuditLog[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([name])
   @@index([mobile])
@@ -283,13 +284,14 @@ model User {
   passwordCiphertext String?
   /// The named role this person signs in with. Every account has one.
   roleId       Int
-  role         Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  role             Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
   /// A deactivated account cannot sign in, but its row is kept.
-  active       Boolean   @default(true)
-  lastLoginAt  DateTime?
-  activity     ActivityLog[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  active           Boolean          @default(true)
+  lastLoginAt      DateTime?
+  activity         ActivityLog[]
+  memberAuditLogs  MemberAuditLog[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([roleId])
   @@index([active])
@@ -359,4 +361,26 @@ model SupportMessage {
 
   @@index([ip, createdAt])
   @@index([createdAt])
+}
+
+/// Tracks every change made to a member's profile, payments, seat or status
+/// so the owner can see exactly who did what and when.
+model MemberAuditLog {
+  id        Int      @id @default(autoincrement())
+  memberId  Int
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  actorId   Int?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorName String   @default("")
+  action    String
+  summary   String   @default("")
+  /// Field-level diffs as JSON: [{ "field": "mobile", "label": "Mobile", "old": "...", "new": "..." }]
+  changes   Json?
+  /// Extra context e.g. paymentId, month, seat details
+  metadata  Json?
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([memberId, createdAt])
+  @@index([actorId, createdAt])
 }

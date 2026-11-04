@@ -352,6 +352,10 @@ export const getMemberDetail = cache(async (id: number) => {
     include: {
       seat: { include: { room: true } },
       payments: { orderBy: [{ month: "desc" }, { createdAt: "desc" }] },
+      auditLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      },
     },
   });
 });

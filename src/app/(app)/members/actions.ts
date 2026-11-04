@@ -20,6 +20,7 @@ import {
 } from "@/lib/settings";
 import { listMembers } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, isMemberSort, LIBRARY_PREPAID_OFFER } from "@/lib/constants";
+import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
@@ -226,6 +227,12 @@ export async function createMemberAction(
         }
       }
 
+      await logMemberChange(tx, {
+        memberId: created.id,
+        action: MEMBER_AUDIT_ACTIONS.MEMBER_CREATED,
+        summary: "Member created",
+      });
+
       return created;
     });
 
@@ -270,7 +277,19 @@ export async function updateMemberAction(
   try {
     const existing = await prisma.member.findUnique({
       where: { memberId: memberCode },
-      select: { id: true, seatId: true, status: true, leavingDate: true },
+      select: {
+        id: true,
+        seatId: true,
+        status: true,
+        leavingDate: true,
+        name: true,
+        mobile: true,
+        email: true,
+        guardianName: true,
+        guardianMobile: true,
+        joiningDate: true,
+        remarks: true,
+      },
     });
     if (!existing) return errorState("Member not found.");
 
@@ -308,6 +327,11 @@ export async function updateMemberAction(
       const rejoining = existing.status === "LEFT" && seatId !== null;
 
       const email = formData.has("email") ? (data.email ?? null) : undefined;
+      const newJoiningDate = parseInputDate(data.joiningDate);
+      const newEmail = email;
+      const newGuardianName = data.guardianName ?? null;
+      const newGuardianMobile = data.guardianMobile ?? null;
+      const newRemarks = data.remarks ?? null;
 
       await tx.member.update({
         where: { id: existing.id },
@@ -317,10 +341,10 @@ export async function updateMemberAction(
           // Only touch the email when the form carried the field, so an older
           // form can never blank a saved address by omitting it.
           email,
-          guardianName: data.guardianName ?? null,
-          guardianMobile: data.guardianMobile ?? null,
-          joiningDate: parseInputDate(data.joiningDate),
-          remarks: data.remarks ?? null,
+          guardianName: newGuardianName,
+          guardianMobile: newGuardianMobile,
+          joiningDate: newJoiningDate,
+          remarks: newRemarks,
           seatId: existing.status === "ACTIVE" || rejoining ? seatId : existing.seatId,
           status: rejoining ? "ACTIVE" : undefined,
           leavingDate: rejoining ? null : undefined,
@@ -343,13 +367,28 @@ export async function updateMemberAction(
       });
 
       if (existing.status === "ACTIVE" || rejoining) {
-        if (existing.seatId && existing.seatId !== seatId) {
+        const oldSeatId = existing.seatId;
+        if (oldSeatId && oldSeatId !== seatId) {
           await tx.seat.update({
-            where: { id: existing.seatId },
+            where: { id: oldSeatId },
             data: { status: "AVAILABLE" },
           });
+          await logMemberChange(tx, {
+            memberId: existing.id,
+            action: oldSeatId && seatId ? MEMBER_AUDIT_ACTIONS.SEAT_CHANGED : MEMBER_AUDIT_ACTIONS.SEAT_RELEASED,
+            summary: oldSeatId && seatId ? "Seat changed" : "Seat released",
+            metadata: { oldSeatId, newSeatId: seatId },
+          });
         }
-        if (seatId) {
+        if (seatId && oldSeatId !== seatId && !(oldSeatId && oldSeatId !== seatId)) {
+          await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
+          await logMemberChange(tx, {
+            memberId: existing.id,
+            action: MEMBER_AUDIT_ACTIONS.SEAT_ASSIGNED,
+            summary: "Seat assigned",
+            metadata: { oldSeatId, newSeatId: seatId },
+          });
+        } else if (seatId && oldSeatId !== seatId) {
           await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
         }
       }
@@ -373,8 +412,41 @@ export async function updateMemberAction(
           tx,
           existing.id,
           existing.leavingDate,
-          parseInputDate(data.joiningDate),
+          newJoiningDate,
         );
+        await logMemberChange(tx, {
+          memberId: existing.id,
+          action: MEMBER_AUDIT_ACTIONS.MEMBER_REJOINED,
+          summary: "Member rejoined",
+        });
+      }
+
+      const changes: MemberAuditChange[] = [];
+      if (existing.name !== data.name) changes.push({ field: "name", label: "Name", old: existing.name, new: data.name });
+      if ((existing.mobile || "") !== (data.mobile || "")) changes.push({ field: "mobile", label: "Mobile", old: existing.mobile, new: data.mobile });
+      if (formData.has("email") && (existing.email || null) !== newEmail) changes.push({ field: "email", label: "Email", old: existing.email, new: newEmail });
+      if ((existing.guardianName || null) !== newGuardianName) changes.push({ field: "guardianName", label: "Guardian name", old: existing.guardianName, new: newGuardianName });
+      if ((existing.guardianMobile || null) !== newGuardianMobile) changes.push({ field: "guardianMobile", label: "Guardian mobile", old: existing.guardianMobile, new: newGuardianMobile });
+      if (existing.joiningDate.getTime() !== newJoiningDate.getTime()) changes.push({ field: "joiningDate", label: "Joining date", old: existing.joiningDate.toISOString().slice(0, 10), new: newJoiningDate.toISOString().slice(0, 10) });
+      if ((existing.remarks || null) !== newRemarks) changes.push({ field: "remarks", label: "Remarks", old: existing.remarks, new: newRemarks });
+      if (existing.seatId !== (existing.status === "ACTIVE" || rejoining ? seatId : existing.seatId)) {
+        // seat change logged separately below if needed
+      }
+
+      if (changes.length > 0 && !rejoining) {
+        await logMemberChange(tx, {
+          memberId: existing.id,
+          action: MEMBER_AUDIT_ACTIONS.MEMBER_UPDATED,
+          summary: `Updated ${changes.map((c) => c.label.toLowerCase()).join(", ")}`,
+          changes,
+        });
+      } else if (changes.length > 0 && rejoining) {
+        await logMemberChange(tx, {
+          memberId: existing.id,
+          action: MEMBER_AUDIT_ACTIONS.MEMBER_UPDATED,
+          summary: `Updated ${changes.map((c) => c.label.toLowerCase()).join(", ")}`,
+          changes,
+        });
       }
 
       // The fee the member now pays: the values above leave the stored fee unset
@@ -422,6 +494,13 @@ export async function markMemberLeftAction(formData: FormData): Promise<void> {
         data: { status: "AVAILABLE" },
       });
     }
+
+    await logMemberChange(tx, {
+      memberId: member.id,
+      action: MEMBER_AUDIT_ACTIONS.MEMBER_MARKED_LEFT,
+      summary: "Marked as left",
+      metadata: { leavingDate: leavingDate.toISOString().slice(0, 10), seatReleased: Boolean(member.seatId) },
+    });
   });
 
   revalidateAll();
