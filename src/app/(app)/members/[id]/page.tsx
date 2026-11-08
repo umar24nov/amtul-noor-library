@@ -21,6 +21,7 @@ import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { UpiPayCard } from "@/components/upi-pay-card";
+import { ApplyOfferDialog } from "@/components/apply-offer-dialog";
 import { can, canEditPayments, requirePermission } from "@/lib/permissions";
 import { getSession } from "@/lib/auth";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
@@ -134,7 +135,15 @@ export default async function MemberDetailPage({
         title={member.name}
         description={`${member.memberId} · ${member.mobile}`}
         actions={
-          <MemberActions
+          <div className="flex flex-wrap items-center gap-2">
+            {canRecordPayment ? (
+              <ApplyOfferDialog
+                memberId={member.id}
+                memberName={member.name}
+                defaultStartMonth={currentMonthKey()}
+              />
+            ) : null}
+            <MemberActions
             member={{
               id: member.id,
               memberId: member.memberId,
@@ -157,6 +166,7 @@ export default async function MemberDetailPage({
             defaultFee={monthlyFee}
             canRecordPayment={canRecordPayment}
           />
+          </div>
         }
       />
 

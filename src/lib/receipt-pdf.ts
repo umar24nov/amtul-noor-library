@@ -143,8 +143,10 @@ export async function buildReceiptPdf(info: ReceiptPdfInfo): Promise<Uint8Array>
   }
 
   // Detail table.
+  const isOffer = info.mode.toLowerCase() === "offer" || (info.remarks || "").toLowerCase().includes("3 + 1") || (info.remarks || "").toLowerCase().includes("3+1");
+  const amountLabel = isOffer && info.amount === 0 ? "Amount (3+1 Offer - Free month)" : "Amount paid";
   const rows: [string, string][] = [
-    ["Fee per month", money(info.amount)],
+    [amountLabel, info.amount === 0 ? "Rs. 0 (Free)" : money(info.amount)],
     ["Payment mode", info.mode],
     ["Payment date", formatDate(info.date)],
     ["Remarks", info.remarks || "—"],
