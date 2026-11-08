@@ -347,17 +347,29 @@ export async function listMembers({
 }
 
 export const getMemberDetail = cache(async (id: number) => {
-  return prisma.member.findUnique({
-    where: { id },
-    include: {
-      seat: { include: { room: true } },
-      payments: { orderBy: [{ month: "desc" }, { createdAt: "desc" }] },
-      auditLogs: {
-        orderBy: { createdAt: "desc" },
-        take: 100,
+  const baseInclude = {
+    seat: { include: { room: true } },
+    payments: { orderBy: [{ month: "desc" as const }, { createdAt: "desc" as const }] },
+  };
+  try {
+    return await prisma.member.findUnique({
+      where: { id },
+      include: {
+        ...baseInclude,
+        auditLogs: {
+          orderBy: { createdAt: "desc" as const },
+          take: 100,
+        },
       },
-    },
-  });
+    });
+  } catch {
+    // If the audit log table/migration isn't available yet, keep the page working.
+    const member = await prisma.member.findUnique({
+      where: { id },
+      include: baseInclude,
+    });
+    return member ? { ...member, auditLogs: [] as Array<{ id: number; memberId: number; actorId: number | null; actorName: string; action: string; summary: string; changes: unknown; metadata: unknown; ip: string; createdAt: Date }> } : member;
+  }
 });
 
 export type PaymentFilters = {
