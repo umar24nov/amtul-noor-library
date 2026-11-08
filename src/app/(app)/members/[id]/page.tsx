@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Phone, User, CalendarDays, Armchair, Info, Mail, History } from "lucide-react";
+
 import { PageHeader } from "@/components/page-header";
 import { PaymentStatusBadge, MemberStatusBadge } from "@/components/status-badges";
 import { MemberActions } from "@/components/member-actions";
@@ -443,9 +444,9 @@ export default async function MemberDetailPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {(member as any).auditLogs && (member as any).auditLogs.length > 0 ? (
+          {member.auditLogs && member.auditLogs.length > 0 ? (
             <ul className="divide-y divide-border">
-              {(member as any).auditLogs.map((log: any) => (
+              {member.auditLogs.map((log) => (
                 <li key={log.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -455,12 +456,12 @@ export default async function MemberDetailPage({
                         {log.actorName ? " • " : ""}
                         {formatDate(log.createdAt)}
                       </p>
-                      {log.changes && Array.isArray(log.changes) && log.changes.length > 0 && (
+                      {Array.isArray(log.changes) && log.changes.length > 0 && (
                         <ul className="mt-2 space-y-1">
-                          {log.changes.map((change: any, idx: number) => (
+                          {(log.changes as Array<{ label?: string; old?: unknown; new?: unknown }>).map((change, idx) => (
                             <li key={idx} className="text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">{change.label}:</span>{" "}
-                              <span className="line-through">{change.old ?? "-"}</span> → <span className="text-foreground">{change.new ?? "-"}</span>
+                              <span className="font-medium text-foreground">{String(change.label ?? "Field")}:</span>{" "}
+                              <span className="line-through">{String(change.old ?? "-")}</span> → <span className="text-foreground">{String(change.new ?? "-")}</span>
                             </li>
                           ))}
                         </ul>

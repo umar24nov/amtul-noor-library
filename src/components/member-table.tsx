@@ -4,18 +4,10 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUpDown, Pencil, CreditCard } from "lucide-react";
+import { ArrowDown, ArrowUpDown, CreditCard } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { LoadMoreFooter } from "@/components/load-more-footer";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -26,14 +18,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { MemberForm, type SeatOption } from "@/components/member-form";
 import { SubmitButton } from "@/components/submit-button";
 import { MemberStatusBadge } from "@/components/status-badges";
 import { DeleteMemberButton } from "@/components/delete-member-button";
 import { formatDate, todayInputValue } from "@/lib/format";
-import { markMemberLeftAction, updateMemberAction, loadMoreMembersAction, getMemberForEdit } from "@/app/(app)/members/actions";
+import { markMemberLeftAction, loadMoreMembersAction, getMemberForEdit } from "@/app/(app)/members/actions";
 import type { MemberWithSeat } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, STICKY_HEADER_CELL, type MemberSort } from "@/lib/constants";
+
+type SeatOption = { id: number; label: string };
 
 export type EditableMember = {
   id: number;
@@ -64,24 +57,6 @@ export type MemberListQuery = {
 function seatText(member: EditableMember): string {
   if (!member.seat) return "—";
   return `${member.seat.room ? `${member.seat.room.name} · ` : ""}${member.seat.seatNumber}`;
-}
-
-/**
- * The edit dialog lists every seat the member could keep, but the page only
- * hands over seats that are free right now. A member who already sits on a
- * seat must still see that seat so the select can show it: an occupied seat
- * has no option otherwise and the chosen seat silently appears as
- * "No seat / assign later".
- */
-function dialogSeats(member: EditableMember, seats: SeatOption[]): SeatOption[] {
-  if (!member.seat || seats.some((seat) => seat.id === member.seat!.id)) return seats;
-  return [
-    {
-      id: member.seat.id,
-      label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
-    },
-    ...seats,
-  ];
 }
 
 function MarkLeftDialog({
@@ -144,94 +119,26 @@ function MarkLeftDialog({
   );
 }
 
-function EditDialog({
-  member,
-  seats,
-  onUpdated,
-}: {
-  member: EditableMember;
-  seats: SeatOption[];
-  onUpdated: (member: EditableMember) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9">
-          <Pencil className="size-3.5" />
-          Edit
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Edit member</DialogTitle>
-          <DialogDescription>
-            Update the permanent record for {member.name} ({member.memberId}).
-          </DialogDescription>
-        </DialogHeader>
-        <MemberForm
-          action={async (prev, formData) => {
-            const result = await updateMemberAction(prev, formData);
-            if (result.status === "success") {
-              const fresh = await getMemberForEdit(member.id);
-              if (fresh) onUpdated(fresh);
-              setOpen(false);
-            }
-            return result;
-          }}
-          showPayment={false}
-          submitLabel="Save changes"
-          seats={seats}
-          defaultFee={member.defaultFee}
-          defaults={{
-            memberId: member.memberId,
-            name: member.name,
-            mobile: member.mobile ?? undefined,
-            email: member.email ?? undefined,
-            guardianName: member.guardianName ?? undefined,
-            guardianMobile: member.guardianMobile ?? undefined,
-            // A LEFT member being brought back starts a fresh term, so the field
-            // opens on today. Saving with a seat marks the away months as not
-            // applicable, matching the member detail page.
-            joiningDate:
-              member.status === "LEFT"
-                ? todayInputValue()
-                : member.joiningDate.toISOString().slice(0, 10),
-            remarks: member.remarks ?? undefined,
-            seatId: member.seatId,
-          }}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function RowActions({
   member,
-  seats,
   onUpdated,
 }: {
   member: EditableMember;
-  seats: SeatOption[];
   onUpdated: (member: EditableMember) => void;
 }) {
   const seat = seatText(member);
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
+    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
       <Button asChild variant="outline" size="sm" className="h-9">
-        <Link href="/payments">
+        <Link href={`/payments?memberId=${encodeURIComponent(member.memberId)}`}>
           <CreditCard className="size-3.5" />
           Payments
         </Link>
       </Button>
-      <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={onUpdated} />
       {member.status === "ACTIVE" ? (
         <MarkLeftDialog member={member} seat={seat} onUpdated={onUpdated} />
-      ) : (
-        <span className="px-2 text-xs text-muted-foreground">No seat</span>
-      )}
+      ) : null}
       <DeleteMemberButton
         memberId={member.id}
         name={member.name}
@@ -244,7 +151,7 @@ function RowActions({
 
 export function MemberTable({
   members,
-  seats,
+  seats: _seats,
   sort,
   sortBase = "",
   total: totalCount,
@@ -261,6 +168,7 @@ export function MemberTable({
   /** Filters to replay when loading the next batch. */
   query: MemberListQuery;
 }) {
+  void _seats;
   const router = useRouter();
   // The list grows by scrolling rather than paging. The page hands over the
   // first batch and remounts this component (via a key) whenever a filter
@@ -384,8 +292,8 @@ export function MemberTable({
                 <td className="px-3 py-2.5">
                   <MemberStatusBadge status={member.status} />
                 </td>
-                <td className="px-3 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                  <RowActions member={member} seats={seats} onUpdated={refreshRow} />
+                <td className="px-3 py-2.5 text-right">
+                  <RowActions member={member} onUpdated={refreshRow} />
                 </td>
               </tr>
             ))}
@@ -396,7 +304,19 @@ export function MemberTable({
       {/* Mobile cards. They flow with the page on a phone. */}
       <div className="grid gap-2.5 md:hidden">
         {rows.map((member) => (
-          <div key={member.id} className="rounded-xl border border-border bg-card p-3">
+          <div
+            key={member.id}
+            role="button"
+            tabIndex={0}
+            className="cursor-pointer rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => router.push(`/members/${member.id}`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                router.push(`/members/${member.id}`);
+              }
+            }}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate font-medium">{member.name}</p>
@@ -424,18 +344,27 @@ export function MemberTable({
               </div>
             </dl>
 
-            <div className="mt-3 flex gap-2">
-              <Button asChild variant="secondary" size="sm" className="h-10 flex-1">
-                <Link href="/payments"><CreditCard className="size-3.5" />Payments</Link>
+            <div
+              className="mt-3 flex flex-wrap gap-2"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <Button asChild variant="secondary" size="sm" className="h-10 flex-1 min-w-[120px]">
+                <Link href={`/payments?memberId=${encodeURIComponent(member.memberId)}`}>
+                  <CreditCard className="size-3.5" />
+                  Payments
+                </Link>
               </Button>
-              <EditDialog member={member} seats={dialogSeats(member, seats)} onUpdated={refreshRow} />
-            </div>
-
-            {member.status === "ACTIVE" && (
-              <div className="mt-2">
+              {member.status === "ACTIVE" ? (
                 <MarkLeftDialog member={member} seat={seatText(member)} onUpdated={refreshRow} />
-              </div>
-            )}
+              ) : null}
+              <DeleteMemberButton
+                memberId={member.id}
+                name={member.name}
+                memberIdCode={member.memberId}
+                compact
+              />
+            </div>
           </div>
         ))}
       </div>

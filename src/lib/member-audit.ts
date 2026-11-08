@@ -27,11 +27,17 @@ export async function logMemberChange(
   try {
     const [session, ip] = await Promise.all([getSession().catch(() => null), getClientIp().catch(() => null)]);
 
+    let actorName = session?.email || "System";
+    if (session?.userId) {
+      const user = await tx.user.findUnique({ where: { id: session.userId }, select: { name: true, email: true } });
+      actorName = user?.name || user?.email || session.email || "System";
+    }
+
     await tx.memberAuditLog.create({
       data: {
         memberId: input.memberId,
-        actorId: session?.id ?? null,
-        actorName: session?.name || session?.email || "System",
+        actorId: session?.userId ?? null,
+        actorName,
         action: input.action,
         summary: input.summary ?? "",
         changes: input.changes && input.changes.length > 0 ? (input.changes as unknown as Prisma.InputJsonValue) : undefined,

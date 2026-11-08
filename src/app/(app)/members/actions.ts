@@ -22,7 +22,6 @@ import { listMembers } from "@/lib/queries";
 import { DEFAULT_MEMBER_SORT, isMemberSort, LIBRARY_PREPAID_OFFER } from "@/lib/constants";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
 import { monthKeyFromInputDate } from "@/lib/format";
-import { AUTO_PENDING_REMARK } from "@/lib/payments";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
