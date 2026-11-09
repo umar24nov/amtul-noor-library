@@ -26,7 +26,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { IDLE_STATE } from "@/lib/action-result";
-import { formatDate } from "@/lib/format";
 import { createMoneyKeptAction, deleteMoneyKeptAction, updateMoneyKeptAction } from "@/app/(app)/expenses/money-kept-actions";
 import type { MoneyKept } from "@/generated/prisma/client";
 
@@ -114,10 +113,6 @@ export function MoneyKeptActions({ item }: { item: MoneyKept }) {
     status: string;
     message?: string;
     fieldErrors?: Record<string, string>;
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setEditOpen(open);
   };
 
   return (

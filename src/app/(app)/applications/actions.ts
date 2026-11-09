@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   errorState,
   prismaErrorMessage,
@@ -9,8 +8,7 @@ import {
   type ActionState,
 } from "@/lib/action-result";
 import { sendApplicationDecisionEmail } from "@/lib/application-email";
-import { getSession } from "@/lib/auth";
-import { actionPermission, can } from "@/lib/permissions";
+import { actionPermission } from "@/lib/permissions";
 import { parseInputDate } from "@/lib/format";
 import { nextMemberId, newPayToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -31,12 +29,12 @@ function revalidateAll() {
  * is re-typed, and the application record keeps its link to the member. A
  * welcome email goes out afterwards; a mail failure never undoes the approval.
  */
-export async function approveApplicationAction(formData: FormData): Promise<void> {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (!can(session, "APPLICATIONS")) redirect("/dashboard");
+export async function approveApplicationAction(formData: FormData): Promise<ActionState> {
+  const gate = await actionPermission("APPLICATIONS");
+  if ("denied" in gate) return gate.denied;
+
   const id = Number(formData.get("id"));
-  if (!Number.isInteger(id) || id <= 0) redirect("/applications?error=invalid");
+  if (!Number.isInteger(id) || id <= 0) return errorState("That application request was invalid.");
 
   try {
     const application = await prisma.application.findUnique({
@@ -44,7 +42,7 @@ export async function approveApplicationAction(formData: FormData): Promise<void
       select: { id: true, status: true },
     });
     if (!application || application.status !== "PENDING") {
-      redirect("/applications?error=gone");
+      return errorState("This application has already been decided or is no longer available.");
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -114,10 +112,13 @@ export async function approveApplicationAction(formData: FormData): Promise<void
     }
 
     revalidateAll();
-    redirect(`/members/${result.member.id}?joined=1&email=${emailStatus}`);
+    return successState(
+      "Application approved. Member created.",
+      undefined,
+      `/members/${result.member.id}?joined=1&email=${emailStatus}`,
+    );
   } catch (error) {
-    if (error && typeof error === "object" && "digest" in error) throw error;
-    redirect("/applications?error=failed");
+    return errorState(prismaErrorMessage(error));
   }
 }
 

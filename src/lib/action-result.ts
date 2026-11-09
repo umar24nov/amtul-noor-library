@@ -4,6 +4,8 @@ export type ActionState = {
   fieldErrors?: Record<string, string>;
   /** Set when the action succeeded and the client should close / navigate. */
   done?: boolean;
+  /** Optional client-side navigation target on success. */
+  redirectTo?: string;
 };
 
 export const IDLE_STATE: ActionState = { status: "idle" };
@@ -27,8 +29,9 @@ export function errorState(
 export function successState(
   message: string,
   fieldErrors?: Record<string, string>,
+  redirectTo?: string,
 ): ActionState {
-  return { status: "success", message, fieldErrors, done: true };
+  return { status: "success", message, fieldErrors, done: true, redirectTo };
 }
 
 /** Pulls the first useful message out of a Prisma error. */

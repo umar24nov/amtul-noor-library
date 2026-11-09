@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SubmitButton } from "@/components/submit-button";
+
 import {
   Dialog,
   DialogContent,
@@ -398,6 +398,36 @@ function DeleteApplicationDialog({ application }: { application: EditableApplica
   );
 }
 
+function ApproveApplicationButton({ application }: { application: EditableApplication }) {
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const approve = () => {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", String(application.id));
+      const result = await approveApplicationAction(formData);
+      if (result?.status === "error") {
+        toast.error(result.message || "Could not approve the application.");
+        return;
+      }
+      toast.success(result?.message || "Application approved.");
+      if (result?.redirectTo) {
+        router.push(result.redirectTo);
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
+  return (
+    <Button type="button" className="h-10" onClick={approve} disabled={pending}>
+      <Check className="size-4" />
+      {pending ? "Approving…" : "Approve"}
+    </Button>
+  );
+}
+
 export function ApplicationActions({
   application,
 }: {
@@ -407,13 +437,7 @@ export function ApplicationActions({
     <div className="flex flex-wrap items-center gap-2">
       {application.status === "PENDING" && (
         <>
-          <form action={approveApplicationAction} className="contents">
-            <input type="hidden" name="id" value={application.id} />
-            <SubmitButton className="h-10" pendingLabel="Approving…">
-              <Check className="size-4" />
-              Approve
-            </SubmitButton>
-          </form>
+          <ApproveApplicationButton application={application} />
           <RejectApplicationDialog application={application} />
         </>
       )}
