@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     template: "%s · Amtul Noor Library",
   },
   description: "Your Gateway to Knowledge and Success",
+  verification: {
+    google: "KEtk5jqpwSI2PRTmRpZn4BlXOq67ttPIYq9iwv9Mlbk",
+  },
 };
 
 export const viewport: Viewport = {
