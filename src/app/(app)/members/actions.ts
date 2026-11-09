@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
-import { actionPermission, can, canAny } from "@/lib/permissions";
+import { actionPermission, canAny } from "@/lib/permissions";
 import { parseInputDate, shiftMonthKey } from "@/lib/format";
 import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
 import { markGapMonthsNotApplicable, syncPendingAmounts } from "@/lib/membership";
@@ -464,47 +464,58 @@ export async function updateMemberAction(
 }
 
 /** Leaving keeps every record, releases the seat and never deletes anything. */
-export async function markMemberLeftAction(formData: FormData): Promise<void> {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (!can(session, "MEMBERS")) redirect("/dashboard");
+export async function markMemberLeftAction(formData: FormData): Promise<ActionState> {
+  const gate = await actionPermission("MEMBERS");
+  if ("denied" in gate) return gate.denied;
+
   const parsed = markLeftSchema.safeParse({
     memberId: formData.get("memberId"),
     leavingDate: formData.get("leavingDate"),
   });
 
-  if (!parsed.success) redirect("/members?error=leaving-date");
+  if (!parsed.success) {
+    return errorState("Enter a valid leaving date.", fieldErrors(parsed.error));
+  }
 
-  const leavingDate = parseInputDate(parsed.data.leavingDate);
+  try {
+    const leavingDate = parseInputDate(parsed.data.leavingDate);
+    let found = false;
 
-  await prisma.$transaction(async (tx) => {
-    const member = await tx.member.findUnique({
-      where: { id: parsed.data.memberId },
-      select: { id: true, seatId: true },
-    });
-    if (!member) return;
-
-    await tx.member.update({
-      where: { id: member.id },
-      data: { status: "LEFT", leavingDate, seatId: null },
-    });
-
-    if (member.seatId) {
-      await tx.seat.update({
-        where: { id: member.seatId },
-        data: { status: "AVAILABLE" },
+    await prisma.$transaction(async (tx) => {
+      const member = await tx.member.findUnique({
+        where: { id: parsed.data.memberId },
+        select: { id: true, seatId: true },
       });
-    }
+      if (!member) return;
 
-    await logMemberChange(tx, {
-      memberId: member.id,
-      action: MEMBER_AUDIT_ACTIONS.MEMBER_MARKED_LEFT,
-      summary: "Marked as left",
-      metadata: { leavingDate: leavingDate.toISOString().slice(0, 10), seatReleased: Boolean(member.seatId) },
+      found = true;
+      await tx.member.update({
+        where: { id: member.id },
+        data: { status: "LEFT", leavingDate, seatId: null },
+      });
+
+      if (member.seatId) {
+        await tx.seat.update({
+          where: { id: member.seatId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+
+      await logMemberChange(tx, {
+        memberId: member.id,
+        action: MEMBER_AUDIT_ACTIONS.MEMBER_MARKED_LEFT,
+        summary: "Marked as left",
+        metadata: { leavingDate: leavingDate.toISOString().slice(0, 10), seatReleased: Boolean(member.seatId) },
+      });
     });
-  });
 
-  revalidateAll();
+    if (!found) return errorState("Member not found.");
+
+    revalidateAll();
+    return successState("Member marked as left.");
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
 }
 
 /**

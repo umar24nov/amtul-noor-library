@@ -146,10 +146,14 @@ export function MemberActions({
             </AlertDialogHeader>
             <form
               action={async (formData) => {
-                await markMemberLeftAction(formData);
+                const result = await markMemberLeftAction(formData);
+                if (result?.status === "error") {
+                  toast.error(result.message || "Could not mark member as left.");
+                  return;
+                }
                 setLeftOpen(false);
                 router.refresh();
-                toast.success(`${member.name} marked as Left.`);
+                toast.success(result?.message || `${member.name} marked as left.`);
               }}
             >
               <input type="hidden" name="memberId" value={member.id} />

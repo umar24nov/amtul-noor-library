@@ -86,11 +86,15 @@ function MarkLeftDialog({
         </AlertDialogHeader>
         <form
           action={async (formData) => {
-            await markMemberLeftAction(formData);
+            const result = await markMemberLeftAction(formData);
+            if (result?.status === "error") {
+              toast.error(result.message || "Could not mark member as left.");
+              return;
+            }
             const fresh = await getMemberForEdit(member.id);
             if (fresh) onUpdated(fresh);
             setOpen(false);
-            toast.success(`${member.name} marked as Left. Seat released.`);
+            toast.success(result?.message || `${member.name} marked as left.`);
           }}
         >
           <input type="hidden" name="memberId" value={member.id} />
@@ -277,13 +281,15 @@ export function MemberTable({
             {rows.map((member) => (
               <tr
                 key={member.id}
-                className="cursor-pointer hover:bg-muted/30"
+                className="group cursor-pointer transition-colors hover:bg-muted/30"
                 onClick={() => router.push(`/members/${member.id}`)}
               >
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                   {member.memberId}
                 </td>
-                <td className="px-3 py-2.5 font-medium">{member.name}</td>
+                <td className="px-3 py-2.5 font-medium">
+                  <span className="underline-offset-2 group-hover:underline">{member.name}</span>
+                </td>
                 <td className="px-3 py-2.5 tabular-nums">{member.mobile}</td>
                 <td className="px-3 py-2.5 tabular-nums">{seatText(member)}</td>
                 <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
@@ -319,7 +325,7 @@ export function MemberTable({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate font-medium">{member.name}</p>
+                <p className="truncate font-medium underline-offset-2 hover:underline">{member.name}</p>
                 <p className="font-mono text-xs text-muted-foreground">{member.memberId}</p>
               </div>
               <MemberStatusBadge status={member.status} />
