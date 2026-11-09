@@ -55,7 +55,7 @@ export default function OpengraphImage() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: "#a3a3a3" }}>
-          <div style={{ display: "flex" }}>amtulnoorlibrary.site</div>
+          <div style={{ display: "flex" }}>amtulnoorlibrary.in</div>
           <div style={{ display: "flex" }}>+91 82733 06126</div>
         </div>
       </div>

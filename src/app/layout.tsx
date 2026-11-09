@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
   (process.env.NODE_ENV === "production"
-    ? "https://www.amtulnoorlibrary.site"
+    ? "https://www.amtulnoorlibrary.in"
     : "http://localhost:3000");
 
 export const metadata: Metadata = {

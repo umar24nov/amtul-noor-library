@@ -11,7 +11,7 @@
  * The exit code is 1 when any route is not what it should be.
  */
 
-const base = (process.argv[2] ?? process.env.SITE_URL ?? "https://www.amtulnoorlibrary.site")
+const base = (process.argv[2] ?? process.env.SITE_URL ?? "https://www.amtulnoorlibrary.in")
   .replace(/\/+$/, "");
 
 const routes = [
