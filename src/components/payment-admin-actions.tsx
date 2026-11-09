@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { FeeForm } from "@/components/fee-form";
 import { Button } from "@/components/ui/button";
 import { monthOptions, type MonthOption } from "@/lib/format";
@@ -37,7 +38,13 @@ function PendingGenerator({ months }: { months?: MonthOption[] }) {
         setPending(true);
         try {
           const result = await generatePendingAction({ status: "idle" }, formData);
-          window.alert(result.message ?? "Could not generate pending payments.");
+          if (result?.status === "error") {
+            toast.error(result.message || "Could not generate pending payments.");
+          } else {
+            toast.success(result?.message || "Pending payments generated.");
+          }
+        } catch {
+          toast.error("Could not generate pending payments.");
         } finally {
           setPending(false);
         }

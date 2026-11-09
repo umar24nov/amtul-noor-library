@@ -281,8 +281,16 @@ export function MemberTable({
             {rows.map((member) => (
               <tr
                 key={member.id}
-                className="group cursor-pointer transition-colors hover:bg-muted/30"
+                role="link"
+                tabIndex={0}
+                className="group cursor-pointer transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 onClick={() => router.push(`/members/${member.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/members/${member.id}`);
+                  }
+                }}
               >
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                   {member.memberId}

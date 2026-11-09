@@ -19,7 +19,13 @@ import type { ApplicationStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Applications" };
 
-type SearchParams = Promise<{ status?: string }>;
+type SearchParams = Promise<{ status?: string; error?: string }>;
+
+const APPROVE_ERRORS: Record<string, string> = {
+  invalid: "That application request was invalid.",
+  gone: "This application has already been decided or is no longer available.",
+  failed: "Could not approve the application. Please try again.",
+};
 
 const STATUS_TONE: Record<ApplicationStatus, string> = {
   PENDING: "bg-warning/20 text-warning-foreground ring-warning/40",
@@ -104,6 +110,8 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   await requirePermission("APPLICATIONS");
   const params = await searchParams;
   const status = params.status;
+  const errorKey = params.error?.trim();
+  const approveError = errorKey ? APPROVE_ERRORS[errorKey] : undefined;
   const where: { status?: ApplicationStatus } = {};
   if (status === "PENDING" || status === "APPROVED" || status === "REJECTED") {
     where.status = status;
@@ -134,6 +142,12 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         title="Applications"
         description="Membership requests from the public join form. Approving one creates the member automatically."
       />
+
+      {approveError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          {approveError}
+        </p>
+      ) : null}
 
       <Card>
         <CardContent className="grid gap-3">

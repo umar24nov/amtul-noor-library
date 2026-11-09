@@ -5,7 +5,7 @@ import { z } from "zod";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { prisma } from "@/lib/prisma";
 import { nextMoneyKeptId } from "@/lib/ids";
-import { requirePermission } from "@/lib/permissions";
+import { actionPermission } from "@/lib/permissions";
 
 const moneyKeptSchema = z.object({
   date: z.string().trim().min(1, "Enter a date"),
@@ -84,10 +84,8 @@ function parseFlexibleDate(input: string): Date {
 }
 
 export async function createMoneyKeptAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requirePermission("EXPENSES");
-  if (session.level !== "ADMIN" && !session.permissions?.includes("EXPENSES")) {
-    return errorState("You do not have permission to add money kept.");
-  }
+  const gate = await actionPermission("EXPENSES");
+  if ("denied" in gate) return gate.denied;
 
   const parsed = moneyKeptSchema.safeParse({
     date: formData.get("date"),
@@ -124,10 +122,8 @@ export async function createMoneyKeptAction(_prev: ActionState, formData: FormDa
 }
 
 export async function updateMoneyKeptAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requirePermission("EXPENSES");
-  if (session.level !== "ADMIN" && !session.permissions?.includes("EXPENSES")) {
-    return errorState("You do not have permission to edit money kept.");
-  }
+  const gate = await actionPermission("EXPENSES");
+  if ("denied" in gate) return gate.denied;
 
   const moneyKeptPk = Number(formData.get("moneyKeptPk"));
   if (!Number.isFinite(moneyKeptPk)) {
@@ -167,10 +163,8 @@ export async function updateMoneyKeptAction(_prev: ActionState, formData: FormDa
 }
 
 export async function deleteMoneyKeptAction(moneyKeptPk: number): Promise<ActionState> {
-  const session = await requirePermission("EXPENSES");
-  if (session.level !== "ADMIN" && !session.permissions?.includes("EXPENSES")) {
-    return errorState("You do not have permission to delete money kept.");
-  }
+  const gate = await actionPermission("EXPENSES");
+  if ("denied" in gate) return gate.denied;
 
   if (!Number.isFinite(moneyKeptPk)) {
     return errorState("Invalid entry.");
