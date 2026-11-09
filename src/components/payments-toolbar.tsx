@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,16 +34,37 @@ export function PaymentsToolbar({
   /** Member id pulled from the `record` query param; opens the dialog for them. */
   autoOpenMemberId?: number | null;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [recordOpen, setRecordOpen] = useState(autoOpenMemberId != null);
   const [preselectedMemberId, setPreselectedMemberId] = useState<number | null>(
     autoOpenMemberId ?? null,
   );
 
+  const clearRecordParams = useCallback(() => {
+    const hasRecord = searchParams.get("record");
+    const tab = searchParams.get("tab");
+    if (!hasRecord && tab !== "record") return;
+
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("record");
+    next.delete("tab");
+    // When opened via ?memberId=<numeric>&tab=record, memberId was the record target.
+    if (tab === "record") next.delete("memberId");
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   // Every close path (overlay click, X, Escape, successful save) clears the
-  // preselection, so a later manual open starts from a blank form.
+  // preselection and removes record-open URL params, so a refresh won't reopen
+  // the dialog after the payment is recorded.
   const setOpen = (open: boolean) => {
     setRecordOpen(open);
-    if (!open) setPreselectedMemberId(null);
+    if (!open) {
+      setPreselectedMemberId(null);
+      clearRecordParams();
+    }
   };
 
   return (
