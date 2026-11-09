@@ -59,7 +59,7 @@ const FEATURES: { icon: typeof Users; title: string; detail: string }[] = [
   {
     icon: Clock,
     title: "Fees & reminders",
-    detail: "Monthly fee tracking, pending lists, UPI payments and payment reminders on WhatsApp.",
+    detail: "Monthly fee tracking, pending lists, NEFT bank transfer details, and payment reminders on WhatsApp.",
   },
   {
     icon: Braces,
@@ -124,9 +124,9 @@ export default function DeveloperPage() {
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
               {LIBRARY_NAME} combines a public website with an admin panel that
               handles the library&apos;s daily work: keeping the member register,
-              allotting seats, tracking monthly fees, collecting UPI payments and
-              sending digital receipts and reminders. It runs on {STACK}, with
-              data kept in a PostgreSQL database.
+              allotting seats, tracking monthly fees, sharing NEFT bank transfer
+              details for payments, and sending digital receipts and reminders. It
+              runs on {STACK}, with data kept in a PostgreSQL database.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {FEATURES.map((feature) => (

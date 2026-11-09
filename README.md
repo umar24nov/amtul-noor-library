@@ -28,7 +28,7 @@ It is two things in one:
 - **See the library** — what it offers, where it is, when it is open, and what a
   seat costs.
 - **Apply for a membership** through the public join form, without a phone call.
-- **Open a payment link** sent by the library and pay the monthly fee over UPI,
+- **Open a payment link** sent by the library and pay the monthly fee via NEFT/bank transfer,
   with a digital receipt to follow.
 - **View a receipt** at a private link, or ask a question through the help &
   support form.
@@ -82,7 +82,7 @@ A single Next.js application (App Router) with a PostgreSQL database.
 | Database | PostgreSQL |
 | ORM | Prisma |
 | Auth | Signed session cookie, permissions resolved per role |
-| Payments | UPI deep links with a QR fallback |
+| Payments | NEFT bank transfer details and member payment links |
 | Hosting | Vercel, with the database on Neon |
 
 ## Notes

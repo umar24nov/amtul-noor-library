@@ -1,31 +1,21 @@
-import { ExternalLink, QrCode, Smartphone } from "lucide-react";
+import { ExternalLink, Landmark, QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import {
-  LIBRARY_UPI_ID,
-  LIBRARY_UPI_NAME,
-  LIBRARY_UPI_QR_PATH,
-} from "@/lib/constants";
 import { formatINR, formatMonth } from "@/lib/format";
-import { upiIsConfigured, upiPayLink } from "@/lib/upi";
+import { bankDetailsConfigured, getBankDetails } from "@/lib/upi";
 
 /**
- * The payment tile on a member's page. It has two jobs:
+ * The payment tile on a member's page.
  *
  * 1. A permanent link (/pay/<token>) that the member keeps and reuses every
  *    month: it always shows whatever is due next and lists their receipts for
- *    download. The owner shares this once (QR, link, or copy), and that is the
- *    "same link" for all future payments.
+ *    download. The owner shares this once.
  *
- * 2. A quick pay tile for the fee immediately in front of them: a QR of the
- *    upi:// link for the single due month plus a button to open it anywhere.
- *
- * Everything renders nothing until LIBRARY_UPI_ID is set, so turning the
- * feature on is one constant change rather than a deploy-and-hope.
+ * 2. Bank transfer (NEFT) details for paying the fee immediately due.
  */
-export async function UpiPayCard({
+export async function BankPayCard({
   amount,
   month,
   memberId,
@@ -36,9 +26,9 @@ export async function UpiPayCard({
   memberId: string;
   memberPayUrl: string | null;
 }): Promise<React.ReactElement | null> {
-  if (!upiIsConfigured()) return null;
+  if (!bankDetailsConfigured()) return null;
 
-  const note = `${LIBRARY_UPI_NAME} — ${memberId} ${formatMonth(month)}`;
+  const bank = getBankDetails();
   const memberQr = memberPayUrl
     ? await QRCode.toDataURL(memberPayUrl, {
         width: 220,
@@ -97,30 +87,33 @@ export async function UpiPayCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-6 border-t border-border pt-5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={LIBRARY_UPI_QR_PATH}
-            alt={`Scan to pay ${formatINR(amount)} for ${formatMonth(month)}`}
-            className="size-40 rounded-lg border border-border"
-          />
-          <div className="flex min-w-0 flex-col gap-2">
-            <p className="text-sm">
-              Pay <strong className="tabular-nums">{formatINR(amount)}</strong> for{" "}
-              <strong>{formatMonth(month)}</strong> to:
+        <div className="grid gap-3 border-t border-border pt-5">
+          <div className="flex items-center gap-2">
+            <Landmark className="size-4 text-muted-foreground" />
+            <p className="text-sm font-medium">
+              Pay by bank transfer (NEFT)
             </p>
-            <p className="font-mono text-sm font-medium">{LIBRARY_UPI_ID}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm">
-                <a href={upiPayLink(amount, note)}>
-                  <Smartphone className="size-4" />
-                  Open in your UPI app
-                </a>
-              </Button>
-            </div>
           </div>
+          <p className="text-sm text-muted-foreground">
+            For online payment of your library fee for{" "}
+            <strong className="text-foreground">{formatMonth(month)}</strong> (
+            <strong className="tabular-nums text-foreground">{formatINR(amount)}</strong>
+            ), please use the following bank details. Make sure to enter the
+            correct details while making the payment.
+          </p>
+          <dl className="grid gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-4">
+            <dt className="text-muted-foreground">Account holder name</dt>
+            <dd className="font-medium break-all">{bank.accountHolder}</dd>
+            <dt className="text-muted-foreground">Account number</dt>
+            <dd className="font-mono font-medium break-all">{bank.accountNumber}</dd>
+            <dt className="text-muted-foreground">IFSC code</dt>
+            <dd className="font-mono font-medium break-all">{bank.ifsc}</dd>
+          </dl>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+/** @deprecated Use BankPayCard. Kept for compatibility with existing imports. */
+export const UpiPayCard = BankPayCard;

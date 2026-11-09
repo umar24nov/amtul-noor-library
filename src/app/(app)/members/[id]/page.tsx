@@ -21,7 +21,7 @@ import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings"
 import { siteOrigin } from "@/lib/site";
 import { paymentModeLabels } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
-import { UpiPayCard } from "@/components/upi-pay-card";
+import { BankPayCard } from "@/components/upi-pay-card";
 import { ApplyOfferDialog } from "@/components/apply-offer-dialog";
 import { can, canEditPayments, requirePermission } from "@/lib/permissions";
 import { getSession } from "@/lib/auth";
@@ -86,7 +86,7 @@ export default async function MemberDetailPage({
   const paidMonths = member.payments.filter((payment) => payment.status === "PAID").length;
   const pendingMonths = member.payments.filter((payment) => payment.status === "PENDING").length;
 
-  // The oldest month still owed, so the UPI tile asks for the fee that is due
+  // The oldest month still owed, so the payment tile asks for the fee that is due
   // first rather than a random one; when nothing is pending the next month leads.
   const soonestPending = [...member.payments]
     .filter((payment) => payment.status === "PENDING")
@@ -216,7 +216,7 @@ export default async function MemberDetailPage({
         </Card>
       </div>
 
-      <UpiPayCard
+      <BankPayCard
         amount={dueAmount}
         month={dueMonth}
         memberId={member.memberId}

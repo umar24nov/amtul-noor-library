@@ -10,19 +10,12 @@ export const LIBRARY_NAME = "Amtul Noor Library";
 export const LIBRARY_TAGLINE = "Your Gateway to Knowledge and Success";
 
 /**
- * The library's UPI address, used to build `upi://` payment links and shown
- * next to the QR so a member can pay a fee from their phone.
- *
- * This is the address actually encoded in the owner's bank-generated QR
- * (served at `LIBRARY_UPI_QR_PATH`). The display name shown to
- * the payer comes from `LIBRARY_UPI_NAME`. The pay sections are hidden until
- * the address is set.
+ * Bank details for fee payments (NEFT/bank transfer). Shown on the member's
+ * payment page and admin member view so members can pay online.
  */
-export const LIBRARY_UPI_ID = "8273306126@ibl";
-export const LIBRARY_UPI_NAME = LIBRARY_NAME;
-
-/** The owner's own UPI QR image, shown wherever a fee can be paid by UPI. */
-export const LIBRARY_UPI_QR_PATH = "/upi-qr.jpg";
+export const LIBRARY_BANK_ACCOUNT_HOLDER = "SHAHJAHAN";
+export const LIBRARY_BANK_ACCOUNT_NUMBER = "0340100100006195";
+export const LIBRARY_BANK_IFSC = "PUNB0034010";
 
 /** Where the library is, as written on the sign outside it. */
 export const LIBRARY_ADDRESS =

@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, FileText, MessageCircle, Smartphone } from "lucide-react";
+import { ArrowLeft, Download, FileText, Landmark, MessageCircle } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SITE_NAV } from "@/lib/site-nav";
-import {
-  LIBRARY_NAME,
-  LIBRARY_UPI_ID,
-  LIBRARY_UPI_QR_PATH,
-} from "@/lib/constants";
+import { LIBRARY_NAME } from "@/lib/constants";
 import { currentMonthKey, formatDate, formatINR, formatMonth, shiftMonthKey } from "@/lib/format";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
-import { upiIsConfigured, upiPayLink } from "@/lib/upi";
+import { bankDetailsConfigured, getBankDetails } from "@/lib/upi";
 import { whatsappChatUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -26,10 +22,10 @@ export const metadata: Metadata = {
  * The member's permanent, private payment page.
  *
  * Created once at enrollment and never changes, so the owner shares the same
- * link (or QR) every month: the member pays the fee that is due next, and taps
- * a download link beside each paid month to fetch that receipt. No login is
- * needed because the address is an unguessable token; the owner still records
- * the payment in the app, which is what makes the receipt appear here.
+ * link every month: the member sees the fee due next, bank transfer (NEFT)
+ * details to pay it, and download links for paid receipts. No login is needed
+ * because the address is an unguessable token; the owner still records the
+ * payment in the app, which is what makes the receipt appear here.
  */
 export default async function MemberPayPage({
   params,
@@ -65,16 +61,14 @@ export default async function MemberPayPage({
     .filter((payment) => payment.status === "PAID" && payment.receiptToken)
     .sort((a, b) => b.month.localeCompare(a.month));
 
-  const upiActive = upiIsConfigured();
-  const payNote = upiActive
-    ? `${LIBRARY_NAME} — ${member.memberId} ${formatMonth(dueMonth)}`
-    : "";
+  const bankConfigured = bankDetailsConfigured();
+  const bank = getBankDetails();
 
-  const afterPayUrl = upiActive
+  const afterPayUrl = bankConfigured
     ? whatsappChatUrl(
         `Hi, I am ${member.memberId}. I just paid my library fee for ${formatMonth(
           dueMonth,
-        )} (${formatINR(dueAmount)}).`,
+        )} (${formatINR(dueAmount)}) via NEFT/bank transfer.`,
       )
     : null;
 
@@ -107,49 +101,48 @@ export default async function MemberPayPage({
             </Link>
           </div>
 
-          {upiActive ? (
+          {bankConfigured ? (
             <Card className="mt-8">
               <CardHeader>
-                <CardTitle className="text-base">
-                  Due for {formatMonth(dueMonth)}
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Landmark className="size-4" />
+                  Pay by bank transfer (NEFT)
                 </CardTitle>
                 <CardDescription>
-                  Pay {formatINR(dueAmount)} to {LIBRARY_UPI_ID} with any UPI
-                  app, then tell the library.
+                  For online payment of your library fee for{" "}
+                  <strong className="text-foreground">{formatMonth(dueMonth)}</strong> (
+                  <strong className="tabular-nums text-foreground">{formatINR(dueAmount)}</strong>
+                  ), please use the following bank details. Make sure to enter the
+                  correct details while making the payment.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-6">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={LIBRARY_UPI_QR_PATH}
-                  alt={`Scan to pay ${formatINR(dueAmount)} for ${formatMonth(dueMonth)}`}
-                  className="size-44 rounded-lg border border-border"
-                />
-                <div className="flex min-w-0 flex-col gap-2">
-                  <Button asChild size="lg">
-                    <a href={upiPayLink(dueAmount, payNote)}>
-                      <Smartphone className="size-4" />
-                      Pay in your UPI app
-                    </a>
-                  </Button>
-                  {afterPayUrl && (
+              <CardContent className="grid gap-4">
+                <dl className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+                  <dt className="text-muted-foreground">Account holder name</dt>
+                  <dd className="font-medium break-all">{bank.accountHolder}</dd>
+                  <dt className="text-muted-foreground">Account number</dt>
+                  <dd className="font-mono font-medium break-all">{bank.accountNumber}</dd>
+                  <dt className="text-muted-foreground">IFSC code</dt>
+                  <dd className="font-mono font-medium break-all">{bank.ifsc}</dd>
+                </dl>
+                {afterPayUrl && (
+                  <div className="flex flex-wrap items-center gap-3">
                     <Button asChild size="lg" variant="outline">
                       <a href={afterPayUrl} target="_blank" rel="noreferrer">
                         <MessageCircle className="size-4" />
-                        I&apos;ve paid — confirm
+                        I&apos;ve paid — confirm on WhatsApp
                       </a>
                     </Button>
-                  )}
-                  <p className="max-w-64 text-xs text-muted-foreground">
-                    The receipt appears here once the library records the
-                    payment.
-                  </p>
-                </div>
+                    <p className="text-xs text-muted-foreground">
+                      The receipt appears here once the library records the payment.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="mt-8 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              Online fee payment is not set up yet. Please pay during opening
+              Online fee payment details are not set up yet. Please pay during opening
               hours or on WhatsApp.
             </div>
           )}
