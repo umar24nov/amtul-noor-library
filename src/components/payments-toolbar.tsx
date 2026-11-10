@@ -50,8 +50,12 @@ export function PaymentsToolbar({
     const next = new URLSearchParams(searchParams.toString());
     next.delete("record");
     next.delete("tab");
-    // When opened via ?memberId=<numeric>&tab=record, memberId was the record target.
-    if (tab === "record") next.delete("memberId");
+    // When opened via ?memberId=<numeric>&tab=record, that memberId was the
+    // record target. A non-numeric memberId (e.g. ATN001) is a list filter and
+    // is kept, mirroring how the page parses the params.
+    if (tab === "record" && /^\d+$/.test(searchParams.get("memberId") ?? "")) {
+      next.delete("memberId");
+    }
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [pathname, router, searchParams]);

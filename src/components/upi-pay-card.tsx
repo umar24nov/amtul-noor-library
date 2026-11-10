@@ -114,6 +114,3 @@ export async function BankPayCard({
     </Card>
   );
 }
-
-/** @deprecated Use BankPayCard. Kept for compatibility with existing imports. */
-export const UpiPayCard = BankPayCard;

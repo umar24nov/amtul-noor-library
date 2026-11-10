@@ -405,22 +405,3 @@ export async function sendReceiptEmailAction(paymentPk: number): Promise<ActionS
 
   return successState(`Receipt sent to ${context.email}.`);
 }
-
-/** Active members, used by the member picker in the payment form. */
-export async function searchMembersAction(): Promise<
-  { id: number; label: string; hint: string | null }[]
-> {
-  const viewer = await getSession();
-  if (!viewer || !canViewPayments(viewer)) return [];
-  const members = await prisma.member.findMany({
-    where: { status: "ACTIVE" },
-    include: { seat: { include: { room: true } } },
-    orderBy: { name: "asc" },
-    take: 500,
-  });
-  return members.map((member) => ({
-    id: member.id,
-    label: `${member.name} · ${member.memberId}`,
-    hint: member.seat ? `${member.seat.room.name} Seat ${member.seat.seatNumber}` : "No seat",
-  }));
-}
