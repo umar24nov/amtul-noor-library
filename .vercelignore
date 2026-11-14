@@ -1,0 +1,5 @@
+# Files that must never be uploaded with a CLI deployment. Git already ignores
+# them, but `vercel deploy` sends the working tree as it is on disk, so the rule
+# is repeated here for the upload step.
+.env
+.env.*
