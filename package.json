@@ -18,6 +18,7 @@
     "seed-room2": "tsx prisma/seed-room2.ts",
     "check-data": "tsx prisma/check-data.ts",
     "clean-auto-pending": "tsx prisma/clean-auto-pending.ts",
+    "migrate-aadhaar-private": "tsx prisma/migrate-aadhaar-private.ts",
     "check-routes": "node scripts/check-routes.mjs",
     "hash-password": "tsx prisma/hash-password.ts",
     "dev-token": "tsx prisma/dev-token.ts",

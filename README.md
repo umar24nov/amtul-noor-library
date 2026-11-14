@@ -83,6 +83,7 @@ A single Next.js application (App Router) with a PostgreSQL database.
 | ORM | Prisma |
 | Auth | Signed session cookie, permissions resolved per role |
 | Payments | NEFT bank transfer details and member payment links |
+| Storage | Vercel Blob, private store for Aadhaar scans |
 | Hosting | Vercel, with the database on Neon |
 
 ## Notes
@@ -103,6 +104,19 @@ A single Next.js application (App Router) with a PostgreSQL database.
   `PASSWORD_VAULT_SECRET` are the variables the app needs. They live in `.env`
   locally and in the Vercel project settings in production; `.env` is
   gitignored and there is no template in the repo on purpose.
+- Aadhaar scans live in a **private** Vercel Blob store, so a scan has no public
+  URL and is only readable through the session-checked `/api/aadhaar/[file]`
+  route. Blob fixes a store's access mode when it is created, so the old public
+  store cannot be flipped in place: create a private store, connect it to the
+  project, and run `npm run migrate-aadhaar-private` (add `-- --dry` first) to
+  copy the existing scans across and rewrite the rows to their pathnames. Once
+  the script reports no failures, delete the old public store — it holds
+  nothing else. The store connection supplies `BLOB_STORE_ID` (with OIDC) or
+  `BLOB_READ_WRITE_TOKEN`; `AADHAAR_BLOB_STORE_ID` and
+  `AADHAAR_BLOB_READ_WRITE_TOKEN` are only needed if the scan store is not the
+  one connected as the project's Blob store. `AADHAAR_BLOB_ACCESS=public` is a
+  temporary fallback while the private store is being set up — do not leave it
+  set.
 
 - Database migrations are applied by the production build itself
   (`scripts/vercel-migrate.mjs`), so a deployment never runs against a schema

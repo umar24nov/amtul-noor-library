@@ -16,8 +16,9 @@ function isPdf(url: string) {
 }
 
 /**
- * Vercel Blob serves a stored file inline. Adding `download=1` makes it come
- * back as an attachment so the browser saves it instead of opening a tab.
+ * Both the private scan route and Vercel Blob serve a stored file inline by
+ * default. Adding `download=1` asks for it as an attachment instead, so the
+ * browser saves it rather than opening a tab.
  */
 function downloadUrl(url: string) {
   if (url.startsWith("blob:")) return url;

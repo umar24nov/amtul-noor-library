@@ -126,7 +126,7 @@ export async function submitApplicationAction(
         guardianName: data.guardianName ?? null,
         guardianMobile: data.guardianMobile ?? null,
         aadhaarNumber: data.aadhaarNumber,
-        aadhaarFrontUrl: storedFront.ok ? storedFront.url : null,
+        aadhaarFrontUrl: storedFront.ok ? storedFront.stored : null,
         aadhaarBackUrl: null,
         preparingFor: data.preparingFor,
         otherPreparation: null,

@@ -66,8 +66,10 @@ the file that holds it, because most of these are easy to undo by accident.
   paid row together (`src/app/(app)/payments/actions.ts`). The status filter
   on the payments screen **prioritises** a status, it does not filter rows
   out (`prioritiseStatus` in `src/lib/payments.ts`).
-- A real `CSP` is deliberately absent (`next.config.ts` explains why: Aadhaar
-  scans are embedded from Vercel Blob in an iframe). The other headers are set.
+- A real `CSP` is deliberately absent (`next.config.ts` explains why). The other
+  headers are set, including `X-Frame-Options: SAMEORIGIN`, which lets the admin
+  panel frame its own Aadhaar PDF preview from `/api/aadhaar/[file]` while still
+  refusing framing by other sites.
 
 ## Input, uploads, abuse
 
@@ -81,6 +83,14 @@ the file that holds it, because most of these are easy to undo by accident.
   its extension. Keep this ahead of the Blob write; a renamed file would
   otherwise be stored and served. Size is capped at 3 MB per scan, and the
   action body limit is raised to 12 MB for that reason (`next.config.ts`).
+- Aadhaar scans are stored in a **private** Vercel Blob store. The application
+  row keeps the blob's **pathname** (`aadhaar/…`), never a URL, because a
+  private URL is useless without a token and must not reach the browser. The
+  admin panel resolves a stored value with `aadhaarScanSrc` and reads the file
+  through `/api/aadhaar/[file]`, which checks the `APPLICATIONS` permission in
+  the route itself. Do not replace that route with a direct Blob URL, and do not
+  move the check into middleware. Public URLs still in old rows are legacy and
+  are handled by `npm run migrate-aadhaar-private`.
 - Sign-in failures are rate limited by email **and** IP
   (`src/lib/login-rate-limit.ts`), reused by the join and support forms. The
   limiter fails *open* on a database error so the owner is never locked out by

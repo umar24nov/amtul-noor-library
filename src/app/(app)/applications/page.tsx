@@ -11,6 +11,7 @@ import {
   type EditableApplication,
 } from "@/components/application-card-actions";
 import { AadhaarPreview } from "@/components/aadhaar-preview";
+import { aadhaarScanSrc } from "@/lib/aadhaar-storage";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
@@ -64,6 +65,23 @@ function AadhaarFile({ url, label }: { url: string | null; label: string }) {
       )}
     </Link>
   );
+}
+
+/**
+ * A scan is stored either as a private blob pathname (served through the
+ * checked `/api/aadhaar` route) or as a legacy public URL. Both are resolved
+ * here, on the server, so the client component only ever receives a URL.
+ */
+function AadhaarScan({ stored, label }: { stored: string | null; label: string }) {
+  const url = aadhaarScanSrc(stored);
+  if (!url) return null;
+  return <AadhaarPreview url={url} label={label} />;
+}
+
+function AadhaarScanFile({ stored, label }: { stored: string | null; label: string }) {
+  const url = aadhaarScanSrc(stored);
+  if (!url) return null;
+  return <AadhaarFile url={url} label={label} />;
 }
 
 function toEditableApplication(application: {
@@ -216,12 +234,10 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <dt className="text-muted-foreground">Aadhaar</dt>
                     <dd className="flex flex-wrap items-center gap-2">
                       <span>{application.aadhaarNumber}</span>
-                      {application.aadhaarFrontUrl && (
-                        <AadhaarPreview
-                          url={application.aadhaarFrontUrl}
-                          label={`Aadhaar scan — ${application.name}`}
-                        />
-                      )}
+                      <AadhaarScan
+                        stored={application.aadhaarFrontUrl}
+                        label={`Aadhaar scan — ${application.name}`}
+                      />
                     </dd>
                   </div>
                   {application.preferredSeat && (
@@ -258,7 +274,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
                 {application.aadhaarBackUrl && (
                   <div className="flex flex-wrap gap-3">
-                    <AadhaarFile url={application.aadhaarBackUrl} label="Back side" />
+                    <AadhaarScanFile stored={application.aadhaarBackUrl} label="Back side" />
                   </div>
                 )}
 

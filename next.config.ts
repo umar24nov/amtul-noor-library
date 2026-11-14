@@ -1,13 +1,16 @@
 import type { NextConfig } from "next";
 
 // Defence-in-depth response headers applied to every route. A full
-// Content-Security-Policy is intentionally left off for now: the admin panel
-// embeds Aadhaar scans (images and PDFs) straight from Vercel Blob in an
-// <iframe>, so a policy would have to allow those hosts and be re-tested on
-// every page before it could be trusted not to break the app.
+// Content-Security-Policy is intentionally left off for now: it would have to
+// be audited against every page (inline styles, fonts, images) before it could
+// be trusted not to break the app.
+//
+// Framing is limited to this site rather than denied outright: the admin
+// panel previews an Aadhaar PDF in an <iframe> served by the authenticated
+// /api/aadhaar route, and that response has to be frameable by our own pages.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
