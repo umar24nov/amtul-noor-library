@@ -163,6 +163,21 @@ export const PREPARATION_OPTIONS = [
 export const APPLICATION_RATE_LIMIT = { perIpPerDay: 5, duplicateWindowDays: 30 } as const;
 
 /**
+ * What the public join form accepts for an Aadhaar scan, and the largest one.
+ *
+ * The size cap is enforced in the browser as well as on the server. That is not
+ * belt-and-braces for its own sake: Vercel refuses any serverless request whose
+ * body is over roughly 4.5 MB with a bare 413 before the app runs, so a photo
+ * larger than that never reaches the server-side check and the applicant only
+ * sees the generic error page. Turning the file away in the browser, well under
+ * that ceiling, is what keeps an oversized photo a readable message instead of a
+ * broken form.
+ */
+export const AADHAAR_EXTENSIONS = ["jpg", "jpeg", "png", "pdf"] as const;
+export const AADHAAR_MAX_BYTES = 3 * 1024 * 1024;
+export const AADHAAR_MAX_MB = AADHAAR_MAX_BYTES / 1024 / 1024;
+
+/**
  * The fixed topics on the public help & support form. "Something else" is
  * deliberately last: it is the catch-all for anything that does not fit the
  * three named reasons, so a visitor never has to guess which box to tick.

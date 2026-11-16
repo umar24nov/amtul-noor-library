@@ -1,10 +1,12 @@
 import { get, put } from "@vercel/blob";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AADHAAR_EXTENSIONS, AADHAAR_MAX_BYTES } from "@/lib/constants";
 
-/** Extensions the join form accepts, and the maximum size of one scan. */
-export const AADHAAR_EXTENSIONS = ["jpg", "jpeg", "png", "pdf"] as const;
-export const AADHAAR_MAX_BYTES = 3 * 1024 * 1024;
+// The accepted kinds and the size cap live in `constants.ts`, so the join form
+// (a client component) and this server module share one definition. Re-exported
+// here because this module is where a reader looks for them.
+export { AADHAAR_EXTENSIONS, AADHAAR_MAX_BYTES };
 
 /** The Blob folder every scan is written under. */
 export const AADHAAR_BLOB_PREFIX = "aadhaar/";

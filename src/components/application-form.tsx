@@ -12,8 +12,13 @@ import { SubmitButton } from "@/components/submit-button";
 import { SeatMap } from "@/components/seat-map";
 import { submitApplicationAction } from "@/app/join/actions";
 import { IDLE_STATE } from "@/lib/action-result";
-import { LIBRARY_RULES } from "@/lib/constants";
+import { AADHAAR_MAX_BYTES, AADHAAR_MAX_MB, LIBRARY_RULES } from "@/lib/constants";
 import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
+
+/** One decimal place is enough to tell a 2 MB photo from a 9 MB one. */
+function fileSizeMb(bytes: number): string {
+  return (bytes / 1024 / 1024).toFixed(1);
+}
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -71,6 +76,7 @@ export function ApplicationForm({
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
   const id = useId();
   const [aadhaarFileName, setAadhaarFileName] = useState("");
+  const [aadhaarFileError, setAadhaarFileError] = useState("");
 
   const initialRoom =
     (defaultRoomId != null ? rooms.find((room) => room.id === defaultRoomId) : undefined) ??
@@ -542,7 +548,7 @@ export function ApplicationForm({
             <div
               className={cn(
                 "flex h-11 items-center gap-3 rounded-lg border border-input px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
-                state.fieldErrors?.aadhaarFront &&
+                (state.fieldErrors?.aadhaarFront || aadhaarFileError) &&
                   "border-destructive ring-3 ring-destructive/20",
               )}
             >
@@ -562,17 +568,35 @@ export function ApplicationForm({
                 type="file"
                 required
                 accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                aria-invalid={Boolean(state.fieldErrors?.aadhaarFront)}
+                aria-invalid={Boolean(state.fieldErrors?.aadhaarFront || aadhaarFileError)}
                 className="sr-only"
-                onChange={(event) =>
-                  setAadhaarFileName(event.target.files?.[0]?.name ?? "")
-                }
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (file && file.size > AADHAAR_MAX_BYTES) {
+                    // Vercel rejects a request body over ~4.5 MB with a bare 413
+                    // before the app runs, which reaches the browser only as a
+                    // generic error page. Catch the oversized photo here, while
+                    // there is still a real message to show, and drop it from the
+                    // input so it can never be uploaded.
+                    event.target.value = "";
+                    setAadhaarFileName("");
+                    setAadhaarFileError(
+                      `That file is ${fileSizeMb(file.size)} MB. Please choose one under ${AADHAAR_MAX_MB} MB.`,
+                    );
+                    toast.error(
+                      `That file is too large. Please choose one under ${AADHAAR_MAX_MB} MB.`,
+                    );
+                    return;
+                  }
+                  setAadhaarFileName(file?.name ?? "");
+                  setAadhaarFileError("");
+                }}
               />
             </div>
-            <FieldError message={state.fieldErrors?.aadhaarFront} />
+            <FieldError message={state.fieldErrors?.aadhaarFront ?? aadhaarFileError} />
             <p className="text-xs text-muted-foreground">
-              JPG, PNG or PDF, up to 3 MB. One attachment is enough; your scan is
-              only seen by the owner.
+              JPG, PNG or PDF, up to {AADHAAR_MAX_MB} MB. One attachment is enough; your
+              scan is only seen by the owner.
             </p>
           </div>
         </CardContent>
