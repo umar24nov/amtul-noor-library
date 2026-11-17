@@ -43,16 +43,36 @@ if (!existsSync(binary)) {
 }
 
 console.log("Applying pending migrations before the build.");
-const result = spawnSync(binary, ["migrate", "deploy"], { stdio: "inherit" });
 
-if (result.error) {
-  console.error(result.error.message);
-  process.exit(1);
+// Two builds can start at once (a push and a redeploy, or a preview racing
+// production). Prisma serialises migrations with a Postgres advisory lock, and
+// a build that cannot get the lock within 10s fails with P1002 even though the
+// other build is moments from finishing. Retrying lets the loser wait its turn
+// instead of failing the deployment.
+const MAX_ATTEMPTS = 4;
+const RETRY_DELAY_MS = 8000;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+  const result = spawnSync(binary, ["migrate", "deploy"], { stdio: "inherit" });
+
+  if (result.error) {
+    console.error(result.error.message);
+    process.exit(1);
+  }
+
+  if (result.status === 0) {
+    process.exit(0);
+  }
+
+  if (attempt < MAX_ATTEMPTS) {
+    console.warn(
+      `prisma migrate deploy failed (attempt ${attempt} of ${MAX_ATTEMPTS}). ` +
+        `Retrying in ${RETRY_DELAY_MS / 1000}s in case another build holds the migration lock.`,
+    );
+    await sleep(RETRY_DELAY_MS);
+  }
 }
 
-if (result.status !== 0) {
-  console.error("prisma migrate deploy failed; continuing build since schema may already be in sync.");
-  process.exit(0);
-}
-
-process.exit(result.status ?? 0);
+console.error("prisma migrate deploy failed; continuing build since schema may already be in sync.");
+process.exit(0);
