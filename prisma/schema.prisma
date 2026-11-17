@@ -112,8 +112,10 @@ model Seat {
   @@index([status])
 }
 
-/// Permanent personal record of a person who joined the library.
-/// Rows are never deleted; a person who leaves is kept with status LEFT.
+/// Personal record of a person who joined the library.
+/// A person who leaves is kept with status LEFT; the record is only removed
+/// when the owner deletes it outright, which cascades to their payments,
+/// history and reminder counts.
 model Member {
   id             Int           @id @default(autoincrement())
   memberId       String        @unique
@@ -136,6 +138,7 @@ model Member {
   payments       Payment[]
   applications   Application[]
   auditLogs      MemberAuditLog[]
+  reminderSends  ReminderSent[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -383,4 +386,24 @@ model MemberAuditLog {
 
   @@index([memberId, createdAt])
   @@index([actorId, createdAt])
+}
+
+/// How many times a fee reminder was sent to a member for one month.
+///
+/// Keyed by month so the count looks after itself: a new month has no row yet,
+/// so it starts from zero with no cleanup job. Sending again increments the
+/// same row, so the count survives a reload and a change of device.
+model ReminderSent {
+  id         Int      @id @default(autoincrement())
+  memberId   Int
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  /// Calendar month in `YYYY-MM` form.
+  month      String
+  count      Int      @default(0)
+  lastSentAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([memberId, month])
+  @@index([month])
 }

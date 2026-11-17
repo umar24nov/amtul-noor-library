@@ -52,6 +52,19 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+/**
+ * The leaving date stored with a "Marked as left" entry.
+ *
+ * The entry is written on the day the owner marks the member left, which is not
+ * always the day the member actually left, so the real leaving date is kept in
+ * the entry's metadata and shown alongside it.
+ */
+function auditLeavingDate(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as Record<string, unknown>).leavingDate;
+  return typeof value === "string" && value ? value : null;
+}
+
 export default async function MemberDetailPage({
   params,
   searchParams,
@@ -446,31 +459,42 @@ export default async function MemberDetailPage({
         <CardContent>
           {member.auditLogs && member.auditLogs.length > 0 ? (
             <ul className="divide-y divide-border">
-              {member.auditLogs.map((log) => (
-                <li key={log.id} className="py-3 first:pt-0 last:pb-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{log.summary || log.action}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {log.actorName ? `${log.actorName}` : "System"}
-                        {log.actorName ? " • " : ""}
-                        {formatDate(log.createdAt)}
-                      </p>
-                      {Array.isArray(log.changes) && log.changes.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {(log.changes as Array<{ label?: string; old?: unknown; new?: unknown }>).map((change, idx) => (
-                            <li key={idx} className="text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">{String(change.label ?? "Field")}:</span>{" "}
-                              <span className="line-through">{String(change.old ?? "-")}</span> → <span className="text-foreground">{String(change.new ?? "-")}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+              {member.auditLogs.map((log) => {
+                const leavingDate = auditLeavingDate(log.metadata);
+                return (
+                  <li key={log.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{log.summary || log.action}</p>
+                        {leavingDate && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Leaving date:{" "}
+                            <span className="font-medium text-foreground">
+                              {formatDate(leavingDate)}
+                            </span>
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {log.actorName ? `${log.actorName}` : "System"}
+                          {log.actorName ? " • " : ""}
+                          {formatDate(log.createdAt)}
+                        </p>
+                        {Array.isArray(log.changes) && log.changes.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {(log.changes as Array<{ label?: string; old?: unknown; new?: unknown }>).map((change, idx) => (
+                              <li key={idx} className="text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{String(change.label ?? "Field")}:</span>{" "}
+                                <span className="line-through">{String(change.old ?? "-")}</span> → <span className="text-foreground">{String(change.new ?? "-")}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{formatDate(log.createdAt).split(",")[0]}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatDate(log.createdAt).split(",")[0]}</span>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
@@ -482,8 +506,8 @@ export default async function MemberDetailPage({
         <CardContent className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Info className="size-4 shrink-0" />
           <p>
-            Member records are never deleted. Payments recorded here stay available even after the
-            member leaves.
+            Marking a member as Left keeps every record and releases their seat. Delete removes
+            them completely, including their payment history, and cannot be undone.
           </p>
           <Button asChild variant="ghost" size="sm" className="ml-auto h-9">
             <Link href="/members">

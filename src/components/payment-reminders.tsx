@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { paymentReminderUrl } from "@/lib/whatsapp";
+import { recordReminderSentAction } from "@/app/(app)/reminders/actions";
 
 export type ReminderRow = {
   memberPk: number;
@@ -15,38 +17,35 @@ export type ReminderRow = {
   due: number;
   dueDate: Date;
   status: "PENDING" | "NONE";
+  /** Reminders already sent for this member this month, from the database. */
+  sentCount: number;
 };
 
-function ReminderButton({ href, memberId, month }: { href: string; memberId: string; month: string }) {
-  const [count, setCount] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    try {
-      const monthKey = `reminder-month-${memberId}`;
-      const countKey = `reminder-sent-${memberId}`;
-      const storedMonth = localStorage.getItem(monthKey);
-      if (storedMonth !== month) {
-        localStorage.setItem(monthKey, month);
-        localStorage.setItem(countKey, "0");
-        return 0;
-      }
-      const stored = localStorage.getItem(countKey);
-      return stored ? Number(stored) || 0 : 0;
-    } catch {
-      return 0;
-    }
-  });
+function ReminderButton({
+  href,
+  memberPk,
+  month,
+  initialCount,
+}: {
+  href: string;
+  memberPk: number;
+  month: string;
+  initialCount: number;
+}) {
+  const [count, setCount] = useState(initialCount);
+  const [, startTransition] = useTransition();
 
-  const incrementCount = () => {
-    try {
-      const monthKey = `reminder-month-${memberId}`;
-      const countKey = `reminder-sent-${memberId}`;
-      localStorage.setItem(monthKey, month);
-      const next = count + 1;
-      setCount(next);
-      localStorage.setItem(countKey, String(next));
-    } catch {
-      // ignore
-    }
+  // The count is stored on the server, so it stays put across a reload and is
+  // shared by everyone. It is keyed by month, so a new month starts from zero.
+  const recordSend = () => {
+    setCount((current) => current + 1);
+    startTransition(async () => {
+      const result = await recordReminderSentAction(memberPk, month);
+      if (result.status === "error") {
+        setCount((current) => Math.max(0, current - 1));
+        toast.error(result.message ?? "Could not record the reminder.");
+      }
+    });
   };
 
   return (
@@ -58,7 +57,7 @@ function ReminderButton({ href, memberId, month }: { href: string; memberId: str
         href={href}
         target="_blank"
         rel="noreferrer"
-        onClick={incrementCount}
+        onClick={recordSend}
         className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium underline-offset-2 hover:border-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <MessageCircle className="size-4" />
@@ -70,7 +69,8 @@ function ReminderButton({ href, memberId, month }: { href: string; memberId: str
 
 /**
  * The members who still owe a month, each with a WhatsApp button that opens a
- * ready message in the owner's WhatsApp. Sending is one tap per member.
+ * ready message in the owner's WhatsApp. Sending is one tap per member, and the
+ * "Sent" count is kept on the server for the chosen month.
  */
 export function PaymentReminders({
   rows,
@@ -117,7 +117,12 @@ export function PaymentReminders({
                   </p>
                 </div>
                 {href ? (
-                  <ReminderButton href={href} memberId={row.memberId} month={month} />
+                  <ReminderButton
+                    href={href}
+                    memberPk={row.memberPk}
+                    month={month}
+                    initialCount={row.sentCount}
+                  />
                 ) : (
                   <span className="shrink-0 text-xs text-muted-foreground">
                     No mobile on record
@@ -128,8 +133,8 @@ export function PaymentReminders({
           })}
         </ul>
         <p className="mt-3 text-xs text-muted-foreground">
-          Each button opens WhatsApp with that member&apos;s message ready. Send or edit, then
-          record the payment from the Payments page once it clears.
+          Each button opens WhatsApp with that member&apos;s message ready. The Sent count is kept
+          for {formatMonth(month)} and starts again at 0 next month.
         </p>
       </CardContent>
     </Card>

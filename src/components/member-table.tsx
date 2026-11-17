@@ -126,9 +126,11 @@ function MarkLeftDialog({
 function RowActions({
   member,
   onUpdated,
+  onDeleted,
 }: {
   member: EditableMember;
   onUpdated: (member: EditableMember) => void;
+  onDeleted: (id: number) => void;
 }) {
   const seat = seatText(member);
 
@@ -148,6 +150,7 @@ function RowActions({
         name={member.name}
         memberIdCode={member.memberId}
         compact
+        onDeleted={() => onDeleted(member.id)}
       />
     </div>
   );
@@ -194,6 +197,14 @@ export function MemberTable({
     },
     [],
   );
+
+  // Drops a member the moment they are deleted, so the list never keeps showing
+  // a row that no longer exists. The next server render agrees, but the rows
+  // here are held in state, so waiting for it would leave a ghost row behind.
+  const removeRow = useCallback((id: number) => {
+    setRows((current) => current.filter((row) => row.id !== id));
+    setTotal((current) => Math.max(0, current - 1));
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loading || rows.length >= total) return;
@@ -307,7 +318,7 @@ export function MemberTable({
                   <MemberStatusBadge status={member.status} />
                 </td>
                 <td className="px-3 py-2.5 text-right">
-                  <RowActions member={member} onUpdated={refreshRow} />
+                  <RowActions member={member} onUpdated={refreshRow} onDeleted={removeRow} />
                 </td>
               </tr>
             ))}
@@ -377,6 +388,7 @@ export function MemberTable({
                 name={member.name}
                 memberIdCode={member.memberId}
                 compact
+                onDeleted={() => removeRow(member.id)}
               />
             </div>
           </div>

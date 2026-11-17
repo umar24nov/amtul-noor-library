@@ -730,6 +730,8 @@ export type PaymentReminderRow = {
   /** When the fee for the chosen month fell due: the member's joining day. */
   dueDate: Date;
   status: "PENDING" | "NONE";
+  /** How many reminders have already been sent for this member this month. */
+  sentCount: number;
 };
 
 /**
@@ -741,22 +743,39 @@ export type PaymentReminderRow = {
  */
 export async function listPaymentReminders(month: string): Promise<PaymentReminderRow[]> {
   const summary = await getMonthSummary(month, "ACTIVE");
-  const rows = summary
-    .filter(
-      (row): row is typeof row & { status: "PENDING" | "NONE" } =>
-        // Only members with a real fee owe anything. Skip zero-fee members entirely.
-        row.fee > 0 && row.due > 0 && (row.status === "PENDING" || row.status === "NONE"),
-    )
-    .map((row) => ({
-      memberPk: row.memberPk,
-      name: row.name,
-      memberId: row.memberId,
-      mobile: row.mobile,
-      due: row.due,
-      dueDate: pendingDueDate(month, row.joiningDate),
-      status: row.status,
-      joiningDate: row.joiningDate,
-    }));
+  const owed = summary.filter(
+    (row): row is typeof row & { status: "PENDING" | "NONE" } =>
+      // Only members with a real fee owe anything. Skip zero-fee members entirely.
+      row.fee > 0 && row.due > 0 && (row.status === "PENDING" || row.status === "NONE"),
+  );
+
+  // How many reminders have already gone out this month, per member. Keyed by
+  // month, so a new month simply has no rows and the count starts at zero.
+  // Tolerated as empty if the table is not there yet, so the page still opens.
+  let sentByMember = new Map<number, number>();
+  try {
+    const sentRows = owed.length
+      ? await prisma.reminderSent.findMany({
+          where: { month, memberId: { in: owed.map((row) => row.memberPk) } },
+          select: { memberId: true, count: true },
+        })
+      : [];
+    sentByMember = new Map(sentRows.map((row) => [row.memberId, row.count]));
+  } catch {
+    sentByMember = new Map();
+  }
+
+  const rows = owed.map((row) => ({
+    memberPk: row.memberPk,
+    name: row.name,
+    memberId: row.memberId,
+    mobile: row.mobile,
+    due: row.due,
+    dueDate: pendingDueDate(month, row.joiningDate),
+    status: row.status,
+    sentCount: sentByMember.get(row.memberPk) ?? 0,
+    joiningDate: row.joiningDate,
+  }));
 
   type RowWithJoining = PaymentReminderRow & { joiningDate?: Date | string };
   const sorted = (rows as RowWithJoining[]).sort((a, b) => {

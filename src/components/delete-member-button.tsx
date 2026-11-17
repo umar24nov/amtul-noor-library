@@ -27,11 +27,18 @@ export function DeleteMemberButton({
   name,
   memberIdCode,
   compact = false,
+  onDeleted,
 }: {
   memberId: number;
   name: string;
   memberIdCode: string;
   compact?: boolean;
+  /**
+   * Called after the member is gone. The members list uses this to drop the row
+   * straight away; without it the list would keep showing a member that no
+   * longer exists, because its rows live in client state.
+   */
+  onDeleted?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -46,6 +53,11 @@ export function DeleteMemberButton({
       }
       toast.success(result.message ?? "Member deleted.");
       setOpen(false);
+      if (onDeleted) {
+        onDeleted();
+        router.refresh();
+        return;
+      }
       // The record is gone, so staying on its page would 404.
       router.push("/members");
       router.refresh();
