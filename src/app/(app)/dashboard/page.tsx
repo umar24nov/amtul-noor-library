@@ -17,15 +17,9 @@ import { currentMonthKey, formatDate, formatINR, formatMonth } from "@/lib/forma
 import {
   getDashboardData,
   getRevenueTrend,
-  listRooms,
   listSelectableMonths,
   type MemberScope,
 } from "@/lib/queries";
-import {
-  parseRoomFilter,
-  roomFilterOptions,
-  roomFilterValue,
-} from "@/lib/room-filter";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
@@ -40,7 +34,7 @@ const SCOPES = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; scope?: string; room?: string }>;
+  searchParams: Promise<{ month?: string; scope?: string }>;
 }) {
   const params = await searchParams;
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? "")
@@ -50,24 +44,12 @@ export default async function DashboardPage({
   const scope = (params.scope ?? "ACTIVE") as MemberScope;
   const memberScope = scope in SCOPES ? scope : "ACTIVE";
 
-  // Rooms come first, so a room id in the URL is only trusted while it still
-  // points at a room that exists.
-  const rooms = await listRooms();
-  // No "No seat" option here: picking a room means "show me this room", and a
-  // dashboard built out of members who have no seat has no seats to count.
-  const room = parseRoomFilter(params.room, rooms, { allowNoSeat: false });
-  const roomValue = roomFilterValue(room);
-  const roomName = rooms.find((item) => item.id === room)?.name;
-
-  // The stat cards link through to pages that accept the same room, so a choice
-  // made here is not lost on the next screen.
-  const membersHref = room === undefined ? "/members" : `/members?room=${roomValue}`;
-  const activeMembersHref =
-    room === undefined ? "/members?status=ACTIVE" : `/members?status=ACTIVE&room=${roomValue}`;
-  const seatsHref = room === undefined ? "/seats" : `/seats?room=${roomValue}`;
+  const membersHref = "/members";
+  const activeMembersHref = "/members?status=ACTIVE";
+  const seatsHref = "/seats";
 
   const [data, months, trend] = await Promise.all([
-    getDashboardData(month, memberScope, room),
+    getDashboardData(month, memberScope),
     listSelectableMonths(MONTH_FILTER_PAD_FORWARD),
     getRevenueTrend(month),
   ]);
@@ -81,27 +63,21 @@ export default async function DashboardPage({
     <div className="grid gap-5">
       <PageHeader
         title="Dashboard"
-        description={`Library status for ${formatMonth(month)}${roomName ? ` · ${roomName}` : ""}.`}
+        description={`Library status for ${formatMonth(month)}.`}
         actions={
           <form
             method="get"
-            className="grid w-full gap-2 sm:w-auto sm:grid-cols-3"
+            className="grid w-full gap-2 sm:w-auto sm:grid-cols-2"
             aria-label="Dashboard filters"
           >
-            {/* All three controls live in this one form, so changing any of them
-                keeps the other two. */}
+            {/* Both controls live in this one form, so changing either keeps the
+                other. */}
             <MonthStepper value={month} months={months} />
             <FilterSelect
               name="scope"
               value={memberScope}
               ariaLabel="Which members to list"
               options={Object.entries(SCOPES).map(([value, label]) => ({ value, label }))}
-            />
-            <FilterSelect
-              name="room"
-              value={roomValue}
-              ariaLabel="Filter by room"
-              options={roomFilterOptions(rooms, { allowNoSeat: false })}
             />
           </form>
         }
@@ -124,7 +100,7 @@ export default async function DashboardPage({
         <StatCard
           label="Total Members"
           value={data.totalMembers}
-          hint={roomName ? `Sitting in ${roomName}` : "Everyone on record"}
+          hint="Everyone on record"
           icon={Users}
           href={membersHref}
         />
@@ -179,8 +155,7 @@ export default async function DashboardPage({
             {formatMonth(month)} fee status
             <span className="ml-2 font-normal text-muted-foreground">
               {data.summary.length} {data.summary.length === 1 ? "member" : "members"} ·{" "}
-              {roomName ?? "all rooms"} · {SCOPES[memberScope].toLowerCase()} · standard fee{" "}
-              {formatINR(data.fee)}
+              {SCOPES[memberScope].toLowerCase()} · standard fee {formatINR(data.fee)}
             </span>
           </CardTitle>
         </CardHeader>
@@ -190,8 +165,8 @@ export default async function DashboardPage({
               <CircleCheckBig className="size-6 text-success" />
               <p className="font-medium">
                 {memberScope === "ACTIVE"
-                  ? `No active members for ${formatMonth(month)}${roomName ? ` in ${roomName}` : ""}`
-                  : `No members for ${formatMonth(month)}${roomName ? ` in ${roomName}` : ""}`}
+                  ? `No active members for ${formatMonth(month)}`
+                  : `No members for ${formatMonth(month)}`}
               </p>
               <p className="text-sm text-muted-foreground">
                 {memberScope === "ACTIVE"

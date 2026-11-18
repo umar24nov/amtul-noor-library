@@ -1,6 +1,6 @@
 import "server-only";
 import { LIBRARY_EMAIL, LIBRARY_NAME, paymentModeLabels } from "@/lib/constants";
-import { formatMonth } from "@/lib/format";
+import { formatMonth, normalizeSeatNumber } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { buildReceiptPdf, receiptFilename, type ReceiptPdfInfo } from "@/lib/receipt-pdf";
@@ -20,7 +20,7 @@ export type ReceiptContext = {
 export async function getReceiptContext(paymentPk: number): Promise<ReceiptContext | null> {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentPk },
-    include: { member: { include: { seat: { include: { room: true } } } } },
+    include: { member: { include: { seat: true } } },
   });
   if (!payment || payment.status !== "PAID") return null;
 
@@ -30,7 +30,7 @@ export async function getReceiptContext(paymentPk: number): Promise<ReceiptConte
     memberId: member.memberId,
     memberMobile: member.mobile,
     seatLabel: member.seat
-      ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
+      ? `Seat ${normalizeSeatNumber(member.seat.seatNumber)}`
       : null,
     paymentId: payment.paymentId,
     month: payment.month,

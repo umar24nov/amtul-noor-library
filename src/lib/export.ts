@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { toNumber } from "@/lib/ids";
 import { prioritiseStatus } from "@/lib/payments";
+import { seatHasLocker } from "@/lib/constants";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 /** Which records to export. An empty month means every month. */
@@ -16,7 +17,6 @@ export type ExportRow = {
   memberId: string;
   memberName: string;
   mobile: string | null;
-  roomName: string | null;
   seatNumber: string | null;
   month: string;
   amount: number;
@@ -60,7 +60,7 @@ export async function getPaymentsForExport(filters: ExportFilters): Promise<Expo
     },
     include: {
       member: {
-        include: { seat: { include: { room: true } } },
+        include: { seat: true },
       },
     },
     orderBy: [{ month: "desc" }, { id: "desc" }],
@@ -71,7 +71,6 @@ export async function getPaymentsForExport(filters: ExportFilters): Promise<Expo
     memberId: payment.member.memberId,
     memberName: payment.member.name,
     mobile: payment.member.mobile,
-    roomName: payment.member.seat?.room.name ?? null,
     seatNumber: payment.member.seat?.seatNumber ?? null,
     month: payment.month,
     amount: toNumber(payment.amount),
@@ -127,7 +126,6 @@ export type MemberExportRow = {
   name: string;
   mobile: string | null;
   status: string;
-  roomName: string | null;
   seatNumber: string | null;
   joiningDate: Date | null;
   leavingDate: Date | null;
@@ -138,7 +136,7 @@ export type MemberExportRow = {
 export async function getMembersForExport(): Promise<MemberExportRow[]> {
   const members = await prisma.member.findMany({
     include: {
-      seat: { include: { room: true } },
+      seat: true,
       payments: { select: { amount: true, status: true } },
     },
     orderBy: { memberId: "asc" },
@@ -149,7 +147,6 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
     name: member.name,
     mobile: member.mobile,
     status: member.status,
-    roomName: member.seat?.room.name ?? null,
     seatNumber: member.seat?.seatNumber ?? null,
     joiningDate: member.joiningDate,
     leavingDate: member.leavingDate,
@@ -161,8 +158,9 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
 }
 
 export type SeatExportRow = {
-  room: string;
   seatNumber: string;
+  /** Locker status follows the number, so it replaces the old room column. */
+  seatType: string;
   status: string;
   memberId: string | null;
   memberName: string | null;
@@ -173,18 +171,18 @@ export type SeatExportRow = {
 export async function getSeatsForExport(): Promise<SeatExportRow[]> {
   const seats = await prisma.seat.findMany({
     include: {
-      room: true,
       // occupants is the list of members on this seat, so there is nothing to nest.
       occupants: { where: { status: "ACTIVE" } },
     },
-    orderBy: [{ room: { name: "asc" } }, { seatNumber: "asc" }],
   });
+  // Plain numeric strings sort as text in the database ("10" before "2").
+  seats.sort((a, b) => Number(a.seatNumber) - Number(b.seatNumber));
 
   return seats.map((seat) => {
     const occupant = seat.occupants[0];
     return {
-      room: seat.room.name,
       seatNumber: seat.seatNumber,
+      seatType: seatHasLocker(seat.seatNumber) ? "With locker" : "Non-locker",
       status: seat.status,
       memberId: occupant?.memberId ?? null,
       memberName: occupant?.name ?? null,

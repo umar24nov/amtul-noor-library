@@ -16,12 +16,13 @@ import {
   formatDate,
   formatINR,
   formatMonth,
+  normalizeSeatNumber,
   shiftMonthKey,
 } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
 import { siteOrigin } from "@/lib/site";
-import { paymentModeLabels } from "@/lib/constants";
+import { paymentModeLabels, seatHasLocker } from "@/lib/constants";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
 import { BankPayCard } from "@/components/upi-pay-card";
 import { ApplyOfferDialog } from "@/components/apply-offer-dialog";
@@ -142,7 +143,7 @@ export default async function MemberDetailPage({
     memberId: member.memberId,
     mobile: member.mobile,
     seatLabel: member.seat
-      ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
+      ? `Seat ${normalizeSeatNumber(member.seat.seatNumber)}`
       : null,
   };
 
@@ -170,14 +171,14 @@ export default async function MemberDetailPage({
 
   const seats = openSeats.map((seat) => ({
     id: seat.id,
-    label: `${seat.room.name} · Seat ${seat.seatNumber}`,
-    hasLocker: seat.hasLocker,
+    label: `Seat ${normalizeSeatNumber(seat.seatNumber)}`,
+    hasLocker: seatHasLocker(seat.seatNumber),
   }));
   if (member.seat) {
     seats.push({
       id: member.seat.id,
-      label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
-      hasLocker: member.seat.hasLocker,
+      label: `Seat ${normalizeSeatNumber(member.seat.seatNumber)}`,
+      hasLocker: seatHasLocker(member.seat.seatNumber),
     });
   }
 
@@ -193,7 +194,7 @@ export default async function MemberDetailPage({
                 memberId={member.id}
                 memberName={member.name}
                 defaultStartMonth={currentMonthKey()}
-                hasLocker={Boolean(member.seat?.hasLocker)}
+                hasLocker={member.seat ? seatHasLocker(member.seat.seatNumber) : false}
               />
             ) : null}
             <MemberActions
@@ -213,7 +214,7 @@ export default async function MemberDetailPage({
             seats={seats}
             seatLabel={
               member.seat
-                ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
+                ? `Seat ${normalizeSeatNumber(member.seat.seatNumber)}`
                 : null
             }
             defaultFee={monthlyFee}
@@ -357,8 +358,7 @@ export default async function MemberDetailPage({
                 member.seat ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Armchair className="size-3.5" />
-                    {member.seat.room ? `${member.seat.room.name} · ` : ""}
-                    Seat {member.seat.seatNumber}
+                    Seat {normalizeSeatNumber(member.seat.seatNumber)}
                   </span>
                 ) : (
                   "No seat"

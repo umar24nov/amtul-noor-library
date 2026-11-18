@@ -71,14 +71,13 @@ export const LIBRARY_HOURS_DAYS = "Open every day";
 /**
  * Membership fees, in rupees per month.
  *
- * `locker` is not a separate plan so much as the same seat with storage, and
- * only one room has lockers, so it is priced as an addition to the base fee
- * rather than as its own tier.
+ * `locker` is not a separate plan so much as the same seat with storage, so it
+ * is priced as an addition to the base fee rather than as its own tier.
  */
 export const LIBRARY_FEES = {
   /** A seat, to read and study at. */
   seat: 700,
-  /** The same seat in the room that has lockers, so books can stay overnight. */
+  /** A seat with storage, so books can stay overnight. */
   seatWithLocker: 800,
 } as const;
 
@@ -134,8 +133,19 @@ export function prepaidPriceForSeat(hasLocker: boolean): number {
 export const MEMBER_ID_PREFIX = "ATN";
 export const PAYMENT_ID_PREFIX = "PAY";
 
-/** Seat numbers are always stored zero padded to two digits, e.g. "03". */
-export const SEAT_PAD = 2;
+/**
+ * The single seat list. Numbers are stored as plain strings with no padding:
+ * 1-22 are plain seats and 23-44 come with a locker.
+ */
+export const SEAT_COUNT = 44;
+export const PLAIN_SEAT_COUNT = 22;
+export const LOCKER_SEAT_START = PLAIN_SEAT_COUNT + 1;
+
+/** Locker status follows the seat number; staff never toggle it per seat. */
+export function seatHasLocker(seatNumber: string | number): boolean {
+  const value = Number(seatNumber);
+  return Number.isInteger(value) && value >= LOCKER_SEAT_START;
+}
 
 export const DEFAULT_MONTHLY_FEE = "700";
 

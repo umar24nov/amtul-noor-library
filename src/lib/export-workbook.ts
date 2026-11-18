@@ -50,14 +50,13 @@ async function toWorkbook(sheets: Sheet[]): Promise<Buffer> {
 function paymentSheets(data: ExportResult, scopeLabel: string): Sheet[] {
   const payments: Sheet = {
     name: "Payments",
-    widths: [14, 10, 22, 14, 14, 8, 10, 14, 14, 12, 12, 24],
+    widths: [14, 10, 22, 14, 14, 10, 14, 14, 12, 12, 24],
     rows: data.rows.map((row) => ({
       "Payment ID": row.paymentId,
       "Member ID": row.memberId,
       "Member": row.memberName,
       Mobile: row.mobile ?? "",
       // The seat a member holds today, so it is blank once they have left.
-      "Current Room": row.roomName ?? "",
       "Current Seat": row.seatNumber ?? "",
       Month: row.month,
       Amount: row.amount,
@@ -115,13 +114,12 @@ export async function buildPaymentsWorkbook(data: ExportResult, scopeLabel: stri
 export async function buildMembersWorkbook(rows: MemberExportRow[]): Promise<Buffer> {
   const sheet: Sheet = {
     name: "Members",
-    widths: [10, 24, 14, 10, 10, 8, 12, 12, 10, 14],
+    widths: [10, 24, 14, 10, 8, 12, 12, 10, 14],
     rows: rows.map((row) => ({
       "Member ID": row.memberId,
       Name: row.name,
       Mobile: row.mobile ?? "",
       Status: row.status,
-      Room: row.roomName ?? "",
       Seat: row.seatNumber ?? "",
       Joined: row.joiningDate ? formatDate(row.joiningDate) : "",
       Left: row.leavingDate ? formatDate(row.leavingDate) : "",
@@ -151,10 +149,10 @@ export async function buildMembersWorkbook(rows: MemberExportRow[]): Promise<Buf
 export async function buildSeatsWorkbook(rows: SeatExportRow[]): Promise<Buffer> {
   const sheet: Sheet = {
     name: "Seats",
-    widths: [12, 8, 12, 10, 24, 14, 12],
+    widths: [8, 12, 12, 10, 24, 14, 12],
     rows: rows.map((row) => ({
-      Room: row.room,
       Seat: row.seatNumber,
+      "Seat Type": row.seatType,
       Status: row.status,
       "Member ID": row.memberId ?? "",
       Member: row.memberName ?? "",

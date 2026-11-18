@@ -50,13 +50,11 @@ export type EditableMember = {
 export type MemberListQuery = {
   q?: string;
   status?: string;
-  room?: string;
   sort?: string;
 };
 
 function seatText(member: EditableMember): string {
-  if (!member.seat) return "—";
-  return `${member.seat.room ? `${member.seat.room.name} · ` : ""}${member.seat.seatNumber}`;
+  return member.seat ? `Seat ${member.seat.seatNumber}` : "—";
 }
 
 function MarkLeftDialog({

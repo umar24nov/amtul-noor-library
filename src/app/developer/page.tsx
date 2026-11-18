@@ -54,7 +54,7 @@ const FEATURES: { icon: typeof Users; title: string; detail: string }[] = [
   {
     icon: Sparkles,
     title: "Seat allocation",
-    detail: "A visual map of the rooms — assign a seat, release it, or add new rooms and seats.",
+    detail: "A visual map of the seats — assign one, release it, or add seats to the numbered list.",
   },
   {
     icon: Clock,

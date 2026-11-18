@@ -14,7 +14,7 @@ import type { Payment } from "@/generated/prisma/client";
 import type { MemberWithSeat } from "@/lib/queries";
 import { loadMorePaymentsAction } from "@/app/(app)/payments/actions";
 
-/** A payment row with the member it belongs to, seat and room included. */
+/** A payment row with the member it belongs to and their seat included. */
 export type PaymentRow = Payment & { member: MemberWithSeat };
 
 export type PaymentMemberOption = {
@@ -168,7 +168,7 @@ export function PaymentsTable({
                           memberId: payment.member.memberId,
                           mobile: payment.member.mobile,
                           seatLabel: payment.member.seat
-                            ? `${payment.member.seat.room?.name} · Seat ${payment.member.seat.seatNumber}`
+                            ? `Seat ${payment.member.seat.seatNumber}`
                             : null,
                         }}
                       />

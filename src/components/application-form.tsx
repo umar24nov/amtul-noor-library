@@ -46,7 +46,6 @@ const FIELD_LABELS: Record<string, string> = {
   aadhaarNumber: "Aadhaar number",
   preparingFor: "What you are preparing for",
   joiningDate: "Date of joining",
-  roomId: "Room",
   seatId: "Seat",
   agreed: "Rules agreement",
   aadhaarFront: "Aadhaar upload",
@@ -59,30 +58,26 @@ export type SeatOption = {
   hasLocker: boolean;
 };
 
-/** The two tick boxes above the picker. Neither ticked means "show all". */
+/** The two tick boxes above the picker. Neither ticked means "show both". */
 type SeatType = "all" | "non-locker" | "locker";
+
+const SEAT_GROUPS: { key: SeatLayoutKey; type: Exclude<SeatType, "all"> }[] = [
+  { key: "plain", type: "non-locker" },
+  { key: "locker", type: "locker" },
+];
 
 function seatMatchesType(seat: SeatOption, type: SeatType): boolean {
   return type === "all" || (type === "locker" ? seat.hasLocker : !seat.hasLocker);
 }
-export type RoomOption = {
-  id: number;
-  name: string;
-  /** Which drawing to use for this room, or null to fall back to a seat list. */
-  layoutKey: SeatLayoutKey | null;
-  seats: SeatOption[];
-};
 
 export function ApplicationForm({
   className,
-  rooms = [],
-  defaultRoomId = null,
+  seats = [],
   defaultSeatNumber = null,
 }: {
   className?: string;
-  rooms?: RoomOption[];
+  seats?: SeatOption[];
   /** Pre-filled when the applicant arrived by tapping a seat on the landing map. */
-  defaultRoomId?: number | null;
   defaultSeatNumber?: number | null;
 }) {
   const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
@@ -90,27 +85,16 @@ export function ApplicationForm({
   const [aadhaarFileName, setAadhaarFileName] = useState("");
   const [aadhaarFileError, setAadhaarFileError] = useState("");
 
-  const initialRoom =
-    (defaultRoomId != null ? rooms.find((room) => room.id === defaultRoomId) : undefined) ??
-    rooms[0] ??
-    null;
   const initialSeat =
-    initialRoom && defaultSeatNumber != null
-      ? initialRoom.seats.find(
+    defaultSeatNumber != null
+      ? seats.find(
           (seat) => Number(seat.seatNumber) === defaultSeatNumber && seat.available,
         )
       : undefined;
 
-  const [roomId, setRoomId] = useState(initialRoom ? String(initialRoom.id) : "");
   const [seatId, setSeatId] = useState(initialSeat ? String(initialSeat.id) : "");
-  // A carried-over seat has a known type, so open with the matching box ticked.
-  const [seatType, setSeatType] = useState<SeatType>(
-    initialSeat ? (initialSeat.hasLocker ? "locker" : "non-locker") : "all",
-  );
-  const selectedRoom = rooms.find((room) => String(room.id) === roomId);
-  const selectedSeat = selectedRoom?.seats.find((seat) => String(seat.id) === seatId);
-  const selectedLayout = selectedRoom?.layoutKey ? SEAT_LAYOUTS[selectedRoom.layoutKey] : null;
-  const matchesType = (seat: SeatOption) => seatMatchesType(seat, seatType);
+  const [seatType, setSeatType] = useState<SeatType>("all");
+  const selectedSeat = seats.find((seat) => String(seat.id) === seatId);
 
   // True when the applicant reached the form by tapping a seat on the landing
   // page, so the seat section can acknowledge the choice already carried over.
@@ -122,7 +106,7 @@ export function ApplicationForm({
   const fieldErrorList = Object.entries(state.fieldErrors ?? {}).map(
     ([key, message]) => ({ key, label: FIELD_LABELS[key] ?? key, message }),
   );
-  const seatError = Boolean(state.fieldErrors?.roomId || state.fieldErrors?.seatId);
+  const seatError = Boolean(state.fieldErrors?.seatId);
 
   function chooseSeat(seat: SeatOption) {
     if (!seat.available || !matchesType(seat)) return;
@@ -134,11 +118,15 @@ export function ApplicationForm({
     setSeatId(seatKey);
   }
 
-  // Tick the same box again to clear it and see every seat.
+  // Tick the same box again to clear it and show both groups.
   function chooseSeatType(next: Exclude<SeatType, "all">) {
     const chosen: SeatType = seatType === next ? "all" : next;
     setSeatType(chosen);
     if (selectedSeat && !seatMatchesType(selectedSeat, chosen)) setSeatId("");
+  }
+
+  function matchesType(seat: SeatOption) {
+    return seatMatchesType(seat, seatType);
   }
 
   useEffect(() => {
@@ -208,7 +196,7 @@ export function ApplicationForm({
       {/* The chosen seat, kept at the top so someone who arrived by tapping a
           seat on the map can see it was carried over rather than having to
           scroll to the seat section to check. */}
-      {rooms.length > 0 && (
+      {seats.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -220,8 +208,8 @@ export function ApplicationForm({
                 selectedSeat ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {selectedSeat && selectedRoom
-                ? `${selectedRoom.name} · Seat ${Number(selectedSeat.seatNumber)}`
+              {selectedSeat
+                ? `Seat ${Number(selectedSeat.seatNumber)}`
                 : "No seat chosen yet"}
             </p>
           </div>
@@ -407,21 +395,12 @@ export function ApplicationForm({
                   : "Tap a free seat on the map. Only seats that are free right now can be chosen; the owner confirms your seat when your application is approved."}
               </p>
               {seatError && (
-                <FieldError
-                  message={
-                    state.fieldErrors?.seatId ??
-                    state.fieldErrors?.roomId ??
-                    "Please choose a seat"
-                  }
-                />
+                <FieldError message={state.fieldErrors?.seatId ?? "Please choose a seat"} />
               )}
             </div>
 
-            {rooms.length > 0 && (
+            {seats.length > 0 && (
               <div className="grid gap-2 rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  What kind of seat do you want? Tick one to see only those seats; leave both empty to see every seat.
-                </p>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   <label className="flex items-center gap-2 text-sm">
                     <input
@@ -445,49 +424,19 @@ export function ApplicationForm({
               </div>
             )}
 
-            {rooms.length === 0 ? (
+            {seats.length === 0 ? (
               <p className="text-xs text-destructive">
                 No seats are free right now. Please contact the library before
                 applying.
               </p>
             ) : (
               <>
-                <input type="hidden" name="roomId" value={roomId} />
                 <input type="hidden" name="seatId" value={seatId} />
                 <input
                   type="hidden"
                   name="seatType"
                   value={seatType === "all" ? "" : seatType}
                 />
-
-                {rooms.length > 1 && (
-                  <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Choose a room">
-                    {rooms.map((room) => {
-                      const active = String(room.id) === roomId;
-                      const open = room.seats.filter((seat) => seat.available && matchesType(seat)).length;
-                      return (
-                        <button
-                          key={room.id}
-                          type="button"
-                          onClick={() => {
-                            setRoomId(String(room.id));
-                            setSeatId("");
-                          }}
-                          aria-pressed={active}
-                          className={cn(
-                            "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                            active
-                              ? "border-foreground bg-foreground text-background"
-                              : "border-border bg-card hover:bg-muted",
-                          )}
-                        >
-                          {room.name}
-                          <span className="ml-2 text-xs opacity-70">{open} free</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
 
                 <div className="flex w-full items-center justify-center">
                   <p
@@ -496,67 +445,60 @@ export function ApplicationForm({
                       selectedSeat ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
-                  {selectedSeat && selectedRoom
-                    ? `${selectedRoom.name} · Seat ${Number(selectedSeat.seatNumber)}`
-                    : "No seat chosen yet — tap a free seat."}
+                    {selectedSeat
+                      ? `Seat ${Number(selectedSeat.seatNumber)}`
+                      : "No seat chosen yet — tap a free seat."}
                   </p>
                 </div>
 
-                {selectedRoom && selectedLayout ? (
-                  <SeatMap
-                    layout={selectedLayout}
-                    seats={selectedRoom.seats.filter(matchesType).map((seat) => ({
-                      number: Number(seat.seatNumber),
-                      status: seat.available ? "AVAILABLE" : "OCCUPIED",
-                    }))}
-                    selectedNumber={selectedSeat ? Number(selectedSeat.seatNumber) : null}
-                    onSelectSeat={(number) => {
-                      const seat = selectedRoom.seats.find(
-                        (candidate) => Number(candidate.seatNumber) === number,
-                      );
-                      if (!seat) return;
-                      if (!seat.available) {
-                        toast.error("This seat is already booked.");
-                        return;
-                      }
-                      chooseSeat(seat);
-                    }}
-                    ariaLabel={`${selectedRoom.name} seat map. Tap a free seat to choose it.`}
-                    className="mx-auto max-w-lg rounded-xl border border-border bg-card p-3"
-                  />
-                ) : selectedRoom ? (
-                  <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
-                    {selectedRoom.seats.filter(matchesType).map((seat) => {
-                      const isSelected = String(seat.id) === seatId;
-                      return (
-                        <li key={seat.id}>
-                          <button
-                            type="button"
-                            disabled={!seat.available}
-                            onClick={() => {
-                              if (!seat.available) {
-                                toast.error("This seat is already booked.");
-                                return;
-                              }
-                              chooseSeat(seat);
-                            }}
-                            aria-pressed={isSelected}
-                            className={cn(
-                              "w-full rounded-md border px-2 py-2.5 text-center font-mono text-xs font-medium transition-colors",
-                              !seat.available
-                                ? "cursor-not-allowed border-border bg-muted-foreground/30 text-muted-foreground line-through"
-                                : isSelected
-                                  ? "border-blue-700/40 bg-blue-600 text-white"
-                                  : "border-emerald-600/40 bg-emerald-500 text-white hover:brightness-110",
-                            )}
-                          >
-                            {seat.seatNumber}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
+                <div className="grid gap-6 xl:grid-cols-2">
+                  {SEAT_GROUPS.filter(
+                    (group) => seatType === "all" || seatType === group.type,
+                  ).map((group) => {
+                    const layout = SEAT_LAYOUTS[group.key];
+                    const groupSeats = seats.filter(
+                      (seat) => seat.hasLocker === (group.key === "locker"),
+                    );
+                    if (groupSeats.length === 0) return null;
+                    const open = groupSeats.filter((seat) => seat.available).length;
+
+                    return (
+                      <div
+                        key={group.key}
+                        className="flex flex-col rounded-xl border border-border bg-card p-3"
+                      >
+                        <p className="text-center text-sm text-muted-foreground">
+                          {open} free of {groupSeats.length}
+                        </p>
+                        <SeatMap
+                          layout={layout}
+                          seats={groupSeats.map((seat) => ({
+                            number: Number(seat.seatNumber),
+                            status: seat.available ? "AVAILABLE" : "OCCUPIED",
+                          }))}
+                          selectedNumber={
+                            selectedSeat?.hasLocker === (group.key === "locker")
+                              ? Number(selectedSeat.seatNumber)
+                              : null
+                          }
+                          onSelectSeat={(number) => {
+                            const seat = groupSeats.find(
+                              (candidate) => Number(candidate.seatNumber) === number,
+                            );
+                            if (!seat) return;
+                            if (!seat.available) {
+                              toast.error("This seat is already booked.");
+                              return;
+                            }
+                            chooseSeat(seat);
+                          }}
+                          ariaLabel={`${layout.label}. Tap a free seat to choose it.`}
+                          className="mx-auto mt-3 max-w-lg"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
 
                 <ul className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <li className="flex items-center gap-1.5">

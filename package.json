@@ -15,7 +15,6 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:local": "tsx prisma/local-db.ts",
-    "seed-room2": "tsx prisma/seed-room2.ts",
     "check-data": "tsx prisma/check-data.ts",
     "clean-auto-pending": "tsx prisma/clean-auto-pending.ts",
     "migrate-aadhaar-private": "tsx prisma/migrate-aadhaar-private.ts",

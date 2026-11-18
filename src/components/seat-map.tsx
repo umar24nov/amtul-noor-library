@@ -22,7 +22,7 @@ type SeatMapProps = {
   onSelectSeat?: (number: number) => void;
   /**
    * When there is no `onSelectSeat`, a free seat instead links here. Use
-   * `{seat}` for the printed seat number, e.g. `/join?room=3&seat={seat}`.
+   * `{seat}` for the printed seat number, e.g. `/join?seat=3`.
    */
   seatHrefTemplate?: string;
   disabled?: boolean;
@@ -34,7 +34,7 @@ type SeatMapProps = {
 /**
  * Seat fills. Free is green, taken is a quiet grey, and the visitor's pick is
  * blue — deliberately not red, so a taken seat reads as "unavailable" rather
- * than as an error. The room, desks and empty seats are drawn from `foreground`
+ * than as an error. The map shell, desks and empty seats are drawn from `foreground`
  * at low opacity, which means the whole drawing follows the light/dark theme
  * without a second palette.
  */
@@ -55,7 +55,7 @@ function seatFill(
 }
 
 /**
- * The reading-room seat map.
+ * The library seat map.
  *
  * One component covers both jobs it has in the app: on the landing page a free
  * seat is a link to the join form with that seat pre-filled, and on the join
@@ -82,7 +82,7 @@ export function SeatMap({
       aria-label={ariaLabel}
       className={cn("h-auto w-full", className)}
     >
-      {/* Room shell: a tinted floor inside a solid wall. */}
+      {/* Map shell: a tinted floor inside a solid wall. */}
       <rect
         x="50"
         y="40"
@@ -93,7 +93,7 @@ export function SeatMap({
         strokeWidth={4}
       />
 
-      {/* The room's name, centred across the top of the drawing. */}
+      {/* The seat group's label, centred across the top of the drawing. */}
       <text
         x="450"
         y="75"

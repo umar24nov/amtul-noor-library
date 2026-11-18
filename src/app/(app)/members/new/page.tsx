@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { listOpenSeats, listSelectableMonthOptions } from "@/lib/queries";
 import { requirePermission } from "@/lib/permissions";
 import { getMonthlyFee } from "@/lib/settings";
-import { formatINR } from "@/lib/format";
+import { formatINR, normalizeSeatNumber } from "@/lib/format";
+import { seatHasLocker } from "@/lib/constants";
 import { createMemberAction } from "../actions";
 
 export const metadata: Metadata = { title: "Add Member" };
@@ -23,8 +24,8 @@ export default async function NewMemberPage() {
 
   const seats = openSeats.map((seat) => ({
     id: seat.id,
-    label: `${seat.room.name} · Seat ${seat.seatNumber}`,
-    hasLocker: seat.hasLocker,
+    label: `Seat ${normalizeSeatNumber(seat.seatNumber)}`,
+    hasLocker: seatHasLocker(seat.seatNumber),
   }));
 
   return (

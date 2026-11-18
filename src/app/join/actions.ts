@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { sendNewApplicationNotice } from "@/lib/application-email";
-import { APPLICATION_RATE_LIMIT } from "@/lib/constants";
+import { APPLICATION_RATE_LIMIT, seatHasLocker } from "@/lib/constants";
 import { formatDate, parseInputDate } from "@/lib/format";
 import { getClientIp } from "@/lib/login-rate-limit";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +38,6 @@ export async function submitApplicationAction(
     preparingFor: formData.get("preparingFor"),
     otherPreparation: formData.get("otherPreparation"),
     joiningDate: formData.get("joiningDate"),
-    roomId: formData.get("roomId"),
     seatId: formData.get("seatId"),
     seatType: formData.get("seatType"),
     agreed: formData.get("agreed"),
@@ -88,25 +87,24 @@ export async function submitApplicationAction(
       where: { id: data.seatId },
       select: {
         id: true,
-        roomId: true,
         status: true,
         seatNumber: true,
-        hasLocker: true,
-        room: { select: { name: true } },
       },
     });
 
-    if (!seat || seat.roomId !== data.roomId || seat.status !== "AVAILABLE") {
+    if (!seat || seat.status !== "AVAILABLE") {
       return errorState("That seat is no longer free. Please choose another seat.", {
         seatId: "Choose an available seat",
       });
     }
 
+    const seatIsLocker = seatHasLocker(seat.seatNumber);
+
     // The two tick boxes on the form are a filter, but check the seat type here
     // too: a stale form or a hand-made POST must not book the wrong kind of seat.
-    if (data.seatType && (seat.hasLocker ? "locker" : "non-locker") !== data.seatType) {
+    if (data.seatType && (seatIsLocker ? "locker" : "non-locker") !== data.seatType) {
       return errorState(
-        `That seat is a ${seat.hasLocker ? "seat with locker" : "non locker seat"}. Please choose a seat of the type you ticked.`,
+        `That seat is a ${seatIsLocker ? "seat with locker" : "non locker seat"}. Please choose a seat of the type you ticked.`,
         { seatId: "Choose a seat of the type you selected" },
       );
     }
@@ -160,7 +158,7 @@ export async function submitApplicationAction(
       aadhaarNumber: data.aadhaarNumber,
       preparingFor: data.preparingFor,
       desiredJoiningDate: formatDate(joiningDate),
-      seatLabel: `${seat.room.name} · Seat ${seat.seatNumber}`,
+      seatLabel: `Seat ${seat.seatNumber}`,
       adminUrl: `${await siteOrigin()}/applications`,
     }).catch(() => undefined);
 

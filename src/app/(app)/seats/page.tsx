@@ -4,45 +4,32 @@ import { PageHeader } from "@/components/page-header";
 import { ExportButton } from "@/components/export-button";
 import { StatCard } from "@/components/stat-card";
 import { SeatsView } from "@/components/seats-view";
-import { getRoomsWithSeats, listActiveMembers } from "@/lib/queries";
+import { listActiveMembers, listSeatsWithOccupants } from "@/lib/queries";
 import { requirePermission } from "@/lib/permissions";
+import { SEAT_COUNT, seatHasLocker } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Seats" };
 
-export default async function SeatsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ room?: string }>;
-}) {
+export default async function SeatsPage() {
   await requirePermission("SEATS");
-  const { room } = await searchParams;
-  const rooms = await getRoomsWithSeats();
-  const activeMembers = await listActiveMembers();
+  const [seats, activeMembers] = await Promise.all([
+    listSeatsWithOccupants(),
+    listActiveMembers(),
+  ]);
 
-  const roomId = Number(room);
-  const selectedRoom =
-    Number.isInteger(roomId) && rooms.some((item) => item.id === roomId) ? roomId : null;
+  const totalSeats = seats.length;
+  const occupiedSeats = seats.filter((seat) => seat.status === "OCCUPIED").length;
 
-  const totalSeats = rooms.reduce((total, item) => total + item.seats.length, 0);
-  const occupiedSeats = rooms.reduce(
-    (total, item) => total + item.seats.filter((seat) => seat.status === "OCCUPIED").length,
-    0,
-  );
-
-  const roomData = rooms.map((item) => ({
-    id: item.id,
-    name: item.name,
-    seats: item.seats.map((seat) => ({
-      id: seat.id,
-      seatNumber: seat.seatNumber,
-      status: seat.status,
-      hasLocker: seat.hasLocker,
-      occupants: seat.occupants.map((occupant) => ({
-        id: occupant.id,
-        name: occupant.name,
-        memberId: occupant.memberId,
-        mobile: occupant.mobile,
-      })),
+  const seatData = seats.map((seat) => ({
+    id: seat.id,
+    seatNumber: seat.seatNumber,
+    status: seat.status,
+    hasLocker: seatHasLocker(seat.seatNumber),
+    occupants: seat.occupants.map((occupant) => ({
+      id: occupant.id,
+      name: occupant.name,
+      memberId: occupant.memberId,
+      mobile: occupant.mobile,
     })),
   }));
 
@@ -60,7 +47,7 @@ export default async function SeatsPage({
     <div className="grid gap-5">
       <PageHeader
         title="Seats"
-        description="Tap a seat to see who sits there, or assign a free seat to an active member."
+        description="Tap a seat to see who sits there, or assign a free seat to an active member. Seats 1–22 are plain and seats 23–44 have a locker."
         actions={
           <ExportButton
             href="/api/export/seats"
@@ -75,7 +62,7 @@ export default async function SeatsPage({
         <StatCard
           label="Total Seats"
           value={totalSeats}
-          hint={`Across ${rooms.length} ${rooms.length === 1 ? "room" : "rooms"}`}
+          hint={`Numbered 1–${SEAT_COUNT}`}
           icon={Armchair}
         />
         <StatCard
@@ -94,7 +81,7 @@ export default async function SeatsPage({
         />
       </div>
 
-      <SeatsView rooms={roomData} members={assignable} roomId={selectedRoom} />
+      <SeatsView seats={seatData} members={assignable} />
     </div>
   );
 }

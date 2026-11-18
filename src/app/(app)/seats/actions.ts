@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { actionPermission } from "@/lib/permissions";
 import { normalizeSeatNumber } from "@/lib/format";
-import { monthlyFeeForSeat } from "@/lib/constants";
+import { monthlyFeeForSeat, seatHasLocker } from "@/lib/constants";
 import { syncPendingAmounts } from "@/lib/membership";
 import { memberFeeKey } from "@/lib/settings";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
@@ -12,10 +12,7 @@ import { prisma } from "@/lib/prisma";
 import {
   assignSeatSchema,
   fieldErrors,
-  roomEditSchema,
-  roomFormSchema,
   seatFormSchema,
-  seatLockerSchema,
   seatRangeFormSchema,
 } from "@/lib/validators";
 import { z } from "zod";
@@ -55,7 +52,6 @@ export async function assignSeatAction(
       prisma.seat.findUnique({
         where: { id: seatId },
         include: {
-          room: true,
           occupants: { where: { status: "ACTIVE" }, include: { seat: true } },
         },
       }),
@@ -76,7 +72,7 @@ export async function assignSeatAction(
     if (member.seatId) {
       const current = await prisma.seat.findUnique({
         where: { id: member.seatId },
-        include: { room: true },
+        select: { seatNumber: true },
       });
       return errorState(
         `${member.name} already has seat ${current?.seatNumber ?? ""}. Release that seat first.`,
@@ -84,9 +80,9 @@ export async function assignSeatAction(
       );
     }
 
-    // The desk decides the fee: a locker seat is 800 a month, a plain seat 700.
+    // The number decides the fee: 23-44 are 800 a month, 1-22 are 700.
     // Pending rows follow the new fee; paid rows stay as they were recorded.
-    const fee = monthlyFeeForSeat(seat.hasLocker);
+    const fee = monthlyFeeForSeat(seatHasLocker(seat.seatNumber));
     await prisma.$transaction(async (tx) => {
       await tx.member.update({ where: { id: memberId }, data: { seatId } });
       await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
@@ -99,75 +95,14 @@ export async function assignSeatAction(
       await logMemberChange(tx, {
         memberId,
         action: MEMBER_AUDIT_ACTIONS.SEAT_ASSIGNED,
-        summary: `Seat assigned — monthly fee set to ₹${fee}${seat.hasLocker ? " (locker seat)" : ""}`,
-        metadata: { seatId, hasLocker: seat.hasLocker, fee },
+        summary: `Seat assigned — monthly fee set to ₹${fee}${seatHasLocker(seat.seatNumber) ? " (locker seat)" : ""}`,
+        metadata: { seatId, hasLocker: seatHasLocker(seat.seatNumber), fee },
       });
     });
 
     revalidateSeats();
     return successState(
-      `Seat ${seat.seatNumber} (${seat.room.name}) assigned to ${member.name}. Monthly fee set to ₹${fee}.`,
-    );
-  } catch (error) {
-    return errorState(prismaErrorMessage(error));
-  }
-}
-
-/**
- * Marks one seat as having a locker, or takes the locker away.
- *
- * Lockers are per desk, so this is deliberately a toggle on the seat rather
- * than a property of the room. If somebody is already sitting there, their fee
- * moves with the seat immediately, and their unpaid months are re-priced too.
- */
-export async function setSeatLockerAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const gate = await actionPermission("SEATS");
-  if ("denied" in gate) return gate.denied;
-  const parsed = seatLockerSchema.safeParse({
-    seatId: formData.get("seatId"),
-    hasLocker: formData.get("hasLocker"),
-  });
-  if (!parsed.success) return errorState("That seat no longer exists.");
-
-  const { seatId, hasLocker } = parsed.data;
-  const fee = monthlyFeeForSeat(hasLocker);
-
-  try {
-    const seat = await prisma.seat.findUnique({
-      where: { id: seatId },
-      include: { occupants: { where: { status: "ACTIVE" }, select: { id: true, name: true } } },
-    });
-    if (!seat) return errorState("That seat no longer exists.");
-    if (seat.hasLocker === hasLocker) {
-      return successState(
-        `Seat ${seat.seatNumber} ${hasLocker ? "already has a locker" : "is already a plain seat"}.`,
-      );
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.seat.update({ where: { id: seatId }, data: { hasLocker } });
-      for (const occupant of seat.occupants) {
-        await tx.setting.upsert({
-          where: { key: memberFeeKey(occupant.id) },
-          update: { value: String(fee) },
-          create: { key: memberFeeKey(occupant.id), value: String(fee) },
-        });
-        await syncPendingAmounts(tx, occupant.id, fee);
-        await logMemberChange(tx, {
-          memberId: occupant.id,
-          action: MEMBER_AUDIT_ACTIONS.FEE_CHANGED,
-          summary: `Seat ${seat.seatNumber} changed to ${hasLocker ? "locker" : "plain"} seat — fee ₹${fee}`,
-          metadata: { seatId, hasLocker, fee },
-        });
-      }
-    });
-
-    revalidateSeats();
-    return successState(
-      `Seat ${seat.seatNumber} ${hasLocker ? "now has a locker — ₹800 per month" : "is now a plain seat — ₹700 per month"}.`,
+      `Seat ${seat.seatNumber} assigned to ${member.name}. Monthly fee set to ₹${fee}.`,
     );
   } catch (error) {
     return errorState(prismaErrorMessage(error));
@@ -206,71 +141,6 @@ export async function releaseSeatAction(
   }
 }
 
-export async function addRoomAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const gate = await actionPermission("SEATS");
-  if ("denied" in gate) return gate.denied;
-  const parsed = roomFormSchema.safeParse({ name: formData.get("name") });
-  if (!parsed.success) {
-    return errorState("Please check the room name.", fieldErrors(parsed.error));
-  }
-
-  try {
-    await prisma.room.create({ data: { name: parsed.data.name } });
-    revalidateSeats();
-    return successState(`${parsed.data.name} created.`);
-  } catch (error) {
-    return errorState(
-      error instanceof Error && error.message.includes("Unique constraint")
-        ? "A room with that name already exists."
-        : prismaErrorMessage(error),
-    );
-  }
-}
-
-/**
- * Renames a room. Seats and members are untouched, so this is the safe way to
- * correct a name that was entered wrongly.
- */
-export async function updateRoomAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const gate = await actionPermission("SEATS");
-  if ("denied" in gate) return gate.denied;
-  const parsed = roomEditSchema.safeParse({
-    roomId: formData.get("roomId"),
-    name: formData.get("name"),
-  });
-  if (!parsed.success) {
-    return errorState("Please check the room name.", fieldErrors(parsed.error));
-  }
-
-  const existing = await prisma.room.findUnique({ where: { id: parsed.data.roomId } });
-  if (!existing) return errorState("That room no longer exists.");
-
-  if (existing.name === parsed.data.name) {
-    return successState(`${parsed.data.name} is already the name of this room.`);
-  }
-
-  try {
-    await prisma.room.update({
-      where: { id: parsed.data.roomId },
-      data: { name: parsed.data.name },
-    });
-    revalidateSeats();
-    return successState(`Room renamed to ${parsed.data.name}.`);
-  } catch (error) {
-    return errorState(
-      error instanceof Error && error.message.includes("Unique constraint")
-        ? "A room with that name already exists."
-        : prismaErrorMessage(error),
-    );
-  }
-}
-
 export async function addSeatAction(
   _prev: ActionState,
   formData: FormData,
@@ -278,7 +148,6 @@ export async function addSeatAction(
   const gate = await actionPermission("SEATS");
   if ("denied" in gate) return gate.denied;
   const parsed = seatFormSchema.safeParse({
-    roomId: formData.get("roomId"),
     seatNumber: formData.get("seatNumber"),
   });
   if (!parsed.success) {
@@ -289,14 +158,18 @@ export async function addSeatAction(
 
   try {
     await prisma.seat.create({
-      data: { roomId: parsed.data.roomId, seatNumber, status: "AVAILABLE" },
+      data: {
+        seatNumber,
+        status: "AVAILABLE",
+        hasLocker: seatHasLocker(seatNumber),
+      },
     });
     revalidateSeats();
     return successState(`Seat ${seatNumber} added.`);
   } catch (error) {
     return errorState(
       error instanceof Error && error.message.includes("Unique constraint")
-        ? `Seat ${seatNumber} already exists in that room.`
+        ? `Seat ${seatNumber} already exists.`
         : prismaErrorMessage(error),
     );
   }
@@ -309,7 +182,6 @@ export async function addSeatRangeAction(
   const gate = await actionPermission("SEATS");
   if ("denied" in gate) return gate.denied;
   const parsed = seatRangeFormSchema.safeParse({
-    roomId: formData.get("roomId"),
     from: formData.get("from"),
     to: formData.get("to"),
   });
@@ -323,16 +195,16 @@ export async function addSeatRangeAction(
 
   try {
     const existing = await prisma.seat.findMany({
-      where: {
-        roomId: parsed.data.roomId,
-        seatNumber: { in: rangeNumbers(from, to) },
-      },
+      where: { seatNumber: { in: rangeNumbers(from, to) } },
       select: { seatNumber: true },
     });
     const taken = new Set(existing.map((seat) => seat.seatNumber));
     const toCreate = rangeNumbers(from, to)
       .filter((seatNumber) => !taken.has(seatNumber))
-      .map((seatNumber) => ({ roomId: parsed.data.roomId, seatNumber }));
+      .map((seatNumber) => ({
+        seatNumber,
+        hasLocker: seatHasLocker(seatNumber),
+      }));
 
     if (toCreate.length === 0) {
       return errorState("Every seat in that range already exists.");
@@ -382,41 +254,6 @@ export async function deleteSeatAction(
     await prisma.seat.delete({ where: { id: seat.id } });
     revalidateSeats();
     return successState(`Seat ${seat.seatNumber} deleted.`);
-  } catch (error) {
-    return errorState(prismaErrorMessage(error));
-  }
-}
-
-export async function deleteRoomAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const gate = await actionPermission("SEATS");
-  if ("denied" in gate) return gate.denied;
-  const parsed = z.coerce.number().int().positive().safeParse(formData.get("roomId"));
-  if (!parsed.success) return errorState("That room no longer exists.");
-
-  try {
-    const room = await prisma.room.findUnique({
-      where: { id: parsed.data },
-      include: {
-        seats: { include: { occupants: { where: { status: "ACTIVE" } } } },
-      },
-    });
-    if (!room) return errorState("That room no longer exists.");
-
-    const occupied = room.seats.flatMap((seat) => seat.occupants);
-    if (occupied.length > 0) {
-      return errorState(
-        `${room.name} still has ${occupied.length} occupied ${
-          occupied.length === 1 ? "seat" : "seats"
-        }. Release them first.`,
-      );
-    }
-
-    await prisma.room.delete({ where: { id: room.id } });
-    revalidateSeats();
-    return successState(`${room.name} deleted.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

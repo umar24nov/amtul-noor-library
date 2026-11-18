@@ -27,6 +27,7 @@ import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
   monthlyFeeForSeat,
+  seatHasLocker as lockerForSeatNumber,
 } from "@/lib/constants";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
 
@@ -52,24 +53,16 @@ function revalidateAll() {
 export async function loadMoreMembersAction(filters: {
   q?: string;
   status?: string;
-  room?: string;
   sort?: string;
   page?: number;
 }) {
   const session = await getSession();
   if (!session || !canAny(session, ["MEMBERS", "SEATS"])) return { members: [], total: 0 };
-  const roomId = Number(filters.room);
   const [{ members, total }, standardFee, fees] = await Promise.all([
     listMembers({
       search: filters.q,
       status:
         filters.status === "LEFT" ? "LEFT" : filters.status === "ALL" ? "ALL" : "ACTIVE",
-      room:
-        filters.room === "NONE"
-          ? "NONE"
-          : Number.isInteger(roomId) && roomId > 0
-            ? roomId
-            : undefined,
       sort: isMemberSort(filters.sort) ? filters.sort : DEFAULT_MEMBER_SORT,
       page: filters.page ?? 2,
     }),
@@ -148,7 +141,7 @@ export async function createMemberAction(
       if (seat.occupants.length > 0) {
         return errorState("That seat is already occupied.", { seatId: "Seat is already occupied" });
       }
-      seatHasLocker = seat.hasLocker;
+      seatHasLocker = lockerForSeatNumber(seat.seatNumber);
     }
 
     const member = await prisma.$transaction(async (tx) => {
@@ -313,7 +306,7 @@ export async function updateMemberAction(
           });
         }
       }
-      newSeatHasLocker = seat.hasLocker;
+      newSeatHasLocker = lockerForSeatNumber(seat.seatNumber);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -608,12 +601,12 @@ export async function applyThreePlusOneOfferAction(formData: FormData): Promise<
         id: true,
         name: true,
         joiningDate: true,
-        seat: { select: { hasLocker: true } },
+        seat: { select: { seatNumber: true } },
       },
     });
     if (!member) return errorState("Member not found.");
 
-    const hasLocker = Boolean(member.seat?.hasLocker);
+    const hasLocker = member.seat ? lockerForSeatNumber(member.seat.seatNumber) : false;
     const monthlyFee = monthlyFeeForSeat(hasLocker);
     const joinedMonth = monthKeyFromInputDate(member.joiningDate.toISOString());
     if (startMonth < joinedMonth) {
@@ -675,7 +668,7 @@ export async function getMemberForEdit(memberId: number) {
   const [member, standardFee, memberFee] = await Promise.all([
     prisma.member.findUnique({
       where: { id: memberId },
-      include: { seat: { include: { room: true } } },
+      include: { seat: true },
     }),
     getMonthlyFee(),
     getMemberFee(memberId),

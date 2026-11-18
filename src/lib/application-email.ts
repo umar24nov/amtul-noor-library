@@ -139,7 +139,7 @@ export async function sendApplicationDecisionEmail(input: {
   to: string;
   applicantName: string;
   approved: boolean;
-  /** Room · Seat, when the member was given one. */
+  /** Seat number, when the member was given one. */
   seatLabel?: string | null;
   /** The owner's own words, for a rejection. */
   reason?: string | null;

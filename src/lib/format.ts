@@ -4,7 +4,6 @@ import {
   MONTH_PAD_BACK,
   MONTH_PAD_FORWARD,
   MONTH_PICKER_THROUGH,
-  SEAT_PAD,
 } from "@/lib/constants";
 
 /** Formats a number as Indian Rupees, e.g. 700 -> "₹700", 1250.5 -> "₹1,250.50". */
@@ -104,11 +103,11 @@ export function monthKeyFromInputDate(value: string): string {
   return value.slice(0, 7);
 }
 
-/** Normalises a seat number to the padded form used everywhere, e.g. 3 -> "03". */
+/** Normalises a seat number to the plain form used everywhere, e.g. "03" -> "3". */
 export function normalizeSeatNumber(value: string | number): string {
   const digits = String(value).replace(/\D/g, "");
   if (!digits) return "";
-  return digits.padStart(SEAT_PAD, "0");
+  return String(Number(digits));
 }
 
 /** Builds a list of month keys walking backwards from the given month. */

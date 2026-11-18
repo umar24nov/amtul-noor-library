@@ -51,7 +51,7 @@ export type EditableApplication = {
   desiredJoiningDate: string;
   notes: string | null;
   memberId: number | null;
-  /** "Room 1 · Seat 03" while the linked member still holds a seat, else null. */
+  /** "Seat 3" while the linked member still holds a seat, else null. */
   memberSeatLabel: string | null;
 };
 

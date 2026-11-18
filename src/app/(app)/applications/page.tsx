@@ -14,7 +14,7 @@ import { AadhaarPreview } from "@/components/aadhaar-preview";
 import { aadhaarScanSrc } from "@/lib/aadhaar-storage";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/format";
+import { formatDate, normalizeSeatNumber } from "@/lib/format";
 import { cn } from "cn";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 
@@ -100,7 +100,7 @@ function toEditableApplication(application: {
   notes: string | null;
   member: {
     id: number;
-    seat: { seatNumber: string; room: { name: string } } | null;
+    seat: { seatNumber: string } | null;
   } | null;
 }): EditableApplication {
   return {
@@ -119,7 +119,7 @@ function toEditableApplication(application: {
     notes: application.notes,
     memberId: application.member?.id ?? null,
     memberSeatLabel: application.member?.seat
-      ? `${application.member.seat.room.name} · Seat ${application.member.seat.seatNumber}`
+      ? `Seat ${normalizeSeatNumber(application.member.seat.seatNumber)}`
       : null,
   };
 }
@@ -145,11 +145,11 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         select: {
           id: true,
           memberId: true,
-          seat: { select: { seatNumber: true, room: { select: { name: true } } } },
+          seat: { select: { seatNumber: true } },
         },
       },
       preferredSeat: {
-        select: { seatNumber: true, room: { select: { name: true } } },
+        select: { seatNumber: true },
       },
     },
   });
@@ -244,8 +244,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <div className="flex justify-between gap-2 sm:block">
                       <dt className="text-muted-foreground">Requested seat</dt>
                       <dd>
-                        {application.preferredSeat.room.name} · Seat{" "}
-                        {application.preferredSeat.seatNumber}
+                        Seat {normalizeSeatNumber(application.preferredSeat.seatNumber)}
                       </dd>
                     </div>
                   )}
@@ -307,8 +306,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                         {application.member.seat ? (
                           <>
                             {" "}
-                            Seat: {application.member.seat.room.name} · Seat{" "}
-                            {application.member.seat.seatNumber}.
+                            Seat: Seat {normalizeSeatNumber(application.member.seat.seatNumber)}.
                           </>
                         ) : (
                           <> Seat released — member marked as left.</>

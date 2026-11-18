@@ -1,8 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { deriveMonthStatus, summarizeArrears } from "./fees";
-import { monthKeyRange, recentMonthKeys, shiftMonthKey } from "./format";
-import { monthlyFeeForSeat, prepaidPriceForSeat } from "./constants";
+import { monthKeyRange, normalizeSeatNumber, recentMonthKeys, shiftMonthKey } from "./format";
+import {
+  LOCKER_SEAT_START,
+  monthlyFeeForSeat,
+  PLAIN_SEAT_COUNT,
+  prepaidPriceForSeat,
+  SEAT_COUNT,
+  seatHasLocker,
+} from "./constants";
+import { layoutForSeatNumber, SEAT_LAYOUTS } from "./seat-layouts";
 import type { PaymentStatus } from "@/generated/prisma/enums";
 
 function row(status: PaymentStatus) {
@@ -14,6 +22,38 @@ test("seat type sets the monthly fee and the 3+1 prepaid total", () => {
   assert.equal(monthlyFeeForSeat(true), 800);
   assert.equal(prepaidPriceForSeat(false), 2100);
   assert.equal(prepaidPriceForSeat(true), 2400);
+});
+
+test("seat numbers are always plain, without zero padding", () => {
+  assert.equal(normalizeSeatNumber("01"), "1");
+  assert.equal(normalizeSeatNumber("22"), "22");
+  assert.equal(normalizeSeatNumber(" 023 "), "23");
+  assert.equal(normalizeSeatNumber(44), "44");
+});
+
+test("seat 22 is plain and seat 23 is the first with a locker", () => {
+  assert.equal(LOCKER_SEAT_START, PLAIN_SEAT_COUNT + 1);
+  assert.equal(SEAT_COUNT, 44);
+  assert.equal(seatHasLocker("22"), false);
+  assert.equal(seatHasLocker(22), false);
+  assert.equal(seatHasLocker("23"), true);
+  assert.equal(seatHasLocker(44), true);
+  assert.equal(monthlyFeeForSeat(seatHasLocker("22")), 700);
+  assert.equal(monthlyFeeForSeat(seatHasLocker("23")), 800);
+});
+
+test("the two seat maps cover seats 1-44 exactly once", () => {
+  assert.equal(layoutForSeatNumber(22).key, "plain");
+  assert.equal(layoutForSeatNumber(23).key, "locker");
+
+  const mapped = Object.values(SEAT_LAYOUTS).flatMap((layout) =>
+    layout.seats.map((seat) => seat.number),
+  );
+  assert.equal(mapped.length, SEAT_COUNT);
+  assert.deepEqual(
+    [...mapped].sort((a, b) => a - b),
+    Array.from({ length: SEAT_COUNT }, (_, index) => index + 1),
+  );
 });
 
 test("month keys move across a year boundary", () => {

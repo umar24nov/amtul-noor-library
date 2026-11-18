@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SUPPORT_TOPICS } from "@/lib/constants";
+import { SEAT_COUNT, SUPPORT_TOPICS } from "@/lib/constants";
 
 const emptyToUndefined = (value: unknown) => {
   if (value === null || value === undefined) return undefined;
@@ -67,7 +67,10 @@ export const seatNumberSchema = z
   .trim()
   .transform((value) => value.replace(/\D/g, ""))
   .refine((value) => /^\d{1,4}$/.test(value), "Enter a seat number")
-  .refine((value) => Number(value) > 0, "Seat number must be greater than 0");
+  .refine(
+    (value) => Number(value) >= 1 && Number(value) <= SEAT_COUNT,
+    `Seat number must be between 1 and ${SEAT_COUNT}`,
+  );
 
 export const memberFormSchema = z.object({
   name: z
@@ -128,29 +131,6 @@ export const assignSeatSchema = z.object({
   memberId: z.coerce.number().int().positive("Select an active member"),
 });
 
-/** Toggles whether one seat has a locker. An unchecked box means false. */
-export const seatLockerSchema = z.object({
-  seatId: z.coerce.number().int().positive(),
-  hasLocker: z.preprocess(
-    (value) => value === true || value === "1" || value === "true",
-    z.boolean(),
-  ),
-});
-
-export const roomFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Room name is required")
-    .max(40, "Room name must be 40 characters or fewer"),
-});
-
-/** Editing a room is the name plus which room it is, so a stale tab cannot
- *  rename the wrong one. */
-export const roomEditSchema = roomFormSchema.extend({
-  roomId: z.coerce.number().int().positive("Room not found"),
-});
-
 /** Aadhaar number: twelve digits, spaces/dashes tolerated and stripped. */
 export const aadhaarNumberSchema = z
   .string()
@@ -190,7 +170,6 @@ export const applicationSchema = z.object({
   aadhaarNumber: aadhaarNumberSchema,
   preparingFor: z.string().trim().min(1, "Enter what you are preparing for"),
   joiningDate: dateInputSchema,
-  roomId: z.coerce.number("Choose a room").int("Choose a room").positive("Choose a room"),
   seatId: z.coerce.number("Choose a seat").int("Choose a seat").positive("Choose a seat"),
   /** The seat-type box the applicant ticked, checked again on the server. */
   seatType: z.preprocess(emptyToUndefined, z.enum(["non-locker", "locker"]).optional()),
@@ -256,12 +235,10 @@ export const supportMessageSchema = z.object({
 export type SupportMessageValues = z.input<typeof supportMessageSchema>;
 
 export const seatFormSchema = z.object({
-  roomId: z.coerce.number().int().positive(),
   seatNumber: seatNumberSchema,
 });
 
 export const seatRangeFormSchema = z.object({
-  roomId: z.coerce.number().int().positive(),
   from: seatNumberSchema,
   to: seatNumberSchema,
 });

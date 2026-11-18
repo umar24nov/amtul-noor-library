@@ -12,7 +12,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const member = await prisma.member.findFirst({
     where: { OR: [{ memberId: "ATN053" }, { name: { contains: "Zaid", mode: "insensitive" } }] },
-    include: { payments: { orderBy: [{ month: "asc" }, { createdAt: "asc" }] }, seat: { include: { room: true } } },
+    include: { payments: { orderBy: [{ month: "asc" }, { createdAt: "asc" }] }, seat: true },
   });
   console.log(JSON.stringify(member, (k,v) => typeof v === "bigint" ? v.toString() : v instanceof Date ? v.toISOString() : v, 2));
 

@@ -1,20 +1,15 @@
 /**
- * Vector layouts for the reading-room seat maps.
+ * Vector layouts for the seat maps.
  *
  * These are transcribed from the seat-plan designs the owner supplied, which
- * share a 900x650 viewBox. Keeping the
- * geometry here as plain data, rather than as two large SVG files, lets the
- * same map be rendered with live seat status on the landing page and used as
- * an interactive picker on the join form.
+ * share a 900x650 viewBox. Keeping the geometry here as plain data, rather than
+ * as large SVG files, lets the same map be rendered with live seat status on the
+ * landing page and used as an interactive picker on the join form.
  *
- * Seats are keyed by the number printed on them (1-22). The database stores the
- * same number, zero-padded ("01".."22"), so callers map between the two with
- * `Number(seatNumber)`.
- *
- * Both rooms share one set of desk positions (the tidier Room 2 drawing) and
- * differ only in the number printed on each desk. Keeping a single grid of
- * `CELLS` and renumbering it per room means the two maps can never drift apart
- * in shape, which is what the owner asked for: "same layout, different numbers".
+ * Seats are keyed by their plain printed number, 1-44. The database stores the
+ * same number as a string, so callers use `Number(seat.seatNumber)`. Numbers
+ * 1-22 are the plain layout and 23-44 are the locker layout; both use the same
+ * desk positions, with the locker map renumbered from the second drawing.
  */
 
 /** Gap between the edge of a desk and the seat drawn on top of it. Zero, so the
@@ -39,7 +34,7 @@ export type DoorSpec = {
 
 export type SeatLayout = {
   key: string;
-  /** Human-readable room name this layout was drawn for. */
+  /** Human-readable label for this group of seats. */
   label: string;
   windows: Rect[];
   door: DoorSpec;
@@ -72,7 +67,7 @@ function buildLayout(
   };
 }
 
-const DOOR_ROOM_1: DoorSpec = {
+const DOOR_STANDARD: DoorSpec = {
   line: [410, 560, 490, 560],
   arc: "M 450 560 A 40 40 0 0 1 410 520",
   label: "Door",
@@ -80,7 +75,7 @@ const DOOR_ROOM_1: DoorSpec = {
   labelY: 580,
 };
 
-const DOOR_ROOM_2: DoorSpec = {
+const DOOR_LOCKER: DoorSpec = {
   line: [390, 560, 510, 560],
   arc: "M 450 560 A 40 40 0 0 1 390 520",
   label: "Door",
@@ -89,10 +84,10 @@ const DOOR_ROOM_2: DoorSpec = {
 };
 
 /**
- * The desk grid both rooms are drawn from, in a fixed order: the top row of
- * six, the left column of six, then the two middle columns of five each. The
- * coordinates are the Room 2 drawing, which the owner preferred because the
- * desks line up with each other instead of hugging the walls.
+ * One desk grid in a fixed order: the top row of six, the left column of six,
+ * then the two middle columns of five each. The coordinates come from the
+ * tidier of the two drawings, whose desks line up with each other instead of
+ * hugging the walls.
  */
 const CELLS: Rect[] = [
   // Top row.
@@ -123,13 +118,8 @@ const CELLS: Rect[] = [
   { x: 450, y: 395, w: 50, h: 50 },
 ];
 
-/**
- * Which number sits on each cell, read off the two design files. The rooms have
- * the same shape but their own numbering, so each list is a full permutation of
- * 1-22 in cell order. Room 2 runs the top row and left column the other way
- * round, which is the only visible difference between the two maps.
- */
-const ROOM_1_NUMBERS = [
+/** Numbering read from the first drawing: 1-22 in cell order. */
+const STANDARD_NUMBERS = [
   // Top row, right to left: 16..11.
   16, 15, 14, 13, 12, 11,
   // Left column, top to bottom: 17..22.
@@ -140,47 +130,50 @@ const ROOM_1_NUMBERS = [
   10, 9, 8, 7, 6,
 ];
 
-const ROOM_2_NUMBERS = [
-  // Top row, left to right: 17..22.
-  17, 18, 19, 20, 21, 22,
-  // Left column, top to bottom: 6..1.
-  6, 5, 4, 3, 2, 1,
-  // Middle block, left sub-column, top to bottom: 11..7.
-  11, 10, 9, 8, 7,
-  // Middle block, right sub-column, top to bottom: 16..12.
-  16, 15, 14, 13, 12,
+/** The second drawing's numbering, shifted onto seats 23-44. */
+const LOCKER_NUMBERS = [
+  // Top row, left to right: 39..44.
+  39, 40, 41, 42, 43, 44,
+  // Left column, top to bottom: 28..23.
+  28, 27, 26, 25, 24, 23,
+  // Middle block, left sub-column, top to bottom: 33..29.
+  33, 32, 31, 30, 29,
+  // Middle block, right sub-column, top to bottom: 38..34.
+  38, 37, 36, 35, 34,
 ];
 
 function placements(numbers: number[]): SeatPlacement[] {
   return numbers.map((number, index) => ({ number, ...CELLS[index] }));
 }
 
-const ROOM_1 = buildLayout("room-1", "Room 1", [], DOOR_ROOM_1, placements(ROOM_1_NUMBERS));
-const ROOM_2 = buildLayout("room-2", "Room 2", [], DOOR_ROOM_2, placements(ROOM_2_NUMBERS));
+const PLAIN_LAYOUT = buildLayout(
+  "plain",
+  "Seats 1–22 · Non-locker",
+  [],
+  DOOR_STANDARD,
+  placements(STANDARD_NUMBERS),
+);
 
-export const SEAT_LAYOUTS: Record<string, SeatLayout> = {
-  [ROOM_1.key]: ROOM_1,
-  [ROOM_2.key]: ROOM_2,
-};
+const LOCKER_LAYOUT = buildLayout(
+  "locker",
+  "Seats 23–44 · With locker",
+  [],
+  DOOR_LOCKER,
+  placements(LOCKER_NUMBERS),
+);
+
+export const SEAT_LAYOUTS = {
+  plain: PLAIN_LAYOUT,
+  locker: LOCKER_LAYOUT,
+} as const satisfies Record<string, SeatLayout>;
 
 export type SeatLayoutKey = keyof typeof SEAT_LAYOUTS;
 
-/**
- * Picks the drawing that matches a room, based on its name.
- *
- * The owner creates rooms by name in "Manage seats", and the two designs are
- * literally "Room 1" and "Room 2", so a name match is the least surprising
- * rule. A room whose name matches neither gets no layout, and callers fall back
- * to a plain list of seats rather than showing a map that would be wrong.
- */
-export function layoutKeyForRoom(name: string): SeatLayoutKey | null {
-  const normalised = name.toLowerCase();
-  if (/\b2\b/.test(normalised)) return "room-2";
-  if (/\b1\b/.test(normalised)) return "room-1";
-  return null;
+/** Locker status is fixed by the number, so the layout follows it directly. */
+export function layoutForSeat(hasLocker: boolean): SeatLayout {
+  return hasLocker ? SEAT_LAYOUTS.locker : SEAT_LAYOUTS.plain;
 }
 
-export function layoutForRoom(name: string): SeatLayout | null {
-  const key = layoutKeyForRoom(name);
-  return key ? SEAT_LAYOUTS[key] : null;
+export function layoutForSeatNumber(seatNumber: number): SeatLayout {
+  return layoutForSeat(seatNumber >= 23);
 }

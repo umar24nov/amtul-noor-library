@@ -43,8 +43,8 @@ import {
 } from "@/lib/constants";
 import { formatINR, formatNumber } from "@/lib/format";
 import { HERO_PHOTO, GALLERY_PHOTOS } from "@/lib/photos";
-import { listPublicOccupancy, type PublicRoomOccupancy } from "@/lib/queries";
-import { layoutForRoom } from "@/lib/seat-layouts";
+import { SEAT_LAYOUTS } from "@/lib/seat-layouts";
+import { listPublicSeatGroups, type PublicSeatGroup } from "@/lib/queries";
 import { siteHomeUrl, siteOrigin } from "@/lib/site";
 import { JoinForm } from "@/components/join-form";
 import { whatsappShareUrl } from "@/lib/whatsapp";
@@ -59,7 +59,7 @@ import { whatsappShareUrl } from "@/lib/whatsapp";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = await siteOrigin();
   const title = LIBRARY_NAME;
-  const description = `${LIBRARY_NAME} — ${LIBRARY_TAGLINE}. A quiet study room in Roorkee with allocated seats, a personal locker in one room, and monthly membership from ${formatINR(LIBRARY_FEES.seat)}.`;
+  const description = `${LIBRARY_NAME} — ${LIBRARY_TAGLINE}. A quiet study room in Roorkee with allocated seats, lockers on seats 23–44, and monthly membership from ${formatINR(LIBRARY_FEES.seat)}.`;
 
   return {
     title: { absolute: title },
@@ -129,19 +129,19 @@ export default async function LandingPage() {
   // Occupancy is advertised as live, so it is read fresh. A database that is
   // briefly unreachable must not take the whole page down with it, so this
   // falls back to no numbers rather than to an error.
-  let rooms: PublicRoomOccupancy[] = [];
+  let groups: PublicSeatGroup[] = [];
   try {
-    rooms = await listPublicOccupancy();
+    groups = await listPublicSeatGroups();
   } catch {
-    rooms = [];
+    groups = [];
   }
 
   const [origin, homeUrl] = await Promise.all([siteOrigin(), siteHomeUrl()]);
 
-  const totals = rooms.reduce(
-    (sum, room) => ({
-      seats: sum.seats + room.total,
-      open: sum.open + room.open,
+  const totals = groups.reduce(
+    (sum, group) => ({
+      seats: sum.seats + group.total,
+      open: sum.open + group.open,
     }),
     { seats: 0, open: 0 },
   );
@@ -155,11 +155,11 @@ export default async function LandingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(librarySchema(origin)) }}
       />
       <LandingHeader items={NAV} />
-      <LiveBar rooms={rooms} />
+      <LiveBar groups={groups} />
 
       <main id="main" className="flex-1">
-        <Hero totals={totals} roomCount={rooms.length} shareHref={shareHref} />
-        <SeatStatus rooms={rooms} />
+        <Hero totals={totals} shareHref={shareHref} />
+        <SeatStatus groups={groups} />
         <Gallery />
         <Amenities />
         <Fees />
@@ -172,11 +172,11 @@ export default async function LandingPage() {
 }
 
 /** One line of live numbers, the way the mockup's status strip worked. */
-function LiveBar({ rooms }: { rooms: PublicRoomOccupancy[] }) {
-  if (rooms.length === 0) return null;
-  const withSeats = rooms.filter((room) => room.total > 0);
+function LiveBar({ groups }: { groups: PublicSeatGroup[] }) {
+  if (groups.length === 0) return null;
+  const withSeats = groups.filter((group) => group.total > 0);
   if (withSeats.length === 0) return null;
-  const open = withSeats.reduce((sum, room) => sum + room.open, 0);
+  const open = withSeats.reduce((sum, group) => sum + group.open, 0);
 
   return (
     <div className="border-b border-border bg-muted/60">
@@ -202,11 +202,9 @@ function LiveBar({ rooms }: { rooms: PublicRoomOccupancy[] }) {
 
 function Hero({
   totals,
-  roomCount,
   shareHref,
 }: {
   totals: { seats: number; open: number };
-  roomCount: number;
   shareHref: string;
 }) {
   return (
@@ -281,10 +279,9 @@ function Hero({
           away from what is actually true of the room. */}
       {totals.seats > 0 && (
         <div className="mt-8 flex justify-center">
-          <dl className="grid w-full max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm transition-shadow duration-300 hover:shadow-md sm:grid-cols-4">
+          <dl className="grid w-full max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm transition-shadow duration-300 hover:shadow-md sm:grid-cols-3">
             <Metric label="Seats" value={formatNumber(totals.seats)} />
             <Metric label="Free right now" value={formatNumber(totals.open)} />
-            <Metric label="Reading rooms" value={formatNumber(roomCount)} />
             <Metric label="Open daily" value={LIBRARY_HOURS} />
           </dl>
         </div>
@@ -309,12 +306,12 @@ function Metric({ label, value }: { label: string; value: string }) {
  * sits where is published. If the database cannot be reached the section hides
  * itself rather than showing an empty grid.
  */
-function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
-  const withSeats = rooms.filter((room) => room.total > 0);
+function SeatStatus({ groups }: { groups: PublicSeatGroup[] }) {
+  const withSeats = groups.filter((group) => group.total > 0);
   if (withSeats.length === 0) return null;
 
   const totals = withSeats.reduce(
-    (sum, room) => ({ seats: sum.seats + room.total, open: sum.open + room.open }),
+    (sum, group) => ({ seats: sum.seats + group.total, open: sum.open + group.open }),
     { seats: 0, open: 0 },
   );
 
@@ -346,49 +343,32 @@ function SeatStatus({ rooms }: { rooms: PublicRoomOccupancy[] }) {
           </ul>
         </div>
 
-        {/* Side by side from `md`, not just `lg`, so the maps stay short on a
-            laptop whose window is narrower than the `lg` breakpoint. */}
+        {/* Side by side from `md`, so the two maps stay short on a laptop and
+            stack on a phone. */}
         <div className="grid gap-6 md:grid-cols-2">
-          {withSeats.map((room) => {
-            const layout = layoutForRoom(room.name);
-            const seats: SeatMapSeat[] = room.seats.map((seat) => ({
+          {withSeats.map((group) => {
+            const layout = SEAT_LAYOUTS[group.key];
+            const seats: SeatMapSeat[] = group.seats.map((seat) => ({
               number: Number(seat.seatNumber),
               status: seat.occupied ? "OCCUPIED" : "AVAILABLE",
             }));
 
             return (
               <div
-                key={room.id}
+                key={group.key}
                 className="flex flex-col rounded-xl border border-border bg-card p-4 sm:p-5"
               >
                 <p className="text-center text-sm text-muted-foreground">
-                  {room.open} free of {room.total}
+                  {group.open} free of {group.total}
                 </p>
 
-                {layout ? (
-                  <SeatMap
-                    layout={layout}
-                    seats={seats}
-                    seatHrefTemplate={`/join?room=${room.id}&seat={seat}`}
-                    ariaLabel={`${room.name} seat map. ${room.open} of ${room.total} seats free.`}
-                    className="mx-auto mt-3 w-full max-w-lg"
-                  />
-                ) : (
-                  <ul className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
-                    {room.seats.map((seat) => (
-                      <li
-                        key={seat.id}
-                        className={
-                          seat.occupied
-                            ? "rounded-md border border-border bg-muted-foreground/70 px-2 py-2.5 text-center font-mono text-xs text-background"
-                            : "rounded-md border border-emerald-600/40 bg-emerald-500/15 px-2 py-2.5 text-center font-mono text-xs font-medium text-emerald-800 dark:text-emerald-300"
-                        }
-                      >
-                        {seat.seatNumber}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <SeatMap
+                  layout={layout}
+                  seats={seats}
+                  seatHrefTemplate={`/join?seat={seat}`}
+                  ariaLabel={`${layout.label}. ${group.open} of ${group.total} seats free.`}
+                  className="mx-auto mt-3 w-full max-w-lg"
+                />
               </div>
             );
           })}
@@ -444,7 +424,7 @@ const AMENITIES: {
   {
     icon: Lock,
     title: "Personal Locker",
-    body: "Your own locker for books, notes, and study essentials. Lockers are in one room and carry a small extra charge.",
+    body: "Your own locker for books, notes, and study essentials. Seats 23–44 include one for a small extra charge.",
   },
   {
     icon: Armchair,
@@ -530,8 +510,8 @@ function Fees() {
             points={[
               "Includes all the benefits of a regular seat.",
               "A personal locker to keep your books and study materials safely at the library.",
-              "Available only in rooms with lockers.",
-              "Contact us on WhatsApp to ask about locker availability and choose your preferred room.",
+              "Seats 23–44 come with a locker.",
+              "Tap a seat on the availability map to choose a seat with a locker.",
             ]}
             highlighted
           />
@@ -630,7 +610,7 @@ const FAQ = [
   },
   {
     q: "What happens if I go away for a while?",
-    a: "Tell us and we will pause your seat and hold your record. Your place in the room and your payment history are kept for you, so coming back is just a message away.",
+    a: "Tell us and we will pause your seat and hold your record. Your seat and your payment history are kept for you, so coming back is just a message away.",
   },
   {
     q: "Is the fee really the same every month?",

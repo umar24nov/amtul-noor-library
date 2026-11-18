@@ -8,18 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterField, SearchInput } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
-import { listMembers, listOpenSeats, listRooms } from "@/lib/queries";
+import { listMembers, listOpenSeats } from "@/lib/queries";
 import { requirePermission } from "@/lib/permissions";
 import { getMonthlyFee, memberFeesByMemberId, withMemberFees } from "@/lib/settings";
-import {
-  parseRoomFilter,
-  roomFilterOptions,
-  roomFilterValue,
-} from "@/lib/room-filter";
 import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
   MEMBER_SORTS,
+  seatHasLocker,
 } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Members" };
@@ -27,7 +23,6 @@ export const metadata: Metadata = { title: "Members" };
 type SearchParams = Promise<{
   q?: string;
   status?: string;
-  room?: string;
   sort?: string;
 }>;
 
@@ -45,15 +40,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   // hand-edited or stale link.
   const sort = isMemberSort(params.sort) ? params.sort : DEFAULT_MEMBER_SORT;
 
-  // Rooms come first: a room id in the URL is only trusted if it still points at
-  // a room that exists, so a stale link falls back to "All rooms" instead of
-  // showing an empty table next to a dropdown that says something else.
-  const rooms = await listRooms();
-  const room = parseRoomFilter(params.room, rooms);
-
   // The list grows by scrolling, so this is always the first batch.
   const [{ members, total }, openSeats, standardFee, fees] = await Promise.all([
-    listMembers({ search, status, sort, room }),
+    listMembers({ search, status, sort }),
     listOpenSeats(),
     getMonthlyFee(),
     memberFeesByMemberId(),
@@ -61,20 +50,16 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
   const seats = openSeats.map((seat) => ({
     id: seat.id,
-    label: `${seat.room.name} · Seat ${seat.seatNumber}`,
-    hasLocker: seat.hasLocker,
+    label: `Seat ${seat.seatNumber}`,
+    hasLocker: seatHasLocker(seat.seatNumber),
   }));
 
-  const roomOptions = roomFilterOptions(rooms);
-  const roomValue = roomFilterValue(room);
-
   // Column headers reuse the current filters, so sorting never discards a
-  // search, status or room the user had set. The page number is deliberately
-  // left out so applying a sort starts again at the first page.
+  // search or status the user had set. The page number is deliberately left out
+  // so applying a sort starts again at the first page.
   const currentFilters = new URLSearchParams();
   if (search) currentFilters.set("q", search);
   if (status !== "ALL") currentFilters.set("status", status);
-  if (roomValue !== "ALL") currentFilters.set("room", roomValue);
   const sortBase = currentFilters.toString();
 
   return (
@@ -124,14 +109,6 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                   ]}
                 />
               </FilterField>
-              <FilterField label="Room" className="sm:w-40">
-                <FilterSelect
-                  name="room"
-                  value={roomValue}
-                  ariaLabel="Filter by room"
-                  options={roomOptions}
-                />
-              </FilterField>
               <FilterField label="Sort by" className="col-span-2 sm:w-56 sm:col-span-1">
                 <FilterSelect
                   name="sort"
@@ -153,13 +130,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
             <p className="max-w-sm text-sm text-muted-foreground">
               {search
                 ? "No member matches that search. Try a different name, mobile number, member ID or seat number."
-                : room !== undefined
-                  ? `No member is sitting in that room right now. Try "All rooms" or "No seat".`
-                  : status === "LEFT"
-                    ? "No member has left the library."
-                    : status === "ACTIVE"
-                      ? 'No active members to show right now. Try "All members", or add someone new.'
-                      : "Add your first member to get started."}
+                : status === "LEFT"
+                  ? "No member has left the library."
+                  : status === "ACTIVE"
+                    ? 'No active members to show right now. Try "All members", or add someone new.'
+                    : "Add your first member to get started."}
             </p>
             <Button asChild variant="secondary" className="mt-2 h-10">
               <Link href="/members/new">Add Member</Link>
@@ -170,13 +145,13 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         // Keyed on the filters so that changing one starts a fresh list instead
         // of appending to rows that no longer match.
         <MemberTable
-          key={`${search}|${status}|${roomValue}|${sort}`}
+          key={`${search}|${status}|${sort}`}
           members={withMemberFees(members, standardFee, fees) as EditableMember[]}
           seats={seats}
           sort={sort}
           sortBase={sortBase}
           total={total}
-          query={{ q: search, status, room: roomValue, sort }}
+          query={{ q: search, status, sort }}
         />
       )}
     </div>

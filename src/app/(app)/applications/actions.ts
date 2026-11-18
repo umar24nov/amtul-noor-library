@@ -9,9 +9,9 @@ import {
 } from "@/lib/action-result";
 import { sendApplicationDecisionEmail } from "@/lib/application-email";
 import { actionPermission } from "@/lib/permissions";
-import { parseInputDate } from "@/lib/format";
+import { normalizeSeatNumber, parseInputDate } from "@/lib/format";
 import { nextMemberId, newPayToken } from "@/lib/ids";
-import { monthlyFeeForSeat } from "@/lib/constants";
+import { monthlyFeeForSeat, seatHasLocker } from "@/lib/constants";
 import { memberFeeKey } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { applicationEditSchema, fieldErrors } from "@/lib/validators";
@@ -50,14 +50,13 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
     const result = await prisma.$transaction(async (tx) => {
       const applicationData = await tx.application.findUniqueOrThrow({
         where: { id },
-        include: { preferredSeat: { include: { room: true } } },
       });
 
       // Honour the seat the applicant asked for, but only if it is still free;
       // otherwise the member is created without one and the owner assigns it.
       let seatId: number | null = null;
       let seatLabel: string | null = null;
-      let seatHasLocker = false;
+      let lockerSeat = false;
       if (applicationData.preferredSeatId) {
         const seat = await tx.seat.findUnique({
           where: { id: applicationData.preferredSeatId },
@@ -65,14 +64,12 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
             id: true,
             status: true,
             seatNumber: true,
-            hasLocker: true,
-            room: { select: { name: true } },
           },
         });
         if (seat && seat.status === "AVAILABLE") {
           seatId = seat.id;
-          seatHasLocker = seat.hasLocker;
-          seatLabel = `${seat.room.name} · Seat ${seat.seatNumber}${seat.hasLocker ? " (locker)" : ""}`;
+          lockerSeat = seatHasLocker(seat.seatNumber);
+          seatLabel = `Seat ${normalizeSeatNumber(seat.seatNumber)}${lockerSeat ? " (with locker)" : ""}`;
         }
       }
 
@@ -97,7 +94,7 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
         await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
         // The seat the applicant chose decides their fee: ₹800 with a locker,
         // ₹700 without. No payments exist yet, so no rows need re-pricing.
-        const fee = monthlyFeeForSeat(seatHasLocker);
+        const fee = monthlyFeeForSeat(lockerSeat);
         await tx.setting.upsert({
           where: { key: memberFeeKey(member.id) },
           update: { value: String(fee) },
@@ -297,7 +294,7 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
         rejectionReason: true,
         member: {
           select: {
-            seat: { select: { seatNumber: true, room: { select: { name: true } } } },
+            seat: { select: { seatNumber: true } },
           },
         },
       },
@@ -311,7 +308,7 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
     }
 
     const seatLabel = application.member?.seat
-      ? `${application.member.seat.room.name} · Seat ${application.member.seat.seatNumber}`
+      ? `Seat ${normalizeSeatNumber(application.member.seat.seatNumber)}`
       : null;
 
     const result = await sendApplicationDecisionEmail({

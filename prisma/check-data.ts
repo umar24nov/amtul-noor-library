@@ -34,7 +34,7 @@ async function main() {
   const sample = await prisma.member.findMany({
     take: 3,
     orderBy: { memberId: "asc" },
-    include: { seat: { include: { room: true } }, payments: true },
+    include: { seat: true, payments: true },
   });
   console.log("\nSample members:");
   for (const member of sample) {

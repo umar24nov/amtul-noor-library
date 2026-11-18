@@ -201,7 +201,6 @@ export function SeatDetailsDialog({
   onOpenChange,
   seat,
   releaseAction,
-  lockerAction,
   viewHref,
 }: {
   open: boolean;
@@ -213,20 +212,13 @@ export function SeatDetailsDialog({
     occupants: { id: number; name: string; memberId: string; mobile: string | null }[];
   };
   releaseAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
-  lockerAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   viewHref?: string;
 }) {
   const [state, formAction] = useActionState(releaseAction, IDLE_STATE);
-  const [lockerState, lockerFormAction] = useActionState(lockerAction, IDLE_STATE);
-  const [hasLocker, setHasLocker] = useState(seat.hasLocker);
 
   useEffect(() => {
     if (state.status === "success") onOpenChange(false);
   }, [state, onOpenChange]);
-
-  useEffect(() => {
-    if (lockerState.status === "success") onOpenChange(false);
-  }, [lockerState, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -242,36 +234,23 @@ export function SeatDetailsDialog({
 
         <ActionMessage state={state} />
 
-        {/* Lockers belong to a desk, not a room, so the owner ticks them here. */}
-        <form action={lockerFormAction} className="grid gap-2 rounded-lg border border-border p-3">
-          <input type="hidden" name="seatId" value={seat.id} />
-          <label className="flex items-start gap-2.5 text-sm">
-            <input
-              type="checkbox"
-              name="hasLocker"
-              value="1"
-              checked={hasLocker}
-              onChange={(event) => setHasLocker(event.target.checked)}
-              className="mt-0.5 size-4 rounded border-input accent-primary"
-            />
-            <span>
-              <span className="inline-flex items-center gap-1.5 font-medium">
+        {/* Locker status follows the seat number, so it is shown, not edited. */}
+        <div className="grid gap-1 rounded-lg border border-border p-3 text-sm">
+          <span className="inline-flex items-center gap-1.5 font-medium">
+            {seat.hasLocker ? (
+              <>
                 <KeyRound className="size-3.5" />
-                This seat has a locker
-              </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                Monthly fee {formatINR(monthlyFeeForSeat(hasLocker))}. Changing this also updates
-                the fee of whoever holds the seat, plus their unpaid months.
-              </span>
-            </span>
-          </label>
-          <ActionMessage state={lockerState} />
-          <div className="flex justify-end">
-            <Button type="submit" variant="outline" size="sm" className="h-9">
-              Save seat type
-            </Button>
-          </div>
-        </form>
+                Seat with locker
+              </>
+            ) : (
+              "Non-locker seat"
+            )}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Monthly fee {formatINR(monthlyFeeForSeat(seat.hasLocker))}. The seat number decides this;
+            it cannot be changed here.
+          </span>
+        </div>
 
         {seat.occupants.length > 0 ? (
           <>
@@ -310,20 +289,18 @@ export function SeatDetailsDialog({
   );
 }
 
-/** Small form used by the "Manage rooms and seats" dialog. */
+/** Small form used by the "Manage seats" dialog. */
 export function ManageForm({
   action,
   submitLabel,
   pendingLabel,
   fields,
-  roomId,
   hidden,
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   submitLabel: string;
   pendingLabel: string;
   fields: React.ReactNode;
-  roomId?: number;
   hidden?: Record<string, string>;
 }) {
   const [state, formAction] = useActionState(action, IDLE_STATE);
@@ -334,7 +311,6 @@ export function ManageForm({
 
   return (
     <form action={formAction} className="grid gap-3">
-      {roomId !== undefined && <input type="hidden" name="roomId" value={roomId} />}
       {hidden &&
         Object.entries(hidden).map(([key, value]) => (
           <input key={key} type="hidden" name={key} value={value} />
@@ -366,32 +342,6 @@ export function ConfirmDeleteForm({
   return (
     <form action={formAction} className="grid gap-2">
       <input type="hidden" name="seatId" value={seatId} />
-      <ActionMessage state={state} />
-      <DialogSubmit pendingLabel="Deleting…" variant="destructive">
-        {message}
-      </DialogSubmit>
-    </form>
-  );
-}
-
-export function ConfirmDeleteRoomForm({
-  action,
-  message,
-  roomId,
-}: {
-  action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
-  message: string;
-  roomId: number;
-}) {
-  const [state, formAction] = useActionState(action, IDLE_STATE);
-
-  useEffect(() => {
-    if (state.status === "success" && state.message) toast.success(state.message);
-  }, [state]);
-
-  return (
-    <form action={formAction} className="grid gap-2">
-      <input type="hidden" name="roomId" value={roomId} />
       <ActionMessage state={state} />
       <DialogSubmit pendingLabel="Deleting…" variant="destructive">
         {message}

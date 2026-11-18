@@ -12,13 +12,14 @@ import {
 } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
-import {
-  memberRoomWhere,
-  seatRoomWhere,
-  type RoomFilter,
-} from "@/lib/room-filter";
 import { getMonthlyFee, memberFeesByMemberId } from "@/lib/settings";
-import { DEFAULT_MEMBER_SORT, PAGE_SIZE, type MemberSort } from "@/lib/constants";
+import {
+  DEFAULT_MEMBER_SORT,
+  PAGE_SIZE,
+  seatHasLocker,
+  type MemberSort,
+} from "@/lib/constants";
+import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 import { deriveMonthStatus, summarizeArrears, type MonthStatus } from "@/lib/fees";
 import { pendingDueDate } from "@/lib/payments";
 import type {
@@ -26,7 +27,6 @@ import type {
   Payment,
   PaymentMode,
   PaymentStatus,
-  Room,
   Seat,
 } from "@/generated/prisma/client";
 
@@ -34,10 +34,19 @@ export { deriveMonthStatus } from "@/lib/fees";
 export type { MonthStatus } from "@/lib/fees";
 
 export type MemberWithSeat = Member & {
-  seat: (Seat & { room: Room }) | null;
+  seat: Seat | null;
 };
 
 export type MemberWithSeatAndPayments = MemberWithSeat & { payments: Payment[] };
+
+/** Numeric seat order, with unseated rows last. Seat numbers are plain strings,
+ *  so database string ordering would put "10" before "2". */
+function compareSeatNumbers(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return Number(a) - Number(b);
+}
 
 export type MonthSummaryRow = {
   memberPk: number;
@@ -92,30 +101,25 @@ export function membersForMonthWhere(month: string, scope: MemberScope = "ACTIVE
 export async function getMonthSummary(
   month: string,
   scope: MemberScope = "ACTIVE",
-  room?: RoomFilter,
 ): Promise<MonthSummaryRow[]> {
   const [standardFee, memberFees] = await Promise.all([
     getMonthlyFee(),
     memberFeesByMemberId(),
   ]);
   const members = await prisma.member.findMany({
-    // Two independent conditions, so they are combined rather than spread into
-    // one object where the second would overwrite the first.
-    where: { AND: [membersForMonthWhere(month, scope), memberRoomWhere(room)] },
+    where: membersForMonthWhere(month, scope),
     include: {
-      seat: { include: { room: true } },
+      seat: true,
       payments: { where: { month } },
     },
-    orderBy: [{ seat: { seatNumber: "asc" } }, { name: "asc" }],
   });
 
-  return members.map((member) =>
-    buildSummaryRow(
-      member,
-      month,
-      memberFees.get(member.id) ?? standardFee,
-    ),
-  );
+  return members
+    .map((member) => buildSummaryRow(member, month, memberFees.get(member.id) ?? standardFee))
+    .sort(
+      (a, b) =>
+        compareSeatNumbers(a.seatNumber, b.seatNumber) || a.name.localeCompare(b.name),
+    );
 }
 
 function buildSummaryRow(
@@ -146,9 +150,7 @@ function buildSummaryRow(
     name: member.name,
     mobile: member.mobile,
     joiningDate: member.joiningDate,
-    seatLabel: member.seat
-      ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}${member.seat.seatNumber}`
-      : null,
+    seatLabel: member.seat ? `Seat ${member.seat.seatNumber}` : null,
     seatNumber: member.seat?.seatNumber ?? null,
     memberStatus: member.status,
     fee: memberFee,
@@ -194,26 +196,18 @@ const DASHBOARD_STATUS_RANK: Record<MonthStatus, number> = {
 };
 
 export const getDashboardData = cache(
-  async (
-    month: string,
-    scope: MemberScope = "ACTIVE",
-    room?: RoomFilter,
-  ): Promise<DashboardData> => {
-    const roomWhere = memberRoomWhere(room);
+  async (month: string, scope: MemberScope = "ACTIVE"): Promise<DashboardData> => {
     const [totalMembers, activeMembers, seatCounts, fee, monthSummary] = await Promise.all([
-      prisma.member.count({ where: roomWhere }),
-      prisma.member.count({ where: { ...roomWhere, status: "ACTIVE" } }),
+      prisma.member.count(),
+      prisma.member.count({ where: { status: "ACTIVE" } }),
       prisma.seat.groupBy({
         by: ["status"],
-        where: seatRoomWhere(room),
         _count: { _all: true },
       }),
       getMonthlyFee(),
       // Totals come from everyone who was a member that month, so the scope
-      // filter below never changes the collection figures. The room filter is
-      // different: picking a room means "show me this room", so it narrows
-      // every figure, otherwise the cards would contradict the selection.
-      getMonthSummary(month, "ALL", room),
+      // filter below never changes the collection figures.
+      getMonthSummary(month, "ALL"),
     ]);
 
     const totalSeats = seatCounts.reduce((total, group) => total + group._count._all, 0);
@@ -256,36 +250,39 @@ export type MemberListFilters = {
   status?: "ALL" | "ACTIVE" | "LEFT";
   page?: number;
   sort?: MemberSort;
-  /** A room id, or "NONE" for members who are not sitting anywhere. */
-  room?: number | "NONE";
 };
 
 /**
- * Translates a sort key into a Prisma orderBy. Every option ends with a unique
- * tiebreaker so pagination cannot show the same member twice or skip one when
- * two rows share the same name, seat or date.
+ * Sorts the member list in memory. Seat numbers are plain strings, so a
+ * database string sort would put "10" before "2". Every option ends with a
+ * unique tiebreaker so pagination cannot repeat or skip a member.
  */
-function memberOrderBy(sort: MemberSort) {
-  const byName = { name: "asc" } as const;
-  const byId = { id: "asc" } as const;
+function compareMembers(a: MemberWithSeat, b: MemberWithSeat, sort: MemberSort): number {
+  const byId = a.id - b.id;
+  const byName = a.name.localeCompare(b.name);
 
   switch (sort) {
     case "name-asc":
-      return [byName, byId];
+      return byName || byId;
     case "name-desc":
-      return [{ name: "desc" as const }, byId];
+      return -byName || byId;
     case "seat":
-      return [{ seat: { seatNumber: "asc" as const } }, byName, byId];
+      return (
+        compareSeatNumbers(a.seat?.seatNumber ?? null, b.seat?.seatNumber ?? null) ||
+        byName ||
+        byId
+      );
     case "newest":
-      return [{ joiningDate: "desc" as const }, byId];
+      return b.joiningDate.getTime() - a.joiningDate.getTime() || byId;
     case "oldest":
-      return [{ joiningDate: "asc" as const }, byId];
+      return a.joiningDate.getTime() - b.joiningDate.getTime() || byId;
     case "member-id":
-      return [{ memberId: "asc" as const }, byId];
+      return a.memberId.localeCompare(b.memberId) || byId;
     case "recently-updated":
-      return [{ updatedAt: "desc" as const }, byId];
+      return b.updatedAt.getTime() - a.updatedAt.getTime() || byId;
+    case "status-name":
     default:
-      return [{ status: "asc" as const }, byName, byId];
+      return a.status.localeCompare(b.status) || byName || byId;
   }
 }
 
@@ -300,55 +297,36 @@ export async function listMembers({
   status = "ALL",
   page = 1,
   sort = DEFAULT_MEMBER_SORT,
-  room,
 }: MemberListFilters): Promise<MemberListResult> {
   const term = search?.trim();
-  // Raw digits, deliberately not normalizeSeatNumber: that pads to "01" for
-  // storage, but as a search fragment "1" should also find seat 10. An empty
-  // string is worse than useless here, because SQL `contains ''` matches every
-  // row and would make the whole OR always true.
+  // Raw digits, deliberately not normalizeSeatNumber: as a search fragment "1"
+  // should also find seat 10. An empty string would make the whole OR true.
   const seatDigits = term ? term.replace(/\D/g, "") : "";
   const where = {
     ...(status === "ACTIVE" ? { status: "ACTIVE" as const } : {}),
     ...(status === "LEFT" ? { status: "LEFT" as const } : {}),
-    // A member sits in a room through their seat, so the room is a nested
-    // filter. Members with no seat are a real group too, hence the NONE case.
-    ...(room === "NONE"
-      ? { seatId: null }
-      : room !== undefined
-        ? { seat: { roomId: room } }
-        : {}),
     ...(term
       ? {
           OR: [
             { name: { contains: term, mode: "insensitive" as const } },
             { mobile: { contains: term } },
             { memberId: { contains: term.toUpperCase() } },
-            ...(seatDigits
-              ? [{ seat: { seatNumber: { contains: seatDigits } } }]
-              : []),
+            ...(seatDigits ? [{ seat: { seatNumber: { contains: seatDigits } } }] : []),
           ],
         }
       : {}),
   };
 
-  const [total, members] = await Promise.all([
-    prisma.member.count({ where }),
-    prisma.member.findMany({
-      where,
-      include: { seat: { include: { room: true } } },
-      orderBy: memberOrderBy(sort),
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    }),
-  ]);
+  const members = await prisma.member.findMany({ where, include: { seat: true } });
+  members.sort((a, b) => compareMembers(a, b, sort));
+  const start = (page - 1) * PAGE_SIZE;
 
-  return { members, total, page };
+  return { members: members.slice(start, start + PAGE_SIZE), total: members.length, page };
 }
 
 export const getMemberDetail = cache(async (id: number) => {
   const baseInclude = {
-    seat: { include: { room: true } },
+    seat: true,
     payments: { orderBy: [{ month: "desc" as const }, { createdAt: "desc" as const }] },
   };
   try {
@@ -438,7 +416,7 @@ export async function listPayments({
   };
 
   const include = {
-    member: { include: { seat: { include: { room: true } } } },
+    member: { include: { seat: true } },
   } as const;
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -541,7 +519,7 @@ export const getPaymentStats = cache(async (month: string): Promise<PaymentStats
 export const listActiveMembers = cache(async () => {
   return prisma.member.findMany({
     where: { status: "ACTIVE" },
-    include: { seat: { include: { room: true } } },
+    include: { seat: true },
     orderBy: { name: "asc" },
   });
 });
@@ -555,7 +533,7 @@ export const listActiveMembers = cache(async () => {
  */
 export const listMemberOptions = cache(async () => {
   const members = await prisma.member.findMany({
-    include: { seat: { include: { room: true } } },
+    include: { seat: true },
     orderBy: { name: "asc" },
   });
   return members.map((member) => ({
@@ -563,50 +541,54 @@ export const listMemberOptions = cache(async () => {
     name: member.name,
     memberId: member.memberId,
     mobile: member.mobile,
-    seatLabel: member.seat ? `${member.seat.room.name} · Seat ${member.seat.seatNumber}` : null,
+    seatLabel: member.seat ? `Seat ${member.seat.seatNumber}` : null,
   }));
 });
 
 export type SeatWithOccupant = Seat & {
-  room: Room;
   occupants: (Member & { seat: Seat | null })[];
 };
 
-export async function getRoomsWithSeats() {
-  return prisma.room.findMany({
-    include: {
-      seats: {
-        include: {
-          room: true,
-          occupants: { include: { seat: true } },
-        },
-        orderBy: { seatNumber: "asc" },
-      },
-    },
-    orderBy: { name: "asc" },
+/** Every seat in numeric order, with the members currently assigned to it. */
+export const listSeatsWithOccupants = cache(async (): Promise<SeatWithOccupant[]> => {
+  const seats = await prisma.seat.findMany({
+    include: { occupants: { include: { seat: true } } },
   });
-}
-
-/**
- * Just the room names, for filter dropdowns. Deliberately does not pull in
- * seats or occupants the way getRoomsWithSeats does, so a filter on a page
- * that already lists members stays cheap.
- */
-export const listRooms = cache(async () => {
-  return prisma.room.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  return seats.sort((a, b) => compareSeatNumbers(a.seatNumber, b.seatNumber));
 });
 
-export const listOpenSeats = cache(async (excludeSeatId?: number) => {  return prisma.seat.findMany({
+/** The public join form needs availability, never a member's identity. */
+export type SeatOption = {
+  id: number;
+  seatNumber: string;
+  available: boolean;
+  hasLocker: boolean;
+};
+
+export const listApplicationSeatOptions = cache(async (): Promise<SeatOption[]> => {
+  const seats = await prisma.seat.findMany({
+    select: { id: true, seatNumber: true, status: true },
+  });
+  return seats
+    .sort((a, b) => compareSeatNumbers(a.seatNumber, b.seatNumber))
+    .map((seat) => ({
+      id: seat.id,
+      seatNumber: seat.seatNumber,
+      available: seat.status === "AVAILABLE",
+      // Locker status follows the number, so the map, fee and validation can
+      // never disagree even if a row was written before the migration.
+      hasLocker: seatHasLocker(seat.seatNumber),
+    }));
+});
+
+export const listOpenSeats = cache(async (excludeSeatId?: number) => {
+  const seats = await prisma.seat.findMany({
     where: {
       status: "AVAILABLE",
       ...(excludeSeatId ? { id: { not: excludeSeatId } } : {}),
     },
-    include: { room: true },
-    orderBy: [{ room: { name: "asc" } }, { seatNumber: "asc" }],
   });
+  return seats.sort((a, b) => compareSeatNumbers(a.seatNumber, b.seatNumber));
 });
 
 export const getDashboardMonth = () => currentMonthKey();
@@ -655,41 +637,47 @@ export const listSelectableMonths = cache(
 export const listSelectableMonthOptions = cache(async () =>
   monthSelectOptions(await listSelectableMonths()),
 );
+export type PublicSeatGroup = {
+  /** Matches the map key in `SEAT_LAYOUTS`. */
+  key: SeatLayoutKey;
+  label: string;
+  total: number;
+  occupied: number;
+  open: number;
+  seats: {
+    id: number;
+    seatNumber: string;
+    occupied: boolean;
+  }[];
+};
+
 /**
- * Seat occupancy for the public landing page.
+ * Seat occupancy for the public landing page, in the two fee groups.
  *
- * Deliberately narrower than `getRoomsWithSeats`: this reads seat numbers and
+ * Deliberately narrower than the admin seat query: this reads seat numbers and
  * status and nothing else, because it is served to anyone who opens the site.
  * No member name, mobile, guardian or payment is joined in, so there is nothing
  * here to leak and no reason to be careful about who is asking.
  *
- * Not cached across requests. The landing page advertises this as live, and it
- * is one indexed count over a table the size of a single room, so a short
- * cache would only make the numbers wrong.
+ * `cache` is only per request. The landing page advertises these numbers as
+ * live, so they are recomputed for every new request.
  */
-export const listPublicOccupancy = cache(async () => {
-  const rooms = await prisma.room.findMany({
-    select: {
-      id: true,
-      name: true,
-      seats: {
-        select: { id: true, seatNumber: true, status: true },
-        orderBy: { seatNumber: "asc" },
-      },
-    },
-    orderBy: { name: "asc" },
+export const listPublicSeatGroups = cache(async (): Promise<PublicSeatGroup[]> => {
+  const seats = await prisma.seat.findMany({
+    select: { id: true, seatNumber: true, status: true },
   });
+  seats.sort((a, b) => compareSeatNumbers(a.seatNumber, b.seatNumber));
 
-  return rooms.map((room) => {
-    const total = room.seats.length;
-    const occupied = room.seats.filter((seat) => seat.status === "OCCUPIED").length;
+  return (Object.keys(SEAT_LAYOUTS) as SeatLayoutKey[]).map((key) => {
+    const groupSeats = seats.filter((seat) => seatHasLocker(seat.seatNumber) === (key === "locker"));
+    const occupied = groupSeats.filter((seat) => seat.status === "OCCUPIED").length;
     return {
-      id: room.id,
-      name: room.name,
-      total,
+      key,
+      label: SEAT_LAYOUTS[key].label,
+      total: groupSeats.length,
       occupied,
-      open: total - occupied,
-      seats: room.seats.map((seat) => ({
+      open: groupSeats.length - occupied,
+      seats: groupSeats.map((seat) => ({
         id: seat.id,
         seatNumber: seat.seatNumber,
         occupied: seat.status === "OCCUPIED",
@@ -828,7 +816,7 @@ export async function listOverdueReminders(monthsBack = 12): Promise<OverdueRemi
     prisma.member.findMany({
       where: { status: "ACTIVE" },
       include: {
-        seat: { include: { room: true } },
+        seat: true,
         payments: { where: { month: { in: keys } } },
       },
       orderBy: { name: "asc" },
@@ -861,9 +849,7 @@ export async function listOverdueReminders(monthsBack = 12): Promise<OverdueRemi
       name: member.name,
       mobile: member.mobile,
       email: member.email,
-      seatLabel: member.seat
-        ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
-        : null,
+      seatLabel: member.seat ? `Seat ${member.seat.seatNumber}` : null,
       months: owed,
       monthsCount: owed.length,
       totalDue,
@@ -876,5 +862,3 @@ export async function listOverdueReminders(monthsBack = 12): Promise<OverdueRemi
   );
   return reminders;
 }
-
-export type PublicRoomOccupancy = Awaited<ReturnType<typeof listPublicOccupancy>>[number];
