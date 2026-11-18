@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useActionState } from "react";
 import { toast } from "sonner";
-import { Copy, KeyRound, Mail, Pencil, Power, UserPlus, UserRound } from "lucide-react";
+import { Copy, KeyRound, Mail, Pencil, Power, Trash2, UserPlus, UserRound } from "lucide-react";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { IDLE_STATE } from "@/lib/action-result";
 import type { PanelRole } from "@/components/roles-panel";
 import {
   createUserAction,
+  deleteUserAction,
   resetUserPasswordAction,
   revealUserPasswordAction,
   toggleUserActiveAction,
@@ -576,6 +577,57 @@ function ToggleActiveDialog({
   );
 }
 
+/**
+ * Permanently removes an account. The record and its password copy are gone;
+ * the activity log keeps a copy of the email, so the history of who worked
+ * here stays readable. Deactivating is the reversible option.
+ */
+function DeleteUserDialog({
+  user,
+  onOpenChange,
+}: {
+  user: PanelUser | null;
+  onOpenChange: (user: PanelUser | null) => void;
+}) {
+  const [pending, startTransition] = useTransition();
+
+  const remove = () => {
+    if (!user) return;
+    const fd = new FormData();
+    fd.set("userId", String(user.id));
+    startTransition(async () => {
+      const state = await deleteUserAction(fd);
+      if (state.status === "error") {
+        toast.error(state.message ?? "Could not delete the account.");
+        return;
+      }
+      toast.success(state.message ?? "Account deleted.");
+      onOpenChange(null);
+    });
+  };
+
+  return (
+    <AlertDialog open={Boolean(user)} onOpenChange={(open) => !open && onOpenChange(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{`Delete ${user?.email} permanently?`}</AlertDialogTitle>
+          <AlertDialogDescription>
+            This removes the account and the password saved for it. It cannot be undone, and that
+            person will not be able to sign in again. The activity log keeps a record of the email.
+            If you only want to block sign-in, use Deactivate instead.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <Button type="button" variant="destructive" onClick={remove} disabled={pending}>
+            {pending ? "Deleting…" : "Yes, delete"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 /** One account as a card: who it is, its role, when it last signed in, and the
  *  row actions. Works the same on a phone and a wide screen. Clicking the card
  *  opens the full editor; the controls inside stop the click so they still do
@@ -588,6 +640,7 @@ function UserCard({
   onEdit,
   onPassword,
   onToggle,
+  onDelete,
 }: {
   user: PanelUser;
   roles: PanelRole[];
@@ -596,6 +649,7 @@ function UserCard({
   onEdit: () => void;
   onPassword: () => void;
   onToggle: () => void;
+  onDelete: () => void;
 }) {
   const isAdmin = user.level === "ADMIN";
   // An admin account is a full admin's to change. Somebody who only holds the
@@ -674,6 +728,17 @@ function UserCard({
           <Power className="size-3.5" />
           {user.active ? "Deactivate" : "Activate"}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onDelete}
+          disabled={isSelf || locked}
+          className="text-destructive"
+        >
+          <Trash2 className="size-3.5" />
+          Delete
+        </Button>
       </div>
     </div>
   );
@@ -694,6 +759,7 @@ export function UsersPanel({
   const [editTarget, setEditTarget] = useState<PanelUser | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<PanelUser | null>(null);
   const [toggleTarget, setToggleTarget] = useState<PanelUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PanelUser | null>(null);
 
   return (
     <section className="grid gap-4">
@@ -734,6 +800,7 @@ export function UsersPanel({
             onEdit={() => setEditTarget(user)}
             onPassword={() => setPasswordTarget(user)}
             onToggle={() => setToggleTarget(user)}
+            onDelete={() => setDeleteTarget(user)}
           />
         ))}
       </div>
@@ -741,7 +808,8 @@ export function UsersPanel({
       <p className="text-xs text-muted-foreground">
         Click a card to change the name, email, role, password, or whether the account can sign in.
         The Password button sets a new password and, for a full-access admin, shows the last one
-        you set. A deactivated account keeps its history but cannot sign in.
+        you set. Deactivate keeps the account and its history but blocks sign-in; Delete removes
+        the account for good.
       </p>
 
       <EditUserDialog
@@ -759,6 +827,7 @@ export function UsersPanel({
         fullAccess={fullAccess}
       />
       <ToggleActiveDialog user={toggleTarget} onOpenChange={setToggleTarget} />
+      <DeleteUserDialog user={deleteTarget} onOpenChange={setDeleteTarget} />
     </section>
   );
 }

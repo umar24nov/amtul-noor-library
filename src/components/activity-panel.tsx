@@ -1,4 +1,4 @@
-import { Activity, Eye, KeyRound, LogIn, LogOut, ShieldCheck, ShieldOff } from "lucide-react";
+import { Activity, Eye, KeyRound, LogIn, LogOut, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "cn";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ const ACTION_LABELS: Record<ActivityAction, string> = {
   REACTIVATED: "Account switched back on",
   PASSWORD_CHANGED: "Password changed",
   PASSWORD_VIEWED: "Password viewed",
+  DELETED: "Account deleted",
 };
 
 const ACTION_ICONS: Record<ActivityAction, LucideIcon> = {
@@ -31,6 +32,7 @@ const ACTION_ICONS: Record<ActivityAction, LucideIcon> = {
   REACTIVATED: ShieldCheck,
   PASSWORD_CHANGED: KeyRound,
   PASSWORD_VIEWED: Eye,
+  DELETED: Trash2,
 };
 
 const ACTION_TONES: Record<ActivityAction, string> = {
@@ -41,6 +43,7 @@ const ACTION_TONES: Record<ActivityAction, string> = {
   REACTIVATED: "bg-primary/10 text-primary",
   PASSWORD_CHANGED: "bg-primary/10 text-primary",
   PASSWORD_VIEWED: "bg-muted text-muted-foreground",
+  DELETED: "bg-destructive/10 text-destructive",
 };
 
 /** Recent sign-ins and account changes, newest first. Read-only: the log is

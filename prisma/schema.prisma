@@ -82,6 +82,7 @@ enum ActivityAction {
   REACTIVATED
   PASSWORD_CHANGED
   PASSWORD_VIEWED
+  DELETED
 }
 
 /// A physical room in the library (Room 1, Room 2, ...).

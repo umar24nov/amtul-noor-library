@@ -325,6 +325,10 @@ export const userToggleSchema = z.object({
   userId: z.coerce.number().int().positive("Account not found"),
 });
 
+export const deleteUserSchema = z.object({
+  userId: z.coerce.number().int().positive("Account not found"),
+});
+
 /** The two abilities a role can grant, mirrored from the RoleLevel enum. */
 export const roleLevelSchema = z.enum(["ADMIN", "DAY_TO_DAY"], { message: "Choose a level" });
 

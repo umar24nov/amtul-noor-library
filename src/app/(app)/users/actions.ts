@@ -26,6 +26,7 @@ import {
 } from "@/lib/user-management";
 import {
   createUserSchema,
+  deleteUserSchema,
   fieldErrors,
   resetPasswordSchema,
   updateUserSchema,
@@ -455,6 +456,62 @@ export async function toggleUserActiveAction(formData: FormData): Promise<Action
         ? `${target.email} can no longer sign in.`
         : `${target.email} can sign in again.`,
     );
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Permanently removes an account. Deactivating is the reversible option and is
+ * what most accounts should get; this is the destructive one the owner asked
+ * for, and it cannot be undone.
+ *
+ * The same guards as the other account actions apply, so deleting cannot be
+ * used to slip past them: an admin account is a full admin's to remove, nobody
+ * can delete themselves, and the last active admin can never be deleted or the
+ * library would have no way back in.
+ *
+ * The activity log is written after the row is gone, with no user link but a
+ * copy of the email, so the record of who worked here outlives the account.
+ */
+export async function deleteUserAction(formData: FormData): Promise<ActionState> {
+  const gate = await requireUsers();
+  if ("denied" in gate) return gate.denied;
+  const session = gate.session;
+
+  const parsed = deleteUserSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
+  }
+
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: parsed.data.userId },
+      select: { id: true, email: true, active: true, role: { select: { level: true } } },
+    });
+    if (!target) return errorState("That account no longer exists.");
+
+    // Removing an admin account is a full admin's business.
+    if (!canManageLevel(session.level, target.role.level)) {
+      return errorState(MANAGE_ADMIN_MESSAGE);
+    }
+
+    if (session.userId === target.id) {
+      return errorState("You cannot delete your own account.");
+    }
+
+    if (target.active && target.role.level === "ADMIN") {
+      if ((await countActiveAdmins()) <= 1) {
+        return errorState("At least one active admin must remain.");
+      }
+    }
+
+    await prisma.user.delete({ where: { id: target.id } });
+
+    await logActivity("DELETED", { id: null, email: target.email }, `by ${session.email}`);
+
+    revalidateUsers();
+    return successState(`${target.email} deleted.`);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
