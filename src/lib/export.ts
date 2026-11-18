@@ -159,7 +159,7 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
 
 export type SeatExportRow = {
   seatNumber: string;
-  /** Locker status follows the number, so it replaces the old room column. */
+  /** Locker status is derived from the seat number: 1-22 plain, 23-44 locker. */
   seatType: string;
   status: string;
   memberId: string | null;

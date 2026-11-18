@@ -49,8 +49,9 @@ It is two things in one:
   joining month is never marked as owed; recording the payment then fills that
   month's row in instead of leaving a pending and a paid row side by side.
 - **Reminders** — see who still owes a month, and reach them on WhatsApp.
-- **Seats** — a visual map of the rooms. Assign a member to a free seat, release
-  it, and add rooms or seats.
+- **Seats** — one visual map of seats `1`–`44`. Assign a member to a free seat,
+  release it, or add a seat to the numbered list. Seats `1`–`22` are non-locker;
+  seats `23`–`44` come with a locker.
 - **Users** — admin accounts with role-based access, so each staff member only
   sees the areas they are given. A full-access admin can also read back the
   last password they set for an account, instead of handing out a new one every
