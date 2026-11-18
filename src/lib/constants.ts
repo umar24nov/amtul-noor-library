@@ -112,6 +112,25 @@ export const LIBRARY_PREPAID_FULL_PRICES = {
   seatWithLocker: LIBRARY_FEES.seatWithLocker * LIBRARY_PREPAID_OFFER.totalMonths,
 } as const;
 
+/**
+ * The default monthly fee for one seat, from its locker flag.
+ *
+ * Used whenever a seat is given to a member — joining, approving an
+ * application, assigning or changing a seat — so the fee always follows the
+ * desk they actually sit at instead of a hard-coded 700.
+ */
+export function monthlyFeeForSeat(hasLocker: boolean): number {
+  return hasLocker ? LIBRARY_FEES.seatWithLocker : LIBRARY_FEES.seat;
+}
+
+/**
+ * What the 3 + 1 offer costs up front for that seat: 2100 without a locker,
+ * 2400 with one. This is the amount recorded in the first payment row.
+ */
+export function prepaidPriceForSeat(hasLocker: boolean): number {
+  return hasLocker ? LIBRARY_PREPAID_PRICES.seatWithLocker : LIBRARY_PREPAID_PRICES.seat;
+}
+
 export const MEMBER_ID_PREFIX = "ATN";
 export const PAYMENT_ID_PREFIX = "PAY";
 

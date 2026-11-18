@@ -5,9 +5,13 @@ import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
 import { actionPermission, canAny } from "@/lib/permissions";
-import { parseInputDate, shiftMonthKey } from "@/lib/format";
+import { monthKeyFromInputDate, parseInputDate } from "@/lib/format";
 import { nextMemberId, nextPaymentId, newPayToken, newReceiptToken } from "@/lib/ids";
-import { markGapMonthsNotApplicable, syncPendingAmounts } from "@/lib/membership";
+import {
+  markGapMonthsNotApplicable,
+  recordThreePlusOneOffer,
+  syncPendingAmounts,
+} from "@/lib/membership";
 import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
 import {
@@ -19,9 +23,12 @@ import {
   withMemberFees,
 } from "@/lib/settings";
 import { listMembers } from "@/lib/queries";
-import { DEFAULT_MEMBER_SORT, isMemberSort, LIBRARY_PREPAID_OFFER } from "@/lib/constants";
+import {
+  DEFAULT_MEMBER_SORT,
+  isMemberSort,
+  monthlyFeeForSeat,
+} from "@/lib/constants";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
-import { monthKeyFromInputDate } from "@/lib/format";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
@@ -128,6 +135,7 @@ export async function createMemberAction(
   try {
     const seatId = data.seatId;
     const standardFee = await getMonthlyFee();
+    let seatHasLocker = false;
 
     if (seatId) {
       const seat = await prisma.seat.findUnique({
@@ -140,6 +148,7 @@ export async function createMemberAction(
       if (seat.occupants.length > 0) {
         return errorState("That seat is already occupied.", { seatId: "Seat is already occupied" });
       }
+      seatHasLocker = seat.hasLocker;
     }
 
     const member = await prisma.$transaction(async (tx) => {
@@ -166,11 +175,15 @@ export async function createMemberAction(
         await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
       }
 
-      if (data.monthlyFee !== undefined && data.monthlyFee !== standardFee) {
+      // A seat's locker decides its fee. The prepaid offer always uses that
+      // price too, so a locker seat cannot be sold at the plain-seat rate.
+      const seatFee = monthlyFeeForSeat(seatHasLocker);
+      const fee = offer3Plus1 ? seatFee : (data.monthlyFee ?? (seatId ? seatFee : standardFee));
+      if (fee !== standardFee) {
         await tx.setting.upsert({
           where: { key: memberFeeKey(created.id) },
-          update: { value: String(data.monthlyFee) },
-          create: { key: memberFeeKey(created.id), value: String(data.monthlyFee) },
+          update: { value: String(fee) },
+          create: { key: memberFeeKey(created.id), value: String(fee) },
         });
       }
 
@@ -179,37 +192,12 @@ export async function createMemberAction(
         const payDate = parseInputDate(data.payDate as string);
 
         if (offer3Plus1) {
-          // One join with the 3 + 1 offer becomes four payments: three months
-          // at the fee starting from the chosen month, then the fourth month
-          // free, recorded as a zero-rupee offer so it never shows as due.
-          const perMonth = data.payAmount ?? data.monthlyFee ?? standardFee;
-          for (let step = 0; step < LIBRARY_PREPAID_OFFER.paidMonths; step++) {
-            await tx.payment.create({
-              data: {
-                paymentId: await nextPaymentId(tx),
-                memberId: created.id,
-                month: shiftMonthKey(startMonth, step),
-                amount: perMonth,
-                paymentMode: data.payMode as "CASH" | "ONLINE",
-                paymentDate: payDate,
-                status: "PAID",
-                remarks: "Thanks for joining us",
-                receiptToken: newReceiptToken(),
-              },
-            });
-          }
-          await tx.payment.create({
-            data: {
-              paymentId: await nextPaymentId(tx),
-              memberId: created.id,
-              month: shiftMonthKey(startMonth, LIBRARY_PREPAID_OFFER.paidMonths),
-              amount: 0,
-              paymentMode: "OFFER",
-              paymentDate: payDate,
-              status: "PAID",
-              remarks: "Free month — 3 + 1 offer",
-              receiptToken: newReceiptToken(),
-            },
+          await recordThreePlusOneOffer(tx, {
+            memberId: created.id,
+            startMonth,
+            hasLocker: seatHasLocker,
+            paymentMode: data.payMode as "CASH" | "ONLINE",
+            paymentDate: payDate,
           });
         } else {
           await tx.payment.create({
@@ -231,7 +219,8 @@ export async function createMemberAction(
       await logMemberChange(tx, {
         memberId: created.id,
         action: MEMBER_AUDIT_ACTIONS.MEMBER_CREATED,
-        summary: "Member created",
+        summary: `Member created — ₹${fee} per month`,
+        metadata: { fee, hasLocker: seatHasLocker, offer3Plus1 },
       });
 
       return created;
@@ -295,9 +284,14 @@ export async function updateMemberAction(
     if (!existing) return errorState("Member not found.");
 
     const seatId = data.seatId ?? null;
-    const standardFee = await getMonthlyFee();
+    const [standardFee, previousFee] = await Promise.all([
+      getMonthlyFee(),
+      getMemberFee(existing.id),
+    ]);
+    let newSeatHasLocker = false;
+    let finalFee = standardFee;
 
-    if (seatId && seatId !== existing.seatId) {
+    if (seatId) {
       const seat = await prisma.seat.findUnique({
         where: { id: seatId },
         include: { occupants: { where: { status: "ACTIVE" }, select: { id: true } } },
@@ -319,6 +313,7 @@ export async function updateMemberAction(
           });
         }
       }
+      newSeatHasLocker = seat.hasLocker;
     }
 
     await prisma.$transaction(async (tx) => {
@@ -326,6 +321,13 @@ export async function updateMemberAction(
       // Their joining date is kept, so they hold their original place in the
       // join-date order.
       const rejoining = existing.status === "LEFT" && seatId !== null;
+      // A new desk (or the first desk of a returning member) sets the fee. When
+      // the desk is unchanged, an edited fee is the owner's explicit call.
+      const feeFollowsSeat = seatId !== existing.seatId || rejoining;
+      const fee = feeFollowsSeat
+        ? monthlyFeeForSeat(newSeatHasLocker)
+        : (data.monthlyFee ?? standardFee);
+      finalFee = fee;
 
       const email = formData.has("email") ? (data.email ?? null) : undefined;
       const newJoiningDate = parseInputDate(data.joiningDate);
@@ -394,14 +396,31 @@ export async function updateMemberAction(
         }
       }
 
-      if (data.monthlyFee !== undefined && data.monthlyFee !== standardFee) {
+      if (fee !== standardFee) {
         await tx.setting.upsert({
           where: { key: memberFeeKey(existing.id) },
-          update: { value: String(data.monthlyFee) },
-          create: { key: memberFeeKey(existing.id), value: String(data.monthlyFee) },
+          update: { value: String(fee) },
+          create: { key: memberFeeKey(existing.id), value: String(fee) },
         });
       } else {
         await tx.setting.deleteMany({ where: { key: memberFeeKey(existing.id) } });
+      }
+
+      if (fee !== (previousFee ?? standardFee)) {
+        await logMemberChange(tx, {
+          memberId: existing.id,
+          action: MEMBER_AUDIT_ACTIONS.FEE_CHANGED,
+          summary: `Monthly fee changed to ₹${fee}${feeFollowsSeat ? (newSeatHasLocker ? " (locker seat)" : " (plain seat)") : ""}`,
+          changes: [
+            {
+              field: "monthlyFee",
+              label: "Monthly fee",
+              old: previousFee ?? standardFee,
+              new: fee,
+            },
+          ],
+          metadata: { fee, hasLocker: newSeatHasLocker, feeFollowsSeat },
+        });
       }
 
       // A returning member was away for the months between the one they left in
@@ -450,14 +469,16 @@ export async function updateMemberAction(
         });
       }
 
-      // The fee the member now pays: the values above leave the stored fee unset
-      // when it matches the standard, so fall back to the standard for the
-      // rewrite. Unpaid months then follow the new fee instead of the old one.
-      await syncPendingAmounts(tx, existing.id, data.monthlyFee ?? standardFee);
+      // Unpaid months follow the fee just worked out; paid history is untouched.
+      await syncPendingAmounts(tx, existing.id, fee);
     });
 
     revalidateAll();
-    return successState("Member details updated.");
+    return successState(
+      finalFee !== (previousFee ?? standardFee)
+        ? `Member details updated. Monthly fee is now ₹${finalFee}.`
+        : "Member details updated.",
+    );
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
@@ -559,9 +580,10 @@ export async function deleteMemberAction(memberId: number): Promise<ActionState>
 
 /**
  * Applies the 3+1 prepaid offer for a member starting from a given month.
- * Creates/updates payment records so 3 months are paid + 1 month is free.
- * If an existing payment for the start month covers 3 months' worth (e.g. ₹2100 for ₹700/mo),
- * it will be split across the 3 paid months.
+ *
+ * The four month rows are rewritten from scratch so an older ₹700-per-month
+ * offer cannot linger next to the corrected one. The member's fee is set from
+ * their desk as well, keeping future pending months in step with the offer.
  */
 export async function applyThreePlusOneOfferAction(formData: FormData): Promise<ActionState> {
   const gate = await actionPermission("MEMBERS");
@@ -569,180 +591,78 @@ export async function applyThreePlusOneOfferAction(formData: FormData): Promise<
 
   const memberPk = Number(formData.get("memberId"));
   const startMonth = String(formData.get("startMonth") || "").trim();
-  const payMode = (String(formData.get("payMode") || "CASH").trim().toUpperCase() as "CASH" | "ONLINE") || "CASH";
+  const requestedMode = String(formData.get("payMode") || "CASH").trim().toUpperCase();
   const payDateRaw = String(formData.get("payDate") || "").trim();
 
   if (!Number.isInteger(memberPk) || memberPk <= 0) return errorState("Member not found.");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) return errorState("Choose a valid start month.", { startMonth: "Choose a valid month" });
+  if (requestedMode !== "CASH" && requestedMode !== "ONLINE") {
+    return errorState("Pick Cash or Online for the prepaid payment.", { payMode: "Cash or Online" });
+  }
+  const payMode = requestedMode;
 
   try {
-    const [member, standardFee, memberFee] = await Promise.all([
-      prisma.member.findUnique({ where: { id: memberPk }, select: { id: true, name: true, joiningDate: true } }),
-      getMonthlyFee(),
-      getMemberFee(memberPk),
-    ]);
+    const member = await prisma.member.findUnique({
+      where: { id: memberPk },
+      select: {
+        id: true,
+        name: true,
+        joiningDate: true,
+        seat: { select: { hasLocker: true } },
+      },
+    });
     if (!member) return errorState("Member not found.");
 
-    const monthlyFee = memberFee ?? standardFee;
-    if (monthlyFee <= 0) return errorState("This member has no monthly fee set.");
-
+    const hasLocker = Boolean(member.seat?.hasLocker);
+    const monthlyFee = monthlyFeeForSeat(hasLocker);
     const joinedMonth = monthKeyFromInputDate(member.joiningDate.toISOString());
     if (startMonth < joinedMonth) {
       return errorState(`Start month cannot be before joining month (${joinedMonth}).`, { startMonth: "Before joining month" });
     }
 
     const payDate = payDateRaw ? parseInputDate(payDateRaw) : new Date();
-    const months = [
-      startMonth,
-      shiftMonthKey(startMonth, 1),
-      shiftMonthKey(startMonth, 2),
-      shiftMonthKey(startMonth, 3),
-    ];
+    let offerSummary: { months: string[]; prepaidAmount: number } | null = null;
 
     await prisma.$transaction(async (tx) => {
-      // Find existing payments for these months
-      const existing = await tx.payment.findMany({
-        where: { memberId: memberPk, month: { in: months } },
-        orderBy: [{ month: "asc" }, { createdAt: "asc" }],
+      const recorded = await recordThreePlusOneOffer(tx, {
+        memberId: memberPk,
+        startMonth,
+        hasLocker,
+        paymentMode: payMode,
+        paymentDate: payDate,
+        replaceExisting: true,
       });
-      const byMonth = new Map<string, typeof existing>();
-      for (const p of existing) {
-        const list = byMonth.get(p.month) || [];
-        list.push(p);
-        byMonth.set(p.month, list);
-      }
+      offerSummary = { months: recorded.months, prepaidAmount: recorded.prepaidAmount };
 
-      // Detect overpayment on start month (e.g., 2100 for 700/mo fee = 3 months paid)
-      const startPayments = byMonth.get(startMonth) || [];
-      const startPaid = startPayments.find((p) => p.status === "PAID" && Number(p.amount) >= monthlyFee * 2);
-      let splitFromId: number | null = null;
-
-      // Create/update 3 paid months
-      for (let i = 0; i < LIBRARY_PREPAID_OFFER.paidMonths; i++) {
-        const month = months[i];
-        const monthPayments = byMonth.get(month) || [];
-        const autoPending = monthPayments.find((p) => p.status === "PENDING" && p.remarks === "Auto generated as pending");
-        const existingPaid = monthPayments.find((p) => p.status === "PAID");
-
-        if (i === 0 && startPaid && Number(startPaid.amount) >= monthlyFee * LIBRARY_PREPAID_OFFER.paidMonths) {
-          // Split the large payment into the first paid month
-          await tx.payment.update({
-            where: { id: startPaid.id },
-            data: {
-              month,
-              amount: monthlyFee,
-              paymentMode: startPaid.paymentMode === "OFFER" ? payMode : startPaid.paymentMode,
-              paymentDate: payDate,
-              status: "PAID",
-              remarks: "3+1 offer (paid month 1/3)",
-            },
-          });
-          splitFromId = startPaid.id;
-          // Remove other pending placeholders for same month if they exist
-          for (const p of monthPayments) {
-            if (p.id !== startPaid.id && p.status === "PENDING" && p.remarks === "Auto generated as pending") {
-              await tx.payment.delete({ where: { id: p.id } });
-            }
-          }
-        } else if (existingPaid && i === 0 && splitFromId === null) {
-          // Keep existing paid if it's reasonable, but normalize
-          await tx.payment.update({
-            where: { id: existingPaid.id },
-            data: {
-              amount: monthlyFee,
-              status: "PAID",
-              paymentDate: payDate,
-              remarks: existingPaid.remarks?.includes("3+1") ? existingPaid.remarks : "3+1 offer (paid month 1/3)",
-            },
-          });
-        } else if (autoPending) {
-          await tx.payment.update({
-            where: { id: autoPending.id },
-            data: {
-              amount: monthlyFee,
-              paymentMode: payMode,
-              paymentDate: payDate,
-              status: "PAID",
-              remarks: `3+1 offer (paid month ${i + 1}/3)`,
-            },
-          });
-        } else if (monthPayments.some((p) => p.status === "PAID")) {
-          // Already paid - update to reflect offer
-          const paid = monthPayments.find((p) => p.status === "PAID")!;
-          await tx.payment.update({
-            where: { id: paid.id },
-            data: { remarks: paid.remarks?.includes("3+1") ? paid.remarks : `3+1 offer (paid month ${i + 1}/3)` },
-          });
-        } else {
-          await tx.payment.create({
-            data: {
-              paymentId: await nextPaymentId(tx),
-              memberId: memberPk,
-              month,
-              amount: monthlyFee,
-              paymentMode: payMode,
-              paymentDate: payDate,
-              status: "PAID",
-              remarks: `3+1 offer (paid month ${i + 1}/3)`,
-              receiptToken: newReceiptToken(),
-            },
-          });
-        }
-      }
-
-      // 4th month - free offer
-      const freeMonth = months[3];
-      const freePayments = byMonth.get(freeMonth) || [];
-      const freeAutoPending = freePayments.find((p) => p.status === "PENDING" && p.remarks === "Auto generated as pending");
-      const freePaid = freePayments.find((p) => p.status === "PAID");
-
-      if (freeAutoPending) {
-        await tx.payment.update({
-          where: { id: freeAutoPending.id },
-          data: {
-            amount: 0,
-            paymentMode: "OFFER",
-            paymentDate: payDate,
-            status: "PAID",
-            remarks: "Free month — 3 + 1 offer",
-          },
-        });
-      } else if (freePaid) {
-        await tx.payment.update({
-          where: { id: freePaid.id },
-          data: {
-            amount: 0,
-            paymentMode: "OFFER",
-            status: "PAID",
-            remarks: "Free month — 3 + 1 offer",
-          },
-        });
-      } else {
-        await tx.payment.create({
-          data: {
-            paymentId: await nextPaymentId(tx),
-            memberId: memberPk,
-            month: freeMonth,
-            amount: 0,
-            paymentMode: "OFFER",
-            paymentDate: payDate,
-            status: "PAID",
-            remarks: "Free month — 3 + 1 offer",
-            receiptToken: newReceiptToken(),
-          },
-        });
-      }
+      await tx.setting.upsert({
+        where: { key: memberFeeKey(memberPk) },
+        update: { value: String(monthlyFee) },
+        create: { key: memberFeeKey(memberPk), value: String(monthlyFee) },
+      });
+      await syncPendingAmounts(tx, memberPk, monthlyFee);
 
       await logMemberChange(tx, {
         memberId: memberPk,
         action: MEMBER_AUDIT_ACTIONS.PAYMENT_RECORDED,
-        summary: `Applied 3+1 offer (${months[0]} to ${months[3]})`,
-        metadata: { offer: "3+1", months, monthlyFee: String(monthlyFee), payMode, startMonth },
+        summary: `Applied 3+1 offer (${recorded.months[0]} to ${recorded.months[3]}) — ₹${recorded.prepaidAmount} paid up front`,
+        metadata: {
+          offer: "3+1",
+          months: recorded.months,
+          monthlyFee: String(monthlyFee),
+          prepaidAmount: String(recorded.prepaidAmount),
+          hasLocker,
+          payMode,
+          startMonth,
+        },
       });
     });
 
+    if (!offerSummary) return errorState("Could not apply the offer.");
+    const { months, prepaidAmount } = offerSummary;
     revalidateAll();
-    return successState(`3+1 offer applied for ${member.name} (${months[0]} to ${months[3]}).`);
+    return successState(
+      `3+1 offer applied for ${member.name} (${months[0]} to ${months[3]}) — ₹${prepaidAmount} recorded.`,
+    );
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }

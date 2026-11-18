@@ -2,11 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { deriveMonthStatus, summarizeArrears } from "./fees";
 import { monthKeyRange, recentMonthKeys, shiftMonthKey } from "./format";
+import { monthlyFeeForSeat, prepaidPriceForSeat } from "./constants";
 import type { PaymentStatus } from "@/generated/prisma/enums";
 
 function row(status: PaymentStatus) {
   return { status };
 }
+
+test("seat type sets the monthly fee and the 3+1 prepaid total", () => {
+  assert.equal(monthlyFeeForSeat(false), 700);
+  assert.equal(monthlyFeeForSeat(true), 800);
+  assert.equal(prepaidPriceForSeat(false), 2100);
+  assert.equal(prepaidPriceForSeat(true), 2400);
+});
 
 test("month keys move across a year boundary", () => {
   assert.equal(shiftMonthKey("2026-01", -1), "2025-12");

@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/page-header";
 import { PaymentStatusBadge, MemberStatusBadge } from "@/components/status-badges";
 import { MemberActions } from "@/components/member-actions";
 import { ReceiptActions } from "@/components/receipt-actions";
+import { PaymentEditDialog } from "@/components/payment-edit-dialog";
+import { DeletePaymentButton } from "@/components/delete-payment-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -132,14 +134,50 @@ export default async function MemberDetailPage({
     );
   };
 
+  // The edit dialog's member picker only needs this member on a detail page,
+  // but it still receives the same shape as the Payments screen.
+  const paymentMember = {
+    id: member.id,
+    name: member.name,
+    memberId: member.memberId,
+    mobile: member.mobile,
+    seatLabel: member.seat
+      ? `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`
+      : null,
+  };
+
+  /** Edit and delete controls for one row, shown only to payment editors. */
+  const paymentActions = (payment: (typeof member.payments)[number]) => {
+    if (!canRecordPayment) return null;
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <PaymentEditDialog
+          payment={{ ...payment, amount: String(payment.amount) }}
+          member={paymentMember}
+          members={[paymentMember]}
+          fee={monthlyFee}
+          compact
+        />
+        <DeletePaymentButton
+          recordId={payment.id}
+          paymentLabel={payment.paymentId}
+          monthLabel={formatMonth(payment.month)}
+          memberName={member.name}
+        />
+      </div>
+    );
+  };
+
   const seats = openSeats.map((seat) => ({
     id: seat.id,
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
+    hasLocker: seat.hasLocker,
   }));
   if (member.seat) {
     seats.push({
       id: member.seat.id,
       label: `${member.seat.room ? `${member.seat.room.name} · ` : ""}Seat ${member.seat.seatNumber}`,
+      hasLocker: member.seat.hasLocker,
     });
   }
 
@@ -155,6 +193,7 @@ export default async function MemberDetailPage({
                 memberId={member.id}
                 memberName={member.name}
                 defaultStartMonth={currentMonthKey()}
+                hasLocker={Boolean(member.seat?.hasLocker)}
               />
             ) : null}
             <MemberActions
@@ -358,6 +397,7 @@ export default async function MemberDetailPage({
                       <th className="px-3 py-2 font-medium">Date</th>
                       <th className="px-3 py-2 font-medium">Status</th>
                       <th className="px-3 py-2 font-medium">Receipt</th>
+                      <th className="px-3 py-2 font-medium">Actions</th>
                       <th className="px-3 py-2 font-medium">Remarks</th>
                     </tr>
                   </thead>
@@ -394,6 +434,7 @@ export default async function MemberDetailPage({
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
+                        <td className="px-3 py-2">{paymentActions(payment)}</td>
                         <td className="max-w-48 truncate px-3 py-2 text-muted-foreground">
                           {payment.remarks || "—"}
                         </td>
@@ -428,19 +469,22 @@ export default async function MemberDetailPage({
                     {payment.remarks && (
                       <p className="mt-1.5 text-xs text-muted-foreground">{payment.remarks}</p>
                     )}
-                    {payment.status === "PAID" && (
-                      <div className="mt-2 flex justify-end">
-                        <ReceiptActions
-                          paymentPk={payment.id}
-                          status={payment.status}
-                          whatsappHref={receiptHref(payment)}
-                          hasEmail={Boolean(member.email)}
-                          publicUrl={receiptPublicUrl(payment)}
-                          compact
-                          canSendEmail={canRecordPayment}
-                        />
+                    {payment.status === "PAID" || canRecordPayment ? (
+                      <div className="mt-2 flex items-center justify-end gap-1">
+                        {payment.status === "PAID" ? (
+                          <ReceiptActions
+                            paymentPk={payment.id}
+                            status={payment.status}
+                            whatsappHref={receiptHref(payment)}
+                            hasEmail={Boolean(member.email)}
+                            publicUrl={receiptPublicUrl(payment)}
+                            compact
+                            canSendEmail={canRecordPayment}
+                          />
+                        ) : null}
+                        {paymentActions(payment)}
                       </div>
-                    )}
+                    ) : null}
                   </li>
                 ))}
               </ul>

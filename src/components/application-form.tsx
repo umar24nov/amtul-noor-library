@@ -12,7 +12,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { SeatMap } from "@/components/seat-map";
 import { submitApplicationAction } from "@/app/join/actions";
 import { IDLE_STATE } from "@/lib/action-result";
-import { AADHAAR_MAX_BYTES, AADHAAR_MAX_MB, LIBRARY_RULES } from "@/lib/constants";
+import { AADHAAR_MAX_BYTES, AADHAAR_MAX_MB, LIBRARY_FEES, LIBRARY_RULES } from "@/lib/constants";
 import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 
 /** One decimal place is enough to tell a 2 MB photo from a 9 MB one. */
@@ -52,7 +52,19 @@ const FIELD_LABELS: Record<string, string> = {
   aadhaarFront: "Aadhaar upload",
 };
 
-export type SeatOption = { id: number; seatNumber: string; available: boolean };
+export type SeatOption = {
+  id: number;
+  seatNumber: string;
+  available: boolean;
+  hasLocker: boolean;
+};
+
+/** The two tick boxes above the picker. Neither ticked means "show all". */
+type SeatType = "all" | "non-locker" | "locker";
+
+function seatMatchesType(seat: SeatOption, type: SeatType): boolean {
+  return type === "all" || (type === "locker" ? seat.hasLocker : !seat.hasLocker);
+}
 export type RoomOption = {
   id: number;
   name: string;
@@ -91,9 +103,14 @@ export function ApplicationForm({
 
   const [roomId, setRoomId] = useState(initialRoom ? String(initialRoom.id) : "");
   const [seatId, setSeatId] = useState(initialSeat ? String(initialSeat.id) : "");
+  // A carried-over seat has a known type, so open with the matching box ticked.
+  const [seatType, setSeatType] = useState<SeatType>(
+    initialSeat ? (initialSeat.hasLocker ? "locker" : "non-locker") : "all",
+  );
   const selectedRoom = rooms.find((room) => String(room.id) === roomId);
   const selectedSeat = selectedRoom?.seats.find((seat) => String(seat.id) === seatId);
   const selectedLayout = selectedRoom?.layoutKey ? SEAT_LAYOUTS[selectedRoom.layoutKey] : null;
+  const matchesType = (seat: SeatOption) => seatMatchesType(seat, seatType);
 
   // True when the applicant reached the form by tapping a seat on the landing
   // page, so the seat section can acknowledge the choice already carried over.
@@ -108,13 +125,20 @@ export function ApplicationForm({
   const seatError = Boolean(state.fieldErrors?.roomId || state.fieldErrors?.seatId);
 
   function chooseSeat(seat: SeatOption) {
-    if (!seat.available) return;
+    if (!seat.available || !matchesType(seat)) return;
     const seatKey = String(seat.id);
     if (seatId === seatKey) {
       setSeatId("");
       return;
     }
     setSeatId(seatKey);
+  }
+
+  // Tick the same box again to clear it and see every seat.
+  function chooseSeatType(next: Exclude<SeatType, "all">) {
+    const chosen: SeatType = seatType === next ? "all" : next;
+    setSeatType(chosen);
+    if (selectedSeat && !seatMatchesType(selectedSeat, chosen)) setSeatId("");
   }
 
   useEffect(() => {
@@ -393,6 +417,34 @@ export function ApplicationForm({
               )}
             </div>
 
+            {rooms.length > 0 && (
+              <div className="grid gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  What kind of seat do you want? Tick one to see only those seats; leave both empty to see every seat.
+                </p>
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={seatType === "non-locker"}
+                      onChange={() => chooseSeatType("non-locker")}
+                      className="size-4 rounded border-input accent-primary"
+                    />
+                    Non locker seat · ₹{LIBRARY_FEES.seat}/month
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={seatType === "locker"}
+                      onChange={() => chooseSeatType("locker")}
+                      className="size-4 rounded border-input accent-primary"
+                    />
+                    Seat with locker · ₹{LIBRARY_FEES.seatWithLocker}/month
+                  </label>
+                </div>
+              </div>
+            )}
+
             {rooms.length === 0 ? (
               <p className="text-xs text-destructive">
                 No seats are free right now. Please contact the library before
@@ -402,12 +454,17 @@ export function ApplicationForm({
               <>
                 <input type="hidden" name="roomId" value={roomId} />
                 <input type="hidden" name="seatId" value={seatId} />
+                <input
+                  type="hidden"
+                  name="seatType"
+                  value={seatType === "all" ? "" : seatType}
+                />
 
                 {rooms.length > 1 && (
                   <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Choose a room">
                     {rooms.map((room) => {
                       const active = String(room.id) === roomId;
-                      const open = room.seats.filter((seat) => seat.available).length;
+                      const open = room.seats.filter((seat) => seat.available && matchesType(seat)).length;
                       return (
                         <button
                           key={room.id}
@@ -448,7 +505,7 @@ export function ApplicationForm({
                 {selectedRoom && selectedLayout ? (
                   <SeatMap
                     layout={selectedLayout}
-                    seats={selectedRoom.seats.map((seat) => ({
+                    seats={selectedRoom.seats.filter(matchesType).map((seat) => ({
                       number: Number(seat.seatNumber),
                       status: seat.available ? "AVAILABLE" : "OCCUPIED",
                     }))}
@@ -469,7 +526,7 @@ export function ApplicationForm({
                   />
                 ) : selectedRoom ? (
                   <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-8">
-                    {selectedRoom.seats.map((seat) => {
+                    {selectedRoom.seats.filter(matchesType).map((seat) => {
                       const isSelected = String(seat.id) === seatId;
                       return (
                         <li key={seat.id}>

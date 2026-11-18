@@ -24,6 +24,7 @@ export default async function NewMemberPage() {
   const seats = openSeats.map((seat) => ({
     id: seat.id,
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
+    hasLocker: seat.hasLocker,
   }));
 
   return (

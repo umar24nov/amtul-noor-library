@@ -128,6 +128,15 @@ export const assignSeatSchema = z.object({
   memberId: z.coerce.number().int().positive("Select an active member"),
 });
 
+/** Toggles whether one seat has a locker. An unchecked box means false. */
+export const seatLockerSchema = z.object({
+  seatId: z.coerce.number().int().positive(),
+  hasLocker: z.preprocess(
+    (value) => value === true || value === "1" || value === "true",
+    z.boolean(),
+  ),
+});
+
 export const roomFormSchema = z.object({
   name: z
     .string()
@@ -183,6 +192,8 @@ export const applicationSchema = z.object({
   joiningDate: dateInputSchema,
   roomId: z.coerce.number("Choose a room").int("Choose a room").positive("Choose a room"),
   seatId: z.coerce.number("Choose a seat").int("Choose a seat").positive("Choose a seat"),
+  /** The seat-type box the applicant ticked, checked again on the server. */
+  seatType: z.preprocess(emptyToUndefined, z.enum(["non-locker", "locker"]).optional()),
   agreed: z.string().refine((value) => value === "1", "Please agree to the rules to apply"),
 });
 

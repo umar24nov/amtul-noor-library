@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { actionPermission } from "@/lib/permissions";
 import { normalizeSeatNumber } from "@/lib/format";
+import { monthlyFeeForSeat } from "@/lib/constants";
+import { syncPendingAmounts } from "@/lib/membership";
+import { memberFeeKey } from "@/lib/settings";
+import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { prisma } from "@/lib/prisma";
 import {
   assignSeatSchema,
@@ -11,6 +15,7 @@ import {
   roomEditSchema,
   roomFormSchema,
   seatFormSchema,
+  seatLockerSchema,
   seatRangeFormSchema,
 } from "@/lib/validators";
 import { z } from "zod";
@@ -19,6 +24,9 @@ function revalidateSeats() {
   revalidatePath("/seats");
   revalidatePath("/dashboard");
   revalidatePath("/members");
+  revalidatePath("/members/[id]", "page");
+  revalidatePath("/payments");
+  revalidatePath("/reminders");
   revalidatePath("/");
 }
 
@@ -76,14 +84,90 @@ export async function assignSeatAction(
       );
     }
 
-    await prisma.$transaction([
-      prisma.member.update({ where: { id: memberId }, data: { seatId } }),
-      prisma.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } }),
-    ]);
+    // The desk decides the fee: a locker seat is 800 a month, a plain seat 700.
+    // Pending rows follow the new fee; paid rows stay as they were recorded.
+    const fee = monthlyFeeForSeat(seat.hasLocker);
+    await prisma.$transaction(async (tx) => {
+      await tx.member.update({ where: { id: memberId }, data: { seatId } });
+      await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
+      await tx.setting.upsert({
+        where: { key: memberFeeKey(memberId) },
+        update: { value: String(fee) },
+        create: { key: memberFeeKey(memberId), value: String(fee) },
+      });
+      await syncPendingAmounts(tx, memberId, fee);
+      await logMemberChange(tx, {
+        memberId,
+        action: MEMBER_AUDIT_ACTIONS.SEAT_ASSIGNED,
+        summary: `Seat assigned — monthly fee set to ₹${fee}${seat.hasLocker ? " (locker seat)" : ""}`,
+        metadata: { seatId, hasLocker: seat.hasLocker, fee },
+      });
+    });
 
     revalidateSeats();
     return successState(
-      `Seat ${seat.seatNumber} (${seat.room.name}) assigned to ${member.name}.`,
+      `Seat ${seat.seatNumber} (${seat.room.name}) assigned to ${member.name}. Monthly fee set to ₹${fee}.`,
+    );
+  } catch (error) {
+    return errorState(prismaErrorMessage(error));
+  }
+}
+
+/**
+ * Marks one seat as having a locker, or takes the locker away.
+ *
+ * Lockers are per desk, so this is deliberately a toggle on the seat rather
+ * than a property of the room. If somebody is already sitting there, their fee
+ * moves with the seat immediately, and their unpaid months are re-priced too.
+ */
+export async function setSeatLockerAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await actionPermission("SEATS");
+  if ("denied" in gate) return gate.denied;
+  const parsed = seatLockerSchema.safeParse({
+    seatId: formData.get("seatId"),
+    hasLocker: formData.get("hasLocker"),
+  });
+  if (!parsed.success) return errorState("That seat no longer exists.");
+
+  const { seatId, hasLocker } = parsed.data;
+  const fee = monthlyFeeForSeat(hasLocker);
+
+  try {
+    const seat = await prisma.seat.findUnique({
+      where: { id: seatId },
+      include: { occupants: { where: { status: "ACTIVE" }, select: { id: true, name: true } } },
+    });
+    if (!seat) return errorState("That seat no longer exists.");
+    if (seat.hasLocker === hasLocker) {
+      return successState(
+        `Seat ${seat.seatNumber} ${hasLocker ? "already has a locker" : "is already a plain seat"}.`,
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.seat.update({ where: { id: seatId }, data: { hasLocker } });
+      for (const occupant of seat.occupants) {
+        await tx.setting.upsert({
+          where: { key: memberFeeKey(occupant.id) },
+          update: { value: String(fee) },
+          create: { key: memberFeeKey(occupant.id), value: String(fee) },
+        });
+        await syncPendingAmounts(tx, occupant.id, fee);
+        await logMemberChange(tx, {
+          memberId: occupant.id,
+          action: MEMBER_AUDIT_ACTIONS.FEE_CHANGED,
+          summary: `Seat ${seat.seatNumber} changed to ${hasLocker ? "locker" : "plain"} seat — fee ₹${fee}`,
+          metadata: { seatId, hasLocker, fee },
+        });
+      }
+    });
+
+    revalidateSeats();
+    return successState(
+      `Seat ${seat.seatNumber} ${hasLocker ? "now has a locker — ₹800 per month" : "is now a plain seat — ₹700 per month"}.`,
     );
   } catch (error) {
     return errorState(prismaErrorMessage(error));

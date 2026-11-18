@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
-import { AlertCircle, Search } from "lucide-react";
+import { AlertCircle, KeyRound, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
+import { monthlyFeeForSeat } from "@/lib/constants";
+import { formatINR } from "@/lib/format";
 
 export type AssignableMember = {
   id: number;
@@ -199,6 +201,7 @@ export function SeatDetailsDialog({
   onOpenChange,
   seat,
   releaseAction,
+  lockerAction,
   viewHref,
 }: {
   open: boolean;
@@ -206,16 +209,24 @@ export function SeatDetailsDialog({
   seat: {
     id: number;
     label: string;
+    hasLocker: boolean;
     occupants: { id: number; name: string; memberId: string; mobile: string | null }[];
   };
   releaseAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
+  lockerAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   viewHref?: string;
 }) {
   const [state, formAction] = useActionState(releaseAction, IDLE_STATE);
+  const [lockerState, lockerFormAction] = useActionState(lockerAction, IDLE_STATE);
+  const [hasLocker, setHasLocker] = useState(seat.hasLocker);
 
   useEffect(() => {
     if (state.status === "success") onOpenChange(false);
   }, [state, onOpenChange]);
+
+  useEffect(() => {
+    if (lockerState.status === "success") onOpenChange(false);
+  }, [lockerState, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -230,6 +241,37 @@ export function SeatDetailsDialog({
         </DialogHeader>
 
         <ActionMessage state={state} />
+
+        {/* Lockers belong to a desk, not a room, so the owner ticks them here. */}
+        <form action={lockerFormAction} className="grid gap-2 rounded-lg border border-border p-3">
+          <input type="hidden" name="seatId" value={seat.id} />
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="hasLocker"
+              value="1"
+              checked={hasLocker}
+              onChange={(event) => setHasLocker(event.target.checked)}
+              className="mt-0.5 size-4 rounded border-input accent-primary"
+            />
+            <span>
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                <KeyRound className="size-3.5" />
+                This seat has a locker
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Monthly fee {formatINR(monthlyFeeForSeat(hasLocker))}. Changing this also updates
+                the fee of whoever holds the seat, plus their unpaid months.
+              </span>
+            </span>
+          </label>
+          <ActionMessage state={lockerState} />
+          <div className="flex justify-end">
+            <Button type="submit" variant="outline" size="sm" className="h-9">
+              Save seat type
+            </Button>
+          </div>
+        </form>
 
         {seat.occupants.length > 0 ? (
           <>

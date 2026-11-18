@@ -9,11 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
-import { currentMonthKey, monthOptions, todayInputValue, type MonthOption } from "@/lib/format";
+import { monthlyFeeForSeat, prepaidPriceForSeat } from "@/lib/constants";
+import {
+  currentMonthKey,
+  formatINR,
+  monthOptions,
+  todayInputValue,
+  type MonthOption,
+} from "@/lib/format";
 
 export type SeatOption = {
   id: number;
   label: string;
+  /** A locker seat costs ₹800; a plain seat costs ₹700. */
+  hasLocker: boolean;
   occupiedBy?: string | null;
 };
 
@@ -62,8 +71,23 @@ export function MemberForm({
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const id = useId();
   const [seatId, setSeatId] = useState<string>(defaults?.seatId ? String(defaults.seatId) : "");
+  const initialSeat = seats.find((seat) => seat.id === defaults?.seatId);
+  const [fee, setFee] = useState(
+    String(defaultFee ?? (initialSeat ? monthlyFeeForSeat(initialSeat.hasLocker) : "")),
+  );
   const [collectPayment, setCollectPayment] = useState(showPayment);
   const [offer3Plus1, setOffer3Plus1] = useState(false);
+
+  const selectedSeat = seats.find((seat) => seat.id === Number(seatId));
+  const prepaidAmount = prepaidPriceForSeat(Boolean(selectedSeat?.hasLocker));
+
+  // A newly picked desk decides the default fee. The field stays editable so a
+  // reduced or custom fee can still be entered for an existing member.
+  function chooseSeat(value: string) {
+    setSeatId(value);
+    const seat = seats.find((candidate) => candidate.id === Number(value));
+    if (seat) setFee(String(monthlyFeeForSeat(seat.hasLocker)));
+  }
 
   useEffect(() => {
     if (state.status === "success" && state.message) {
@@ -190,7 +214,7 @@ export function MemberForm({
               id={`${id}-seatId`}
               name="seatId"
               value={seatId}
-              onChange={(event) => setSeatId(event.target.value)}
+              onChange={(event) => chooseSeat(event.target.value)}
               aria-invalid={Boolean(state.fieldErrors?.seatId)}
               className={cn(
                 "h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -200,7 +224,7 @@ export function MemberForm({
               <option value="">No seat / assign later</option>
               {seats.map((seat) => (
                 <option key={seat.id} value={seat.id} disabled={Boolean(seat.occupiedBy)}>
-                  {seat.label}
+                  {seat.label} · {seat.hasLocker ? "locker" : "non locker"}
                   {seat.occupiedBy ? ` — ${seat.occupiedBy}` : " — available"}
                 </option>
               ))}
@@ -220,7 +244,8 @@ export function MemberForm({
             inputMode="numeric"
             min="0"
             step="1"
-            defaultValue={defaultFee?.toString() ?? ""}
+            value={fee}
+            onChange={(event) => setFee(event.target.value)}
             required
             aria-invalid={Boolean(state.fieldErrors?.monthlyFee)}
             className="h-11"
@@ -282,9 +307,11 @@ export function MemberForm({
 
               {offer3Plus1 && (
                 <p className="col-span-full rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                  Records <strong>3 months</strong> at the monthly fee from the
-                  month you pick above, then the <strong>4th month free</strong>{" "}
-                  (₹0), so none of the four months will show as due.
+                  Records one <strong>{formatINR(prepaidAmount)}</strong> payment
+                  covering three months from the month you pick above, then two{" "}
+                  <strong>₹0 rows covered by 3+1</strong> and the{" "}
+                  <strong>4th month free</strong> (₹0), so none of the four months
+                  will show as due.
                 </p>
               )}
 
@@ -329,7 +356,8 @@ export function MemberForm({
                     inputMode="decimal"
                     min="0"
                     step="1"
-                    defaultValue={defaultFee?.toString() ?? ""}
+                    value={fee}
+                    onChange={(event) => setFee(event.target.value)}
                     aria-invalid={Boolean(state.fieldErrors?.payAmount)}
                     className="h-11"
                   />

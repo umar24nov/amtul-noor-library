@@ -30,7 +30,7 @@ async function getRooms(): Promise<RoomOption[]> {
         id: true,
         name: true,
         seats: {
-          select: { id: true, seatNumber: true, status: true },
+          select: { id: true, seatNumber: true, status: true, hasLocker: true },
           orderBy: { seatNumber: "asc" },
         },
       },
@@ -47,6 +47,7 @@ async function getRooms(): Promise<RoomOption[]> {
             id: seat.id,
             seatNumber: seat.seatNumber,
             available: seat.status === "AVAILABLE",
+            hasLocker: seat.hasLocker,
           })),
       }))
       .filter((room) => room.seats.some((seat) => seat.available));

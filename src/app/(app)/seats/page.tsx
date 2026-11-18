@@ -36,6 +36,7 @@ export default async function SeatsPage({
       id: seat.id,
       seatNumber: seat.seatNumber,
       status: seat.status,
+      hasLocker: seat.hasLocker,
       occupants: seat.occupants.map((occupant) => ({
         id: occupant.id,
         name: occupant.name,

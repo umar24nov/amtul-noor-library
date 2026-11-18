@@ -101,6 +101,9 @@ model Seat {
   roomId       Int
   seatNumber   String
   status       SeatStatus    @default(AVAILABLE)
+  /// Whether this particular desk comes with a personal locker. A locker seat
+  /// costs LIBRARY_FEES.seatWithLocker instead of the plain seat fee.
+  hasLocker    Boolean       @default(false)
   room         Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
   occupants    Member[]
   /// Applications that asked for this seat. A request, not a reservation:

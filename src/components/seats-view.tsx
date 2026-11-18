@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Settings2, Trash2, UserPlus, X } from "lucide-react";
+import { KeyRound, Plus, Settings2, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ import {
   deleteRoomAction,
   deleteSeatAction,
   releaseSeatAction,
+  setSeatLockerAction,
   updateRoomAction,
 } from "@/app/(app)/seats/actions";
 import type { ActionState } from "@/lib/action-result";
@@ -37,6 +38,7 @@ export type SeatCardData = {
   id: number;
   seatNumber: string;
   status: "AVAILABLE" | "OCCUPIED";
+  hasLocker: boolean;
   occupants: { id: number; name: string; memberId: string; mobile: string | null }[];
 };
 
@@ -77,14 +79,22 @@ function SeatCard({
         <span className="font-heading text-base font-semibold tabular-nums">
           {seat.seatNumber}
         </span>
-        <span
-          className={`rounded-full px-2 py-0.5 text-[0.7rem] font-medium ${
-            occupied
-              ? "bg-warning/25 text-warning-foreground"
-              : "bg-success/15 text-success"
-          }`}
-        >
-          {occupied ? "Occupied" : "Available"}
+        <span className="flex items-center gap-1">
+          {seat.hasLocker ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary">
+              <KeyRound className="size-3" />
+              Locker
+            </span>
+          ) : null}
+          <span
+            className={`rounded-full px-2 py-0.5 text-[0.7rem] font-medium ${
+              occupied
+                ? "bg-warning/25 text-warning-foreground"
+                : "bg-success/15 text-success"
+            }`}
+          >
+            {occupied ? "Occupied" : "Available"}
+          </span>
         </span>
       </span>
       {/* pr-8 keeps the text clear of the delete button in the corner. */}
@@ -372,6 +382,7 @@ export function SeatsView({
 
       {openSeat && activeRoom && (
         <SeatDetailsDialog
+          key={openSeat.id}
           open
           onOpenChange={(open) => {
             if (!open) setOpenSeat(null);
@@ -379,9 +390,11 @@ export function SeatsView({
           seat={{
             id: openSeat.id,
             label: `${activeRoom.name} · Seat ${openSeat.seatNumber}`,
+            hasLocker: openSeat.hasLocker,
             occupants: openSeat.occupants,
           }}
           releaseAction={releaseSeatAction}
+          lockerAction={setSeatLockerAction}
           viewHref={
             openSeat.occupants[0] ? `/members/${openSeat.occupants[0].id}` : undefined
           }

@@ -15,16 +15,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { currentMonthKey } from "@/lib/format";
+import { currentMonthKey, formatINR } from "@/lib/format";
+import { prepaidPriceForSeat } from "@/lib/constants";
 
 export function ApplyOfferDialog({
   memberId,
   memberName,
   defaultStartMonth,
+  hasLocker = false,
 }: {
   memberId: number;
   memberName: string;
   defaultStartMonth?: string;
+  /** The member's desk decides whether the prepaid total is ₹2100 or ₹2400. */
+  hasLocker?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -56,7 +60,10 @@ export function ApplyOfferDialog({
         <DialogHeader>
           <DialogTitle>Apply 3+1 Offer</DialogTitle>
           <DialogDescription>
-            Apply the 3+1 offer for {memberName}. This will mark 3 months as paid and 1 month as free.
+            Apply the 3+1 offer for {memberName}. It records one{" "}
+            <strong>{formatINR(prepaidPriceForSeat(hasLocker))}</strong> payment
+            covering three months, two ₹0 rows covered by 3+1, and the fourth
+            month free. Any existing rows for these four months are replaced.
           </DialogDescription>
         </DialogHeader>
         <form action={handleSubmit} className="grid gap-4">

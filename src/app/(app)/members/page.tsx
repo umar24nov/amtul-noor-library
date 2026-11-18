@@ -62,6 +62,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const seats = openSeats.map((seat) => ({
     id: seat.id,
     label: `${seat.room.name} · Seat ${seat.seatNumber}`,
+    hasLocker: seat.hasLocker,
   }));
 
   const roomOptions = roomFilterOptions(rooms);

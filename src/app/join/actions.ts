@@ -40,6 +40,7 @@ export async function submitApplicationAction(
     joiningDate: formData.get("joiningDate"),
     roomId: formData.get("roomId"),
     seatId: formData.get("seatId"),
+    seatType: formData.get("seatType"),
     agreed: formData.get("agreed"),
   });
 
@@ -90,6 +91,7 @@ export async function submitApplicationAction(
         roomId: true,
         status: true,
         seatNumber: true,
+        hasLocker: true,
         room: { select: { name: true } },
       },
     });
@@ -98,6 +100,15 @@ export async function submitApplicationAction(
       return errorState("That seat is no longer free. Please choose another seat.", {
         seatId: "Choose an available seat",
       });
+    }
+
+    // The two tick boxes on the form are a filter, but check the seat type here
+    // too: a stale form or a hand-made POST must not book the wrong kind of seat.
+    if (data.seatType && (seat.hasLocker ? "locker" : "non-locker") !== data.seatType) {
+      return errorState(
+        `That seat is a ${seat.hasLocker ? "seat with locker" : "non locker seat"}. Please choose a seat of the type you ticked.`,
+        { seatId: "Choose a seat of the type you selected" },
+      );
     }
 
     const front = formData.get("aadhaarFront");

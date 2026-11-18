@@ -11,6 +11,8 @@ import { sendApplicationDecisionEmail } from "@/lib/application-email";
 import { actionPermission } from "@/lib/permissions";
 import { parseInputDate } from "@/lib/format";
 import { nextMemberId, newPayToken } from "@/lib/ids";
+import { monthlyFeeForSeat } from "@/lib/constants";
+import { memberFeeKey } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { applicationEditSchema, fieldErrors } from "@/lib/validators";
 
@@ -55,14 +57,22 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
       // otherwise the member is created without one and the owner assigns it.
       let seatId: number | null = null;
       let seatLabel: string | null = null;
+      let seatHasLocker = false;
       if (applicationData.preferredSeatId) {
         const seat = await tx.seat.findUnique({
           where: { id: applicationData.preferredSeatId },
-          select: { id: true, status: true, seatNumber: true, room: { select: { name: true } } },
+          select: {
+            id: true,
+            status: true,
+            seatNumber: true,
+            hasLocker: true,
+            room: { select: { name: true } },
+          },
         });
         if (seat && seat.status === "AVAILABLE") {
           seatId = seat.id;
-          seatLabel = `${seat.room.name} · Seat ${seat.seatNumber}`;
+          seatHasLocker = seat.hasLocker;
+          seatLabel = `${seat.room.name} · Seat ${seat.seatNumber}${seat.hasLocker ? " (locker)" : ""}`;
         }
       }
 
@@ -85,6 +95,14 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
 
       if (seatId !== null) {
         await tx.seat.update({ where: { id: seatId }, data: { status: "OCCUPIED" } });
+        // The seat the applicant chose decides their fee: ₹800 with a locker,
+        // ₹700 without. No payments exist yet, so no rows need re-pricing.
+        const fee = monthlyFeeForSeat(seatHasLocker);
+        await tx.setting.upsert({
+          where: { key: memberFeeKey(member.id) },
+          update: { value: String(fee) },
+          create: { key: memberFeeKey(member.id), value: String(fee) },
+        });
       }
 
       await tx.application.update({

@@ -1,5 +1,15 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { gapMonthsBetween, monthKeyFromInputDate, parseInputDate } from "@/lib/format";
+import {
+  LIBRARY_PREPAID_OFFER,
+  monthlyFeeForSeat,
+  prepaidPriceForSeat,
+} from "@/lib/constants";
+import {
+  gapMonthsBetween,
+  monthKeyFromInputDate,
+  parseInputDate,
+  shiftMonthKey,
+} from "@/lib/format";
 import { bumpPaymentId, newReceiptToken, nextPaymentId } from "@/lib/ids";
 
 /**
@@ -22,6 +32,78 @@ export async function syncPendingAmounts(
     where: { memberId, status: "PENDING" },
     data: { amount: fee },
   });
+}
+
+export type ThreePlusOneOfferInput = {
+  memberId: number;
+  startMonth: string;
+  /** The desk decides the price: ₹2100 without a locker, ₹2400 with one. */
+  hasLocker: boolean;
+  paymentMode: "CASH" | "ONLINE";
+  paymentDate: Date;
+  /**
+   * Set when applying the offer to an existing member. Their four month rows
+   * are replaced so the old three-at-₹700 pattern cannot survive alongside the
+   * new, correct one.
+   */
+  replaceExisting?: boolean;
+};
+
+/**
+ * Records the 3 + 1 offer as four explicit rows.
+ *
+ * The owner asked for the first row to show the whole amount paid up front —
+ * ₹2100 for a plain seat, ₹2400 for a locker seat — rather than splitting it
+ * into three ₹700 rows. The next two rows are zero-rupee PAID entries marked as
+ * covered by that payment, and the fourth is the free month. Keeping all four
+ * rows means every month has its own status and receipt, while the money is
+ * only counted once.
+ */
+export async function recordThreePlusOneOffer(
+  tx: Prisma.TransactionClient,
+  {
+    memberId,
+    startMonth,
+    hasLocker,
+    paymentMode,
+    paymentDate,
+    replaceExisting = false,
+  }: ThreePlusOneOfferInput,
+): Promise<{ months: string[]; monthlyFee: number; prepaidAmount: number }> {
+  const months = Array.from(
+    { length: LIBRARY_PREPAID_OFFER.totalMonths },
+    (_, index) => shiftMonthKey(startMonth, index),
+  );
+  const monthlyFee = monthlyFeeForSeat(hasLocker);
+  const prepaidAmount = prepaidPriceForSeat(hasLocker);
+
+  if (replaceExisting) {
+    await tx.payment.deleteMany({ where: { memberId, month: { in: months } } });
+  }
+
+  // One read gives the whole run of sequential public payment ids; bumpPaymentId
+  // keeps them unique without a query per row.
+  const firstPaymentId = await nextPaymentId(tx);
+  await tx.payment.createMany({
+    data: months.map((month, index) => ({
+      paymentId: bumpPaymentId(firstPaymentId, index),
+      memberId,
+      month,
+      amount: index === 0 ? prepaidAmount : 0,
+      paymentMode: index === 0 ? paymentMode : ("OFFER" as const),
+      paymentDate,
+      status: "PAID" as const,
+      remarks:
+        index === 0
+          ? "3+1 offer — paid in advance"
+          : index < LIBRARY_PREPAID_OFFER.paidMonths
+            ? "Covered by 3+1 (paid in advance)"
+            : "Free month — 3 + 1 offer",
+      receiptToken: newReceiptToken(),
+    })),
+  });
+
+  return { months, monthlyFee, prepaidAmount };
 }
 
 /**
