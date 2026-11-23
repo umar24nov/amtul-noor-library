@@ -16,6 +16,22 @@ export function whatsappChatUrl(message: string): string {
   return `https://wa.me/91${LIBRARY_PHONE}?text=${encodeURIComponent(message)}`;
 }
 
+export type PaymentConfirmationInfo = {
+  name: string;
+  memberId: string;
+  month: string;
+  amount: number;
+  mode: "CASH" | "ONLINE";
+};
+
+/** The member's own payment confirmation, with the mode they chose. */
+export function paymentConfirmationMessage(info: PaymentConfirmationInfo): string {
+  const paidBy = info.mode === "CASH" ? "in cash at the library" : "via NEFT/bank transfer";
+  return `Hi, I am ${info.name} (${info.memberId}). I just paid my library fee for ${formatMonth(
+    info.month,
+  )} (${formatINR(info.amount)}) ${paidBy}.`;
+}
+
 /** A `wa.me` share that lets the reader pick any contact to forward to. */
 export function whatsappShareUrl(pageTitle: string, href: string): string {
   return `https://wa.me/?text=${encodeURIComponent(`${pageTitle} — ${href}`)}`;
@@ -36,7 +52,7 @@ export function paymentReminderMessage(info: ReminderInfo & { dueDate?: string |
     `This is ${LIBRARY_NAME}. Your fee of ${formatINR(info.due)} for ${formatMonth(
       info.month,
     )} is due${dueLabel}.`,
-    `You can pay by visiting us during opening hours or on WhatsApp.`,
+    `You can pay by visiting us during opening hours or online.`,
     ``,
     `Thank you.`,
   ].join("\n");
@@ -71,7 +87,7 @@ export function overdueReminderMessage(info: OverdueReminderInfo): string {
     list,
     ``,
     `Total due: ${formatINR(info.totalDue)}.`,
-    `You can pay by visiting us during opening hours or on WhatsApp.`,
+    `You can pay by visiting us during opening hours or online.`,
     ``,
     `Thank you.`,
   ].join("\n");

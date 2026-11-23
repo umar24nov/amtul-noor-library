@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Download, FileText, Landmark, MessageCircle } from "lucide-react";
+import { ArrowLeft, Download, FileText, Landmark } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,8 @@ import { canAny, getSession } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { effectiveMemberFee, getMemberFee, getMonthlyFee } from "@/lib/settings";
 import { bankDetailsConfigured, getBankDetails } from "@/lib/upi";
-import { whatsappChatUrl } from "@/lib/whatsapp";
 import { MemberLinkGate } from "./member-link-gate";
+import { PaymentConfirmation } from "./payment-confirmation";
 
 export const metadata: Metadata = {
   title: "Pay your fee",
@@ -102,14 +102,6 @@ export default async function MemberPayPage({
   const bankConfigured = bankDetailsConfigured();
   const bank = getBankDetails();
 
-  const afterPayUrl = bankConfigured
-    ? whatsappChatUrl(
-        `Hi, I am ${member.memberId}. I just paid my library fee for ${formatMonth(
-          dueMonth,
-        )} (${formatINR(dueAmount)}) via NEFT/bank transfer.`,
-      )
-    : null;
-
   return (
     <PayLayout>
       <section className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
@@ -169,27 +161,21 @@ export default async function MemberPayPage({
                 <dt className="text-muted-foreground">IFSC code</dt>
                 <dd className="font-mono font-medium break-all">{bank.ifsc}</dd>
               </dl>
-              {afterPayUrl && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button asChild size="lg" variant="outline">
-                    <a href={afterPayUrl} target="_blank" rel="noreferrer">
-                      <MessageCircle className="size-4" />
-                      I&apos;ve paid — confirm on WhatsApp
-                    </a>
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    The receipt appears here once the library records the payment.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
         ) : (
           <div className="mt-8 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
             Online fee payment details are not set up yet. Please pay during opening
-            hours or on WhatsApp.
+            hours or at the library.
           </div>
         )}
+
+        <PaymentConfirmation
+          memberId={member.memberId}
+          name={member.name}
+          month={dueMonth}
+          amount={dueAmount}
+        />
 
         <Card className="mt-6">
           <CardHeader>

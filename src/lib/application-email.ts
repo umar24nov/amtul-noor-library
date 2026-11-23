@@ -7,6 +7,7 @@ import {
   LIBRARY_PHONE,
 } from "@/lib/constants";
 import { OTP_TTL_MINUTES } from "@/lib/otp-code";
+import { siteOrigin } from "@/lib/site";
 
 /**
  * Emails an applicant the outcome of their membership application.
@@ -100,16 +101,28 @@ export async function sendMemberLinkCodeEmail(input: {
   to: string;
   code: string;
 }): Promise<ApplicationEmailResult> {
+  // The code travels in the URL fragment, which browsers do not send to the
+  // server, so opening the copy page does not put the code in request logs.
+  const copyUrl = `${await siteOrigin()}/copy-code#${encodeURIComponent(input.code)}`;
+  const safeCode = escapeHtml(input.code);
+  const safeCopyUrl = escapeHtml(copyUrl);
+
   const html = [
-    `<p>Someone opened your ${escapeHtml(LIBRARY_NAME)} payment link and asked for a sign-in code.</p>`,
-    `<p>Your code is <strong style="font-size:22px;letter-spacing:4px">${escapeHtml(input.code)}</strong>.</p>`,
-    `<p>Enter it on the payment page to see your fee details and receipts. It expires in ${OTP_TTL_MINUTES} minutes and can be used once. If you did not open the link, you can ignore this message.</p>`,
-    `<p>— ${LIBRARY_NAME}</p>`,
+    `<p>Your one-time sign-in code for <strong>${escapeHtml(LIBRARY_NAME)}</strong> is:</p>`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:18px 0">`,
+    `<tr>`,
+    `<td style="padding:12px 18px;border:1px solid #d4d4d8;border-radius:8px;font-size:30px;font-weight:700;letter-spacing:6px;user-select:all"><strong>${safeCode}</strong></td>`,
+    `<td style="padding-left:12px;vertical-align:middle"><a href="${safeCopyUrl}" style="display:inline-block;padding:10px 14px;border:1px solid #171717;border-radius:8px;color:#171717;font-size:14px;font-weight:600;text-decoration:none">Copy code</a></td>`,
+    `</tr>`,
+    `</table>`,
+    `<p>Enter this code to securely access your fee details and payment receipts.</p>`,
+    `<p>This code is valid for <strong>${OTP_TTL_MINUTES} minutes</strong> and can be used only once.</p>`,
+    `<p><strong>Please do not share this code with anyone.</strong></p>`,
   ].join("\n");
 
   return postEmail({
     to: input.to,
-    subject: `Your ${LIBRARY_NAME} payment link code`,
+    subject: `Your ${LIBRARY_NAME} sign-in code`,
     html,
   });
 }

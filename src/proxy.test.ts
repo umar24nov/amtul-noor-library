@@ -43,6 +43,15 @@ test("the forgotten-password page is reachable without a session", async () => {
   assert.equal(response.headers.get("location"), null);
 });
 
+test("the code-copy helper is reachable without a session", async () => {
+  const request = new NextRequest("https://www.amtulnoorlibrary.in/copy-code#123456");
+
+  const response = await proxy(request);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("location"), null);
+});
+
 test("a visitor without a cookie is sent to /login", async () => {
   const request = new NextRequest("https://www.amtulnoorlibrary.in/dashboard");
 

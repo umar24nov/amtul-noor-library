@@ -107,7 +107,10 @@ A single Next.js application (App Router) with a PostgreSQL database.
   scoped to that one member and link; `/receipts/<token>` honours the same gate,
   while signed-in staff with members or payments access keep their direct links.
   A member with no email saved sees a contact-library message instead, and their
-  link stays blocked until the email is added in Members.
+  link stays blocked until the email is added in Members. The code email includes
+  a Copy code helper that clears the code from the address bar after copying. The
+  WhatsApp confirmation names the member and offers Cash or Online (NEFT), and
+  fee reminders point to opening hours or online payment.
 - Configuration that the owner is likely to change — fees, timings, phone
   numbers, the address, the rules — lives in `src/lib/constants.ts`.
 - The Users screen keeps an encrypted copy of the last password that was set
