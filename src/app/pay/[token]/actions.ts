@@ -200,7 +200,8 @@ export async function updateMemberDetailsAction(
   });
 
   revalidatePath(`/pay/${payToken}`);
-  redirect(`/pay/${payToken}`);
+  revalidatePath(`/pay/${payToken}/details`);
+  redirect(`/pay/${payToken}/details`);
 }
 
 /** Sends a confirmation code to the new email a member wants to use. */
@@ -285,5 +286,6 @@ export async function verifyMemberEmailChangeAction(
   });
 
   revalidatePath(`/pay/${payToken}`);
-  redirect(`/pay/${payToken}`);
+  revalidatePath(`/pay/${payToken}/email`);
+  redirect(`/pay/${payToken}/email`);
 }

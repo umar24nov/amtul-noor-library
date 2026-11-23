@@ -38,7 +38,7 @@ function VerifyButton() {
           Checking code
         </>
       ) : (
-        "View my member page"
+        "Open my member area"
       )}
     </Button>
   );
