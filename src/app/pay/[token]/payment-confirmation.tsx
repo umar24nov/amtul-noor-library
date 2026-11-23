@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -33,9 +33,14 @@ export function PaymentConfirmation({
   );
 
   return (
-    <Card className="mt-6">
+    <Card className="rounded-2xl border-0 shadow-sm ring-1 ring-border/80 transition-shadow hover:shadow-md">
       <CardHeader>
-        <CardTitle className="text-base">Confirm your payment</CardTitle>
+        <CardTitle className="flex items-center gap-3 text-base">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+            <CheckCircle2 className="size-5" />
+          </span>
+          Confirm your payment
+        </CardTitle>
         <CardDescription>
           After paying, send a quick confirmation on WhatsApp. Your receipt appears
           here once the library records the payment.
@@ -54,10 +59,15 @@ export function PaymentConfirmation({
             </SelectContent>
           </Select>
         </div>
-        <Button asChild size="lg" variant="outline">
+        <Button
+          asChild
+          size="lg"
+          className="h-10 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+        >
           <a href={url} target="_blank" rel="noreferrer">
             <MessageCircle className="size-4" />
             I&apos;ve paid — confirm on WhatsApp
+            <ArrowUpRight className="size-4" />
           </a>
         </Button>
       </CardContent>
