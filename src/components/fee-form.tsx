@@ -44,7 +44,7 @@ export function FeeForm({
           name="fee"
           type="number"
           inputMode="decimal"
-          min="1"
+          min="0"
           step="1"
           defaultValue={fee}
           aria-invalid={Boolean(state.fieldErrors?.fee)}
@@ -53,7 +53,9 @@ export function FeeForm({
         {state.fieldErrors?.fee ? (
           <p className="text-xs text-destructive">{state.fieldErrors.fee}</p>
         ) : (
-          <p className="text-xs text-muted-foreground">Currently {formatINR(fee)} per month.</p>
+          <p className="text-xs text-muted-foreground">
+            Currently {formatINR(fee)} per month. Enter 0 for no fee.
+          </p>
         )}
       </div>
 

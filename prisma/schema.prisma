@@ -276,6 +276,10 @@ model MemberLinkOtp {
   payToken    String
   /// Email the code was sent to, copied from the member at request time.
   email       String
+  /// ACCESS unlocks the /pay link; EMAIL_CHANGE confirms a new email address.
+  /// The two purposes use different HMAC prefixes, so a code for one can never
+  /// be replayed as the other.
+  purpose     String    @default("ACCESS")
   /// HMAC-SHA256 of `member-link:payToken:email:code`, keyed by AUTH_SECRET.
   codeHash    String
   expiresAt   DateTime

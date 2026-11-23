@@ -28,10 +28,11 @@ It is two things in one:
 - **See the library** — what it offers, where it is, when it is open, and what a
   seat costs.
 - **Apply for a membership** through the public join form, without a phone call.
-- **Open a payment link** sent by the library, confirm it with a one-time code
-  emailed to you, and pay the monthly fee via NEFT/bank transfer.
-- **View a receipt** from that verified page, or ask a question through the help
-  & support form.
+- **Open your member page** from the link the library sends, confirmed with a
+  one-time code emailed to you. There you can see your details, payment history
+  and receipts, pay the monthly fee via NEFT/bank transfer, correct your own name
+  and contact numbers, confirm a new email address, and contact the library
+  directly on WhatsApp, by phone or by email.
 
 ### For the library staff
 
@@ -112,6 +113,24 @@ A single Next.js application (App Router) with a PostgreSQL database.
   leaving the email; `/copy-code` remains for older messages that linked to it.
   The WhatsApp confirmation names the member and offers Cash or Online (NEFT), and
   fee reminders point to opening hours or online payment.
+- The verified `/pay/<token>` page is a small member portal: details, payment
+  history and downloadable receipts, plus self-service. A member may correct
+  their own name, mobile and guardian contacts, but seat, fee, joining date,
+  status and internal remarks stay staff-only, and no Aadhaar data is shown.
+  Changing the email sends a code to the **new** address and only takes effect
+  once that code is entered, so future sign-in codes go to an inbox the member
+  proved they control. Sign-in and email-change codes share a table but use
+  different purposes (`ACCESS` / `EMAIL_CHANGE`) and different HMAC prefixes, so
+  a code for one can never be replayed as the other. Self-service edits require
+  the member's own access cookie, not a staff session; staff use the admin
+  Members screen. Every self-edit and email change is written to the member
+  audit log. A contact card offers WhatsApp, phone, email and the help page.
+- A monthly fee of **₹0** is allowed everywhere a fee is set — the standard fee,
+  a member's own fee, and when a seat is assigned or changed — so an offer can
+  make a membership free. An explicit amount (including 0) always overrides the
+  seat-derived fee. A zero-fee member owes nothing: no arrears are counted and no
+  fee reminders are sent, and their member page shows "no fee due" instead of
+  bank details.
 - Configuration that the owner is likely to change — fees, timings, phone
   numbers, the address, the rules — lives in `src/lib/constants.ts`.
 - The Users screen keeps an encrypted copy of the last password that was set

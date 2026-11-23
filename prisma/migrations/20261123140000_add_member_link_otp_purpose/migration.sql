@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "MemberLinkOtp" ADD COLUMN "purpose" TEXT NOT NULL DEFAULT 'ACCESS';

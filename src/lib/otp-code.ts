@@ -56,9 +56,20 @@ export function otpCodeMatches(email: string, code: string, expectedHash: string
  * two members share an address. The distinct prefix also keeps these codes from
  * ever verifying as an admin password-recovery code.
  */
-export function hashMemberLinkCode(payToken: string, email: string, code: string): string {
+export type MemberLinkOtpPurpose = "ACCESS" | "EMAIL_CHANGE";
+
+function memberLinkPrefix(purpose: MemberLinkOtpPurpose): string {
+  return purpose === "EMAIL_CHANGE" ? "member-email-change" : "member-link";
+}
+
+export function hashMemberLinkCode(
+  payToken: string,
+  email: string,
+  code: string,
+  purpose: MemberLinkOtpPurpose = "ACCESS",
+): string {
   return createHmac("sha256", secretKey())
-    .update(`member-link:${payToken}:${email.trim().toLowerCase()}:${code}`)
+    .update(`${memberLinkPrefix(purpose)}:${payToken}:${email.trim().toLowerCase()}:${code}`)
     .digest("hex");
 }
 
@@ -67,8 +78,9 @@ export function memberLinkCodeMatches(
   email: string,
   code: string,
   expectedHash: string,
+  purpose: MemberLinkOtpPurpose = "ACCESS",
 ): boolean {
-  return hashesMatch(hashMemberLinkCode(payToken, email, code), expectedHash);
+  return hashesMatch(hashMemberLinkCode(payToken, email, code, purpose), expectedHash);
 }
 
 export function otpExpiresAt(now: Date = new Date()): Date {

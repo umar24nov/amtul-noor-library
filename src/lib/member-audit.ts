@@ -18,6 +18,8 @@ export type LogMemberChangeInput = {
   summary?: string;
   changes?: MemberAuditChange[];
   metadata?: Record<string, unknown>;
+  /** Overrides the actor name for member self-service edits. */
+  actorName?: string;
 };
 
 export async function logMemberChange(
@@ -27,8 +29,8 @@ export async function logMemberChange(
   try {
     const [session, ip] = await Promise.all([getSession().catch(() => null), getClientIp().catch(() => null)]);
 
-    let actorName = session?.email || "System";
-    if (session?.userId) {
+    let actorName = input.actorName || session?.email || "System";
+    if (!input.actorName && session?.userId) {
       const user = await tx.user.findUnique({ where: { id: session.userId }, select: { name: true, email: true } });
       actorName = user?.name || user?.email || session.email || "System";
     }
@@ -63,4 +65,6 @@ export const MEMBER_AUDIT_ACTIONS = {
   PAYMENT_EDITED: "PAYMENT_EDITED",
   PAYMENT_DELETED: "PAYMENT_DELETED",
   FEE_CHANGED: "FEE_CHANGED",
+  MEMBER_SELF_UPDATED: "MEMBER_SELF_UPDATED",
+  EMAIL_CHANGED: "EMAIL_CHANGED",
 } as const;

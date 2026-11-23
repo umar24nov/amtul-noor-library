@@ -314,12 +314,10 @@ export async function updateMemberAction(
       // Their joining date is kept, so they hold their original place in the
       // join-date order.
       const rejoining = existing.status === "LEFT" && seatId !== null;
-      // A new desk (or the first desk of a returning member) sets the fee. When
-      // the desk is unchanged, an edited fee is the owner's explicit call.
+      // A new desk (or the first desk of a returning member) suggests the seat's
+      // fee, but an explicit amount — including 0 for an offer — always wins.
       const feeFollowsSeat = seatId !== existing.seatId || rejoining;
-      const fee = feeFollowsSeat
-        ? monthlyFeeForSeat(newSeatHasLocker)
-        : (data.monthlyFee ?? standardFee);
+      const fee = data.monthlyFee ?? (feeFollowsSeat ? monthlyFeeForSeat(newSeatHasLocker) : standardFee);
       finalFee = fee;
 
       const email = formData.has("email") ? (data.email ?? null) : undefined;

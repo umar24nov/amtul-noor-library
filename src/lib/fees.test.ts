@@ -11,6 +11,7 @@ import {
   seatHasLocker,
 } from "./constants";
 import { layoutForSeatNumber, SEAT_LAYOUTS } from "./seat-layouts";
+import { feeFormSchema, memberFormSchema } from "./validators";
 import type { PaymentStatus } from "@/generated/prisma/enums";
 
 function row(status: PaymentStatus) {
@@ -145,3 +146,19 @@ test("months before joining are never counted as arrears", () => {
   assert.deepEqual(summary.months, ["2026-02", "2026-03"]);
   assert.equal(summary.totalDue, 1400);
 });
+
+test("a zero fee is allowed and owes nothing", () => {
+  assert.equal(feeFormSchema.safeParse({ fee: 0 }).success, true);
+  assert.equal(feeFormSchema.safeParse({ fee: -1 }).success, false);
+  assert.equal(memberFormSchema.shape.monthlyFee.safeParse(0).success, true);
+
+  const summary = summarizeArrears({
+    fee: 0,
+    joiningDate: "2026-01-01T00:00:00.000Z",
+    months: ["2026-01", "2026-02"],
+    paymentsByMonth: new Map(),
+  });
+  assert.deepEqual(summary.months, []);
+  assert.equal(summary.totalDue, 0);
+});
+

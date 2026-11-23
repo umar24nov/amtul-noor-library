@@ -10,6 +10,7 @@ import {
   OTP_MAX_REQUESTS,
   otpRequestWindowStart,
   otpRetryAfterMinutes,
+  type MemberLinkOtpPurpose,
 } from "@/lib/otp-code";
 
 /** Storage and throttling for the codes that unlock a member's /pay link. */
@@ -52,13 +53,15 @@ export async function checkMemberLinkOtpLimit(
 }
 
 /**
- * Creates one hashed code for this pay link and invalidates any earlier code
- * for the same link, so only the code in the latest email works.
+ * Creates one hashed code for this pay link and purpose, and invalidates any
+ * earlier code with the same purpose, so only the code in the latest email
+ * works. A sign-in code and an email-change code never displace each other.
  */
 export async function createMemberLinkOtpRequest(
   payToken: string,
   email: string,
   ip: string,
+  purpose: MemberLinkOtpPurpose = "ACCESS",
 ): Promise<{ id: number; code: string }> {
   const normalisedEmail = email.trim().toLowerCase();
   const code = generateOtpCode();
@@ -66,14 +69,15 @@ export async function createMemberLinkOtpRequest(
 
   const [, created] = await prisma.$transaction([
     prisma.memberLinkOtp.updateMany({
-      where: { payToken, consumedAt: null },
+      where: { payToken, purpose, consumedAt: null },
       data: { consumedAt: new Date() },
     }),
     prisma.memberLinkOtp.create({
       data: {
         payToken,
         email: normalisedEmail,
-        codeHash: hashMemberLinkCode(payToken, normalisedEmail, code),
+        purpose,
+        codeHash: hashMemberLinkCode(payToken, normalisedEmail, code, purpose),
         expiresAt: otpExpiresAt(),
         ip,
       },
@@ -104,10 +108,11 @@ export async function verifyMemberLinkCode(
   payToken: string,
   email: string,
   code: string,
+  purpose: MemberLinkOtpPurpose = "ACCESS",
 ): Promise<MemberLinkVerifyResult> {
   const normalisedEmail = email.trim().toLowerCase();
   const row = await prisma.memberLinkOtp.findFirst({
-    where: { payToken, email: normalisedEmail, consumedAt: null },
+    where: { payToken, email: normalisedEmail, purpose, consumedAt: null },
     orderBy: { createdAt: "desc" },
   });
 
@@ -115,7 +120,7 @@ export async function verifyMemberLinkCode(
     return { ok: false, message: MEMBER_LINK_CODE_INVALID };
   }
 
-  if (!memberLinkCodeMatches(payToken, normalisedEmail, code, row.codeHash)) {
+  if (!memberLinkCodeMatches(payToken, normalisedEmail, code, row.codeHash, purpose)) {
     await prisma.memberLinkOtp.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
     return { ok: false, message: "That code is not correct." };
   }

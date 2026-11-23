@@ -95,25 +95,32 @@ export async function sendLoginCodeEmail(input: {
   });
 }
 
-/** Sends the one-time code that unlocks a member's permanent payment link. */
-export function sendMemberLinkCodeEmail(input: {
-  to: string;
-  code: string;
-}): Promise<ApplicationEmailResult> {
-  const safeCode = escapeHtml(input.code);
-
-  // Email clients do not run JavaScript, so a one-tap copy button is not
-  // reliable. The code block itself is the copy control: tap it to select the
-  // whole six digits, then use the email client's Copy command. Keeping the
-  // code in the message also means members never have to leave the email.
-  const html = [
-    `<p>Your one-time sign-in code for <strong>${escapeHtml(LIBRARY_NAME)}</strong> is:</p>`,
+/**
+ * Email clients do not run JavaScript, so a one-tap copy button is not
+ * reliable. The code block itself is the copy control: tap it to select the
+ * whole six digits, then use the email client's Copy command. Keeping the
+ * code in the message also means members never have to leave the email.
+ */
+function selectableCodeHtml(code: string): string {
+  const safeCode = escapeHtml(code);
+  return [
     `<p style="margin:14px 0 6px;font-size:13px;color:#52525b">Tap the code below to select it, then choose Copy.</p>`,
     `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 18px">`,
     `<tr>`,
     `<td style="padding:14px 18px;border:1px solid #d4d4d8;border-radius:8px;background:#fafafa;font-size:32px;font-weight:700;letter-spacing:6px;line-height:1.2;user-select:all;-webkit-user-select:all"><strong>${safeCode}</strong></td>`,
     `</tr>`,
     `</table>`,
+  ].join("\n");
+}
+
+/** Sends the one-time code that unlocks a member's permanent payment link. */
+export function sendMemberLinkCodeEmail(input: {
+  to: string;
+  code: string;
+}): Promise<ApplicationEmailResult> {
+  const html = [
+    `<p>Your one-time sign-in code for <strong>${escapeHtml(LIBRARY_NAME)}</strong> is:</p>`,
+    selectableCodeHtml(input.code),
     `<p>Enter this code to securely access your fee details and payment receipts.</p>`,
     `<p>This code is valid for <strong>${OTP_TTL_MINUTES} minutes</strong> and can be used only once.</p>`,
     `<p><strong>Please do not share this code with anyone.</strong></p>`,
@@ -122,6 +129,26 @@ export function sendMemberLinkCodeEmail(input: {
   return postEmail({
     to: input.to,
     subject: `Your ${LIBRARY_NAME} sign-in code`,
+    html,
+  });
+}
+
+/** Sends the code that confirms a member's new email address. */
+export function sendMemberEmailChangeCodeEmail(input: {
+  to: string;
+  code: string;
+}): Promise<ApplicationEmailResult> {
+  const html = [
+    `<p>Your one-time code to confirm your new email for <strong>${escapeHtml(LIBRARY_NAME)}</strong> is:</p>`,
+    selectableCodeHtml(input.code),
+    `<p>Enter this code on your member page to confirm this email address. Future sign-in codes will be sent here.</p>`,
+    `<p>This code is valid for <strong>${OTP_TTL_MINUTES} minutes</strong> and can be used only once.</p>`,
+    `<p><strong>Please do not share this code with anyone.</strong></p>`,
+  ].join("\n");
+
+  return postEmail({
+    to: input.to,
+    subject: `Confirm your new ${LIBRARY_NAME} email`,
     html,
   });
 }

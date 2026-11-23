@@ -80,3 +80,20 @@ test("member-link codes are bound to the link and can never verify as admin code
   assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, hashOtpCode(EMAIL, CODE)), false);
   assert.equal(otpCodeMatches(EMAIL, CODE, hash), false);
 });
+
+test("an email-change code can never be replayed as a sign-in code, or vice versa", () => {
+  const accessHash = hashMemberLinkCode(PAY_TOKEN, EMAIL, CODE, "ACCESS");
+  const changeHash = hashMemberLinkCode(PAY_TOKEN, EMAIL, CODE, "EMAIL_CHANGE");
+
+  // Same link, email and code, but the two purposes hash differently.
+  assert.notEqual(accessHash, changeHash);
+
+  // Each purpose only verifies against its own hash.
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, accessHash, "ACCESS"), true);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, changeHash, "EMAIL_CHANGE"), true);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, accessHash, "EMAIL_CHANGE"), false);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, changeHash, "ACCESS"), false);
+
+  // The default purpose stays ACCESS, so older callers are unchanged.
+  assert.equal(hashMemberLinkCode(PAY_TOKEN, EMAIL, CODE), accessHash);
+});

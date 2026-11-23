@@ -251,7 +251,7 @@ export const markLeftSchema = z.object({
 export const feeFormSchema = z.object({
   fee: z.coerce
     .number({ message: "Enter the monthly fee" })
-    .positive("Monthly fee must be greater than 0")
+    .min(0, "Fee cannot be negative")
     .max(100000, "Monthly fee looks too large"),
 });
 
@@ -403,6 +403,31 @@ export const memberLinkTokenSchema = z.object({
 });
 
 export const memberLinkVerifySchema = memberLinkTokenSchema.extend({
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
+});
+
+/** Personal details a member may correct on their own /pay page. Seat, fee,
+ *  joining date, status and internal remarks stay staff-only. */
+export const memberSelfEditSchema = memberLinkTokenSchema.extend({
+  name: memberFormSchema.shape.name,
+  mobile: optionalMobileSchema,
+  guardianName: optionalText(80),
+  guardianMobile: optionalMobileSchema,
+});
+
+const requiredEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, "Email is required")
+  .max(120, "Email must be 120 characters or fewer")
+  .email("Enter a valid email address");
+
+export const memberEmailChangeRequestSchema = memberLinkTokenSchema.extend({
+  email: requiredEmailSchema,
+});
+
+export const memberEmailChangeVerifySchema = memberEmailChangeRequestSchema.extend({
   code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
 });
 
