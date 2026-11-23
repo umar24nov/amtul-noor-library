@@ -7,7 +7,6 @@ import {
   LIBRARY_PHONE,
 } from "@/lib/constants";
 import { OTP_TTL_MINUTES } from "@/lib/otp-code";
-import { siteOrigin } from "@/lib/site";
 
 /**
  * Emails an applicant the outcome of their membership application.
@@ -97,22 +96,22 @@ export async function sendLoginCodeEmail(input: {
 }
 
 /** Sends the one-time code that unlocks a member's permanent payment link. */
-export async function sendMemberLinkCodeEmail(input: {
+export function sendMemberLinkCodeEmail(input: {
   to: string;
   code: string;
 }): Promise<ApplicationEmailResult> {
-  // The code travels in the URL fragment, which browsers do not send to the
-  // server, so opening the copy page does not put the code in request logs.
-  const copyUrl = `${await siteOrigin()}/copy-code#${encodeURIComponent(input.code)}`;
   const safeCode = escapeHtml(input.code);
-  const safeCopyUrl = escapeHtml(copyUrl);
 
+  // Email clients do not run JavaScript, so a one-tap copy button is not
+  // reliable. The code block itself is the copy control: tap it to select the
+  // whole six digits, then use the email client's Copy command. Keeping the
+  // code in the message also means members never have to leave the email.
   const html = [
     `<p>Your one-time sign-in code for <strong>${escapeHtml(LIBRARY_NAME)}</strong> is:</p>`,
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:18px 0">`,
+    `<p style="margin:14px 0 6px;font-size:13px;color:#52525b">Tap the code below to select it, then choose Copy.</p>`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 18px">`,
     `<tr>`,
-    `<td style="padding:12px 18px;border:1px solid #d4d4d8;border-radius:8px;font-size:30px;font-weight:700;letter-spacing:6px;user-select:all"><strong>${safeCode}</strong></td>`,
-    `<td style="padding-left:12px;vertical-align:middle"><a href="${safeCopyUrl}" style="display:inline-block;padding:10px 14px;border:1px solid #171717;border-radius:8px;color:#171717;font-size:14px;font-weight:600;text-decoration:none">Copy code</a></td>`,
+    `<td style="padding:14px 18px;border:1px solid #d4d4d8;border-radius:8px;background:#fafafa;font-size:32px;font-weight:700;letter-spacing:6px;line-height:1.2;user-select:all;-webkit-user-select:all"><strong>${safeCode}</strong></td>`,
     `</tr>`,
     `</table>`,
     `<p>Enter this code to securely access your fee details and payment receipts.</p>`,
