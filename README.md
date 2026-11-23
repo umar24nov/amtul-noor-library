@@ -93,6 +93,11 @@ A single Next.js application (App Router) with a PostgreSQL database.
   so there is a single owner login.
 - The public site is open to everyone; everything behind `/login` is not, and is
   checked again on each page and action by role.
+- A forgotten password is recovered at `/forgot-password`: the sign-in email gets
+  a six digit code, which expires in 10 minutes, is stored only as an HMAC, and
+  works once. Entering it sets a new password and signs you in. Requests are
+  capped at three per email or address every 15 minutes, and five wrong codes
+  burn a request, so the flow cannot be used to spray or guess codes.
 - Configuration that the owner is likely to change — fees, timings, phone
   numbers, the address, the rules — lives in `src/lib/constants.ts`.
 - The Users screen keeps an encrypted copy of the last password that was set
@@ -101,10 +106,11 @@ A single Next.js application (App Router) with a PostgreSQL database.
   (falling back to `AUTH_SECRET` when that variable is not set), and the
   bcrypt hash stays the real credential. Keep the secret: change it and the
   stored copies can no longer be read, so those accounts need a new password.
-- `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH` and
-  `PASSWORD_VAULT_SECRET` are the variables the app needs. They live in `.env`
-  locally and in the Vercel project settings in production; `.env` is
-  gitignored and there is no template in the repo on purpose.
+- `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`,
+  `PASSWORD_VAULT_SECRET`, `RESEND_API_KEY` and `RESEND_FROM` are the variables
+  the app needs. They live in `.env` locally and in the Vercel project settings
+  in production; `.env` is gitignored and there is no template in the repo on
+  purpose.
 - Aadhaar scans live in a **private** Vercel Blob store, so a scan has no public
   URL and is only readable through the session-checked `/api/aadhaar/[file]`
   route. Blob fixes a store's access mode when it is created, so the old public

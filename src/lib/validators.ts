@@ -268,6 +268,15 @@ const accountPasswordSchema = z
   .min(8, "Use at least 8 characters")
   .max(200, "Password must be 200 characters or fewer");
 
+/** Shared by both steps of email-code sign-in, so the address always matches. */
+const signInEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, "Email is required")
+  .max(120, "Email must be 120 characters or fewer")
+  .email("Enter a valid email address");
+
 export const createUserSchema = z.object({
   name: optionalText(60),
   email: z
@@ -361,6 +370,26 @@ export const changePasswordSchema = z
     currentPassword: z.string().min(1, "Enter your current password"),
     newPassword: accountPasswordSchema,
     confirmPassword: z.string().min(1, "Re-enter the new password"),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The passwords do not match",
+  });
+
+/** Step one of forgotten-password sign-in: ask for a code by email. */
+export const otpRequestSchema = z.object({
+  email: signInEmailSchema,
+  next: z.string().optional(),
+});
+
+/** Step two: the emailed code, plus a confirmed replacement password. */
+export const otpVerifySchema = z
+  .object({
+    email: signInEmailSchema,
+    code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
+    newPassword: accountPasswordSchema,
+    confirmPassword: z.string().min(1, "Re-enter the new password"),
+    next: z.string().optional(),
   })
   .refine((value) => value.newPassword === value.confirmPassword, {
     path: ["confirmPassword"],

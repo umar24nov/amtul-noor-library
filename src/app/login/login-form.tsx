@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -89,6 +90,13 @@ export function LoginForm({ next }: { next?: string }) {
       )}
 
       <SubmitButton />
+
+      <Link
+        href={next ? `/forgot-password?next=${encodeURIComponent(next)}` : "/forgot-password"}
+        className="text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Forgot password? Sign in with an email code
+      </Link>
     </form>
   );
 }

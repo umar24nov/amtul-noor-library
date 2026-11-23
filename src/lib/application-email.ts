@@ -6,6 +6,7 @@ import {
   LIBRARY_NAME,
   LIBRARY_PHONE,
 } from "@/lib/constants";
+import { OTP_TTL_MINUTES } from "@/lib/otp-code";
 
 /**
  * Emails an applicant the outcome of their membership application.
@@ -73,6 +74,25 @@ async function postEmail(payload: {
   }
 
   return { ok: true };
+}
+
+/** Sends the one-time code used to recover a forgotten password. */
+export async function sendLoginCodeEmail(input: {
+  to: string;
+  code: string;
+}): Promise<ApplicationEmailResult> {
+  const html = [
+    `<p>Someone asked to sign in to ${escapeHtml(LIBRARY_NAME)} using this email address.</p>`,
+    `<p>Your sign-in code is <strong style="font-size:22px;letter-spacing:4px">${escapeHtml(input.code)}</strong>.</p>`,
+    `<p>It expires in ${OTP_TTL_MINUTES} minutes and can be used once. If you did not ask for it, ignore this message — your password has not changed.</p>`,
+    `<p>— ${LIBRARY_NAME}</p>`,
+  ].join("\n");
+
+  return postEmail({
+    to: input.to,
+    subject: `Your ${LIBRARY_NAME} sign-in code`,
+    html,
+  });
 }
 
 /**

@@ -244,6 +244,29 @@ model LoginAttempt {
   @@index([createdAt])
 }
 
+/// A one-time email code used when somebody forgets their password. The code
+/// itself is never stored: only an HMAC of `email:code`, so a read of this table
+/// cannot be used to sign in. Codes expire quickly and are burned on first use.
+model LoginOtp {
+  id         Int       @id @default(autoincrement())
+  /// Lower-cased sign-in email the code was sent to.
+  email      String
+  /// HMAC-SHA256 of `email:code`, keyed by AUTH_SECRET.
+  codeHash   String
+  /// After this instant the code is refused.
+  expiresAt  DateTime
+  /// Wrong submissions, so guessing is stopped after a handful.
+  attempts   Int       @default(0)
+  /// Set when the code is spent, rather than deleting the audit trail.
+  consumedAt DateTime?
+  /// Client address taken from x-forwarded-for / x-real-ip. Empty when unknown.
+  ip         String    @default("")
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([createdAt])
+}
+
 /// A named set of abilities the owner hands to people. The owner chooses each
 /// role's name, so "Front desk" and "Reader" can both be day-to-day while
 /// "Owner" is a full admin.

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test --conditions=react-server src/proxy.test.ts src/lib/fees.test.ts src/lib/password-vault.test.ts src/lib/password-reveal.test.ts src/lib/user-management.test.ts src/lib/payments.test.ts src/lib/permission-defs.test.ts",
+    "test": "tsx --test --conditions=react-server src/proxy.test.ts src/lib/otp.test.ts src/lib/fees.test.ts src/lib/password-vault.test.ts src/lib/password-reveal.test.ts src/lib/user-management.test.ts src/lib/payments.test.ts src/lib/permission-defs.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
