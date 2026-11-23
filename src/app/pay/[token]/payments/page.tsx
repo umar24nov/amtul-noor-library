@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatINR, formatMonth } from "@/lib/format";
 import { PaymentConfirmation } from "../payment-confirmation";
-import { getFeeSummary, loadMemberFull } from "../portal-data";
+import { getFeeSummary, loadPortal } from "../portal-data";
+import { PortalGate, PortalShell } from "../portal-shell";
 import { PageIntro, SectionHeading, StatCard } from "../portal-ui";
 
 export const metadata: Metadata = {
@@ -29,12 +30,15 @@ export default async function MemberPaymentsPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
+  const { member, allowed, staffAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const summary = await getFeeSummary(member);
 
   return (
-    <div className="grid gap-6">
-      <PageIntro
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <div className="grid gap-6">
+        <PageIntro
         icon={CreditCard}
         tone="sky"
         eyebrow="Fees"
@@ -182,6 +186,7 @@ export default async function MemberPaymentsPage({
           </Button>
         </section>
       </div>
-    </div>
+      </div>
+    </PortalShell>
   );
 }

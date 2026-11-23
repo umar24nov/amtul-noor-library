@@ -3,7 +3,8 @@ import { ShieldCheck, UserRound } from "lucide-react";
 import { MemberStatusBadge } from "@/components/status-badges";
 import { formatDate, formatINR } from "@/lib/format";
 import { MemberDetailsEditor } from "../member-details";
-import { getFeeSummary, getPortalAccess, getSeatLabel, loadMemberFull } from "../portal-data";
+import { getFeeSummary, getSeatLabel, loadPortal } from "../portal-data";
+import { PortalGate, PortalShell } from "../portal-shell";
 import { Detail, PageIntro } from "../portal-ui";
 
 export const metadata: Metadata = {
@@ -17,15 +18,17 @@ export default async function MemberDetailsPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
-  const { memberAllowed } = await getPortalAccess(token, member.id);
+  const { member, allowed, staffAllowed, memberAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const summary = await getFeeSummary(member);
   // Remount the editor after a save so the form closes with the fresh values.
   const recordKey = member.updatedAt.toISOString();
 
   return (
-    <div className="grid gap-6">
-      <PageIntro
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <div className="grid gap-6">
+        <PageIntro
         icon={UserRound}
         tone="indigo"
         eyebrow="Membership"
@@ -84,6 +87,7 @@ export default async function MemberDetailsPage({
           documents are never shown here.
         </p>
       </section>
-    </div>
+      </div>
+    </PortalShell>
   );
 }

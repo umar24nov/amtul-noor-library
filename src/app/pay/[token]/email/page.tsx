@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Mail, ShieldCheck } from "lucide-react";
 import { MemberEmailChange } from "../member-email-change";
-import { getPortalAccess, loadMemberFull } from "../portal-data";
+import { loadPortal } from "../portal-data";
+import { PortalGate, PortalShell } from "../portal-shell";
 import { Accent, PageIntro } from "../portal-ui";
 
 export const metadata: Metadata = {
@@ -15,13 +16,15 @@ export default async function MemberEmailPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
-  const { memberAllowed } = await getPortalAccess(token, member.id);
+  const { member, allowed, staffAllowed, memberAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const recordKey = member.updatedAt.toISOString();
 
   return (
-    <div className="grid gap-6">
-      <PageIntro
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <div className="grid gap-6">
+        <PageIntro
         icon={Mail}
         tone="rose"
         eyebrow="Account access"
@@ -64,6 +67,7 @@ export default async function MemberEmailPage({
           </p>
         </section>
       </div>
-    </div>
+      </div>
+    </PortalShell>
   );
 }

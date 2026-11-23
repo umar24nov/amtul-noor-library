@@ -17,7 +17,8 @@ import {
   LIBRARY_PHONE_URL,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { getSupportUrl, loadMemberFull } from "../portal-data";
+import { getSupportUrl, loadPortal } from "../portal-data";
+import { PortalGate, PortalShell } from "../portal-shell";
 import { PageIntro } from "../portal-ui";
 
 export const metadata: Metadata = {
@@ -31,12 +32,15 @@ export default async function MemberSupportPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
+  const { member, allowed, staffAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const supportUrl = getSupportUrl(member);
 
   return (
-    <div className="grid gap-6">
-      <PageIntro
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <div className="grid gap-6">
+        <PageIntro
         icon={LifeBuoy}
         tone="emerald"
         eyebrow="We are here"
@@ -121,6 +125,7 @@ export default async function MemberSupportPage({
           </section>
         </div>
       </div>
-    </div>
+      </div>
+    </PortalShell>
   );
 }

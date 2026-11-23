@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { PaymentStatusBadge } from "@/components/status-badges";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { HERO_PHOTO } from "@/lib/photos";
-import { getFeeSummary, getSeatLabel, getSupportUrl, loadMemberFull } from "./portal-data";
+import { getFeeSummary, getSeatLabel, getSupportUrl, loadPortal } from "./portal-data";
+import { PortalGate, PortalShell } from "./portal-shell";
 import { PortalTile, StatCard } from "./portal-ui";
 
 export const metadata: Metadata = {
@@ -35,7 +36,9 @@ export default async function MemberHomePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
+  const { member, allowed, staffAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const summary = await getFeeSummary(member);
   const seatLabel = getSeatLabel(member);
   const supportUrl = getSupportUrl(member);
@@ -85,8 +88,9 @@ export default async function MemberHomePage({
   ];
 
   return (
-    <section className="grid gap-6">
-      {/* ── Welcome hero ───────────────────────────────────────────────── */}
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <section className="grid gap-6">
+        {/* ── Welcome hero ───────────────────────────────────────────────── */}
       <div className="relative isolate overflow-hidden rounded-3xl border border-slate-900/10 bg-slate-950 shadow-2xl shadow-slate-950/15">
         <Image
           src={`/images/${HERO_PHOTO.src}`}
@@ -280,6 +284,7 @@ export default async function MemberHomePage({
           never shown.
         </p>
       </section>
-    </section>
+      </section>
+    </PortalShell>
   );
 }

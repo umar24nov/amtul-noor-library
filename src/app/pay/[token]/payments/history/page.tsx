@@ -4,7 +4,8 @@ import { CheckCircle2, Download, Receipt } from "lucide-react";
 import { PaymentModeText, PaymentStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
-import { loadMemberFull } from "../../portal-data";
+import { loadPortal } from "../../portal-data";
+import { PortalGate, PortalShell } from "../../portal-shell";
 import { Accent, PageIntro } from "../../portal-ui";
 
 export const metadata: Metadata = {
@@ -18,12 +19,15 @@ export default async function MemberPaymentHistoryPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const member = await loadMemberFull(token);
+  const { member, allowed, staffAllowed } = await loadPortal(token);
+  if (!allowed) return <PortalGate payToken={token} email={member.email} />;
+
   const count = member.payments.length;
 
   return (
-    <div className="grid gap-6">
-      <PageIntro
+    <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
+      <div className="grid gap-6">
+        <PageIntro
         icon={Receipt}
         tone="emerald"
         eyebrow="Records"
@@ -86,6 +90,7 @@ export default async function MemberPaymentHistoryPage({
           </ul>
         )}
       </section>
-    </div>
+      </div>
+    </PortalShell>
   );
 }

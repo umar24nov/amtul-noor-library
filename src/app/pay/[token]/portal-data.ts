@@ -42,6 +42,17 @@ export async function loadMemberFull(token: string) {
 export type PortalMember = NonNullable<Awaited<ReturnType<typeof loadMemberFull>>>;
 
 /**
+ * Loads the record and checks this link's access together. Pages call this
+ * before rendering anything so a blocked visitor never receives member details
+ * in the response, including the React Server Component payload.
+ */
+export async function loadPortal(token: string) {
+  const member = await loadMemberFull(token);
+  const access = await getPortalAccess(token, member.id);
+  return { member, ...access };
+}
+
+/**
  * Staff may inspect any member page, but only a member holding the access cookie
  * for this exact link may use the self-service forms. The layout uses this to
  * open the door; the pages use it to decide which controls to show.
