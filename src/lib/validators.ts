@@ -396,6 +396,16 @@ export const otpVerifySchema = z
     message: "The passwords do not match",
   });
 
+/** A member's permanent payment link; the token is never taken from a hidden
+ *  field without also being checked against the database. */
+export const memberLinkTokenSchema = z.object({
+  payToken: z.string().trim().regex(/^[0-9a-f]{24,64}$/, "Invalid payment link"),
+});
+
+export const memberLinkVerifySchema = memberLinkTokenSchema.extend({
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
+});
+
 /** Flattens a Zod error into `{ field: message }` for form rendering. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

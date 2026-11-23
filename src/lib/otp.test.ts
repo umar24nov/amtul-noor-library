@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   generateOtpCode,
+  hashMemberLinkCode,
   hashOtpCode,
+  memberLinkCodeMatches,
   otpCodeMatches,
   otpExpiresAt,
   otpIsExpired,
@@ -16,6 +18,7 @@ process.env.AUTH_SECRET = "test-auth-secret-that-is-long-enough-for-hs256";
 
 const EMAIL = "Umar@AmtulNoorLibrary.in";
 const CODE = "042517";
+const PAY_TOKEN = "0c984abc68cb49bdafdbcbf717f0702d";
 
 test("generated codes are always six digits", () => {
   for (let i = 0; i < 50; i += 1) {
@@ -60,4 +63,20 @@ test("the request window and cooldown are calculated from the newest limit", () 
   assert.equal(otpRetryAfterMinutes(now, now), 15);
   assert.equal(otpRetryAfterMinutes(new Date(now.getTime() - 10 * 60_000), now), 5);
   assert.equal(otpRetryAfterMinutes(new Date(now.getTime() - 16 * 60_000), now), 1);
+});
+
+test("member-link codes are bound to the link and can never verify as admin codes", () => {
+  const hash = hashMemberLinkCode(PAY_TOKEN, EMAIL, CODE);
+
+  assert.equal(hash, hashMemberLinkCode(PAY_TOKEN, "umar@amtulnoorlibrary.in", CODE));
+  assert.notEqual(hash, hashMemberLinkCode("another-token", EMAIL, CODE));
+  assert.notEqual(hash, hashMemberLinkCode(PAY_TOKEN, EMAIL, "042518"));
+  assert.notEqual(hash, hashOtpCode(EMAIL, CODE));
+
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, hash), true);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, "000000", hash), false);
+  assert.equal(memberLinkCodeMatches("another-token", EMAIL, CODE, hash), false);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, "other@example.com", CODE, hash), false);
+  assert.equal(memberLinkCodeMatches(PAY_TOKEN, EMAIL, CODE, hashOtpCode(EMAIL, CODE)), false);
+  assert.equal(otpCodeMatches(EMAIL, CODE, hash), false);
 });

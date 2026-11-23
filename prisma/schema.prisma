@@ -267,6 +267,27 @@ model LoginOtp {
   @@index([createdAt])
 }
 
+/// A one-time email code for a member's permanent /pay link. Kept separate from
+/// admin password recovery so a code for a member can never reset a staff
+/// password, and bound to the link token as well as the member's email.
+model MemberLinkOtp {
+  id          Int       @id @default(autoincrement())
+  /// The payToken of the link the code unlocks.
+  payToken    String
+  /// Email the code was sent to, copied from the member at request time.
+  email       String
+  /// HMAC-SHA256 of `member-link:payToken:email:code`, keyed by AUTH_SECRET.
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  ip          String    @default("")
+  createdAt   DateTime  @default(now())
+
+  @@index([payToken, createdAt])
+  @@index([createdAt])
+}
+
 /// A named set of abilities the owner hands to people. The owner chooses each
 /// role's name, so "Front desk" and "Reader" can both be day-to-day while
 /// "Owner" is a full admin.

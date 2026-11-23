@@ -38,11 +38,37 @@ export function hashOtpCode(email: string, code: string): string {
     .digest("hex");
 }
 
-/** Constant-time comparison against the stored hash. */
-export function otpCodeMatches(email: string, code: string, expectedHash: string): boolean {
-  const actual = Buffer.from(hashOtpCode(email, code), "hex");
+/** Constant-time comparison of two hex hashes. */
+function hashesMatch(actualHash: string, expectedHash: string): boolean {
+  const actual = Buffer.from(actualHash, "hex");
   const expected = Buffer.from(expectedHash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** Constant-time comparison against the stored hash. */
+export function otpCodeMatches(email: string, code: string, expectedHash: string): boolean {
+  return hashesMatch(hashOtpCode(email, code), expectedHash);
+}
+
+/**
+ * Member-link codes are bound to the permanent pay token as well as the email,
+ * so a code from one member's link cannot unlock another member's link even if
+ * two members share an address. The distinct prefix also keeps these codes from
+ * ever verifying as an admin password-recovery code.
+ */
+export function hashMemberLinkCode(payToken: string, email: string, code: string): string {
+  return createHmac("sha256", secretKey())
+    .update(`member-link:${payToken}:${email.trim().toLowerCase()}:${code}`)
+    .digest("hex");
+}
+
+export function memberLinkCodeMatches(
+  payToken: string,
+  email: string,
+  code: string,
+  expectedHash: string,
+): boolean {
+  return hashesMatch(hashMemberLinkCode(payToken, email, code), expectedHash);
 }
 
 export function otpExpiresAt(now: Date = new Date()): Date {

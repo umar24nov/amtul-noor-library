@@ -95,6 +95,25 @@ export async function sendLoginCodeEmail(input: {
   });
 }
 
+/** Sends the one-time code that unlocks a member's permanent payment link. */
+export async function sendMemberLinkCodeEmail(input: {
+  to: string;
+  code: string;
+}): Promise<ApplicationEmailResult> {
+  const html = [
+    `<p>Someone opened your ${escapeHtml(LIBRARY_NAME)} payment link and asked for a sign-in code.</p>`,
+    `<p>Your code is <strong style="font-size:22px;letter-spacing:4px">${escapeHtml(input.code)}</strong>.</p>`,
+    `<p>Enter it on the payment page to see your fee details and receipts. It expires in ${OTP_TTL_MINUTES} minutes and can be used once. If you did not open the link, you can ignore this message.</p>`,
+    `<p>— ${LIBRARY_NAME}</p>`,
+  ].join("\n");
+
+  return postEmail({
+    to: input.to,
+    subject: `Your ${LIBRARY_NAME} payment link code`,
+    html,
+  });
+}
+
 /**
  * Tells the library inbox that a new application has arrived, with everything
  * the owner needs to decide. Replies go straight back to the applicant.

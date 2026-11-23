@@ -28,10 +28,10 @@ It is two things in one:
 - **See the library** — what it offers, where it is, when it is open, and what a
   seat costs.
 - **Apply for a membership** through the public join form, without a phone call.
-- **Open a payment link** sent by the library and pay the monthly fee via NEFT/bank transfer,
-  with a digital receipt to follow.
-- **View a receipt** at a private link, or ask a question through the help &
-  support form.
+- **Open a payment link** sent by the library, confirm it with a one-time code
+  emailed to you, and pay the monthly fee via NEFT/bank transfer.
+- **View a receipt** from that verified page, or ask a question through the help
+  & support form.
 
 ### For the library staff
 
@@ -89,8 +89,9 @@ A single Next.js application (App Router) with a PostgreSQL database.
 
 ## Notes
 
-- Admin accounts come from environment variables rather than a database table,
-  so there is a single owner login.
+- Admin accounts are managed in the **Users** tab. The original environment
+  variable pair is kept only as a break-glass login when no matching account row
+  exists yet.
 - The public site is open to everyone; everything behind `/login` is not, and is
   checked again on each page and action by role.
 - A forgotten password is recovered at `/forgot-password`: the sign-in email gets
@@ -98,6 +99,15 @@ A single Next.js application (App Router) with a PostgreSQL database.
   works once. Entering it sets a new password and signs you in. Requests are
   capped at three per email or address every 15 minutes, and five wrong codes
   burn a request, so the flow cannot be used to spray or guess codes.
+- A member's `/pay/<token>` link is no longer a bearer link: opening it asks for
+  a six digit code sent to the email saved in **Members**. The same rules apply —
+  10 minute expiry, one use, HMAC-hashed, three requests per link or address per
+  15 minutes, five wrong attempts — and these codes live in a separate table so
+  they cannot reset a staff password. Verifying issues a 12 hour httpOnly cookie
+  scoped to that one member and link; `/receipts/<token>` honours the same gate,
+  while signed-in staff with members or payments access keep their direct links.
+  A member with no email saved sees a contact-library message instead, and their
+  link stays blocked until the email is added in Members.
 - Configuration that the owner is likely to change — fees, timings, phone
   numbers, the address, the rules — lives in `src/lib/constants.ts`.
 - The Users screen keeps an encrypted copy of the last password that was set
