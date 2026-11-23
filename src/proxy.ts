@@ -24,10 +24,12 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // The login page decides whether a signed-in visitor goes to the dashboard,
+  // using the database-backed session. This proxy only checks the JWT, so
+  // redirecting /login here would trap anyone whose account was deactivated or
+  // renamed: they would bounce between /dashboard and /login forever. Let the
+  // page render the form when the cookie is stale; signing in replaces it.
   if (pathname === "/login") {
-    if (signedIn) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
     return NextResponse.next();
   }
 
