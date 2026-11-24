@@ -11,14 +11,14 @@ export const metadata: Metadata = {
 };
 
 /**
- * The public sign-in screen. On phones it is one simple stack; on larger
- * screens the same words and form sit in a compact two-part card so the page
- * does not become a long, narrow column.
+ * The public sign-in screen stays a single compact card at every size. On wider
+ * screens the two fields sit side by side so the page does not become a long,
+ * narrow column or a decorative two-panel layout.
  */
 export default function MemberEntryPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-muted/40">
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/"
@@ -31,32 +31,38 @@ export default function MemberEntryPage() {
           <ThemeToggle />
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-8 sm:py-10 lg:py-12">
-          <div className="w-full lg:max-w-4xl">
-            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)] lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-              <div className="border-b border-border bg-muted/30 p-6 sm:p-8 lg:flex lg:flex-col lg:justify-center lg:border-b-0 lg:border-r lg:p-10">
-                <span className="grid size-12 place-items-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+        <main className="flex flex-1 items-center justify-center py-8 sm:py-10">
+          <div className="w-full">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:p-7">
+              <div className="flex items-center gap-3 border-b border-border pb-5">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/20">
                   <BookOpen className="size-5" aria-hidden="true" />
                 </span>
-                <p className="font-heading mt-4 text-sm font-semibold tracking-tight">
-                  {LIBRARY_NAME}
-                </p>
-                <h1 className="font-heading mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                <div className="min-w-0">
+                  <p className="font-heading truncate text-sm font-semibold tracking-tight">
+                    {LIBRARY_NAME}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Member access</p>
+                </div>
+              </div>
+
+              <div className="pt-5">
+                <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
                   Login
                 </h1>
-                <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
                   Enter your Member ID and registered email address. We&apos;ll send a one-time
                   verification code (OTP) to your email to verify your identity.
                 </p>
               </div>
 
-              <div className="p-6 sm:p-8 lg:p-10">
+              <div className="mt-6">
                 <MemberAccessForm />
               </div>
-            </div>
+            </section>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-center text-xs leading-relaxed text-muted-foreground">
-              <span>Don&apos;t have the saved email?</span>
+            <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">
+              Don&apos;t have the saved email?{" "}
               <a
                 href={LIBRARY_WHATSAPP_URL}
                 target="_blank"
@@ -66,9 +72,9 @@ export default function MemberEntryPage() {
                 <MessageCircle className="size-3.5" aria-hidden="true" />
                 Contact support
               </a>
-            </div>
+            </p>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

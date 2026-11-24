@@ -125,7 +125,7 @@ export function MemberAccessForm() {
         setDifferentDetails(false);
         setCode("");
       }}
-      className="grid gap-4"
+      className="grid gap-4 sm:grid-cols-2"
     >
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-member-id`}>Member ID</Label>
@@ -143,9 +143,6 @@ export function MemberAccessForm() {
           className="h-12 font-medium tracking-wide"
         />
         <FieldError message={requestState.fieldErrors?.memberId} />
-        <p className="text-xs text-muted-foreground">
-          You&apos;ll find it on your membership record or past receipt.
-        </p>
       </div>
 
       <div className="grid gap-1.5">
@@ -166,14 +163,20 @@ export function MemberAccessForm() {
         <FieldError message={requestState.fieldErrors?.email} />
       </div>
 
+      <p className="-mt-1 text-xs text-muted-foreground sm:col-span-2">
+        You&apos;ll find your Member ID on your membership record or past receipt.
+      </p>
+
       {requestState.status === "error" && requestState.message && (
-        <p className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+        <p className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive sm:col-span-2">
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           {requestState.message}
         </p>
       )}
 
-      <SubmitButton busy="Sending code" busyLabel="Sending code" label="Email me a code" />
+      <div className="sm:col-span-2">
+        <SubmitButton busy="Sending code" busyLabel="Sending code" label="Email me a code" />
+      </div>
     </form>
   );
 }
