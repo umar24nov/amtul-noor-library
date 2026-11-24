@@ -253,7 +253,8 @@ export function PaymentForm({
             onChange={(event) => {
               const next = event.target.value as PaymentMode;
               setPaymentMode(next);
-              // An offer is recorded as a paid zero, never as a pending charge.
+              // An offer is a paid zero. A plain zero is kept when the member
+              // has no fee; otherwise restore the usual fee for a real payment.
               setAmount((current) => {
                 if (next === "OFFER") return "0";
                 return current === "0" ? String(defaultFee) : current;

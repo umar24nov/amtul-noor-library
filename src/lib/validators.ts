@@ -94,7 +94,14 @@ export const memberFormSchema = z.object({
       .max(100000, "Fee looks too large")
       .optional(),
   ),
-  payAmount: z.preprocess(emptyToUndefined, z.coerce.number().positive("Amount must be greater than 0").max(100000).optional()),
+  payAmount: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number("Amount must be a number")
+      .min(0, "Amount cannot be negative")
+      .max(100000, "Amount looks too large")
+      .optional(),
+  ),
   payMode: z.preprocess(emptyToUndefined, z.enum(["CASH", "ONLINE", "OFFER"]).optional()),
   payMonth: z.preprocess(emptyToUndefined, monthKeySchema.optional()),
   payDate: z.preprocess(emptyToUndefined, dateInputSchema.optional()),
@@ -103,25 +110,24 @@ export const memberFormSchema = z.object({
 export type MemberFormValues = z.input<typeof memberFormSchema>;
 export type MemberFormOutput = z.output<typeof memberFormSchema>;
 
-export const paymentFormSchema = z
-  .object({
-    memberId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive("Select a member")),
-    amount: z.coerce
-      .number({ message: "Amount is required" })
-      .min(0, "Amount cannot be negative")
-      .max(100000, "Amount looks too large"),
-    paymentMode: z.enum(["CASH", "ONLINE", "OFFER"], { message: "Select a payment mode" }),
-    paymentDate: dateInputSchema,
-    status: z.enum(["PAID", "PENDING", "WAIVED", "NOT_APPLICABLE", "ON_HOLD"], {
-      message: "Select a status",
-    }),
-    remarks: optionalText(500),
-  })
-  // Only an offer or concession may be recorded as a paid zero.
-  .refine((value) => value.amount !== 0 || value.paymentMode === "OFFER", {
-    message: "Amount must be greater than 0",
-    path: ["amount"],
-  });
+/**
+ * A zero amount is a real record: a free month, a full concession, or a member
+ * with no fee. Negative amounts are still refused, but no mode or status is
+ * forced just to record ₹0.
+ */
+export const paymentFormSchema = z.object({
+  memberId: z.preprocess(emptyToUndefined, z.coerce.number().int().positive("Select a member")),
+  amount: z.coerce
+    .number({ message: "Amount is required" })
+    .min(0, "Amount cannot be negative")
+    .max(100000, "Amount looks too large"),
+  paymentMode: z.enum(["CASH", "ONLINE", "OFFER"], { message: "Select a payment mode" }),
+  paymentDate: dateInputSchema,
+  status: z.enum(["PAID", "PENDING", "WAIVED", "NOT_APPLICABLE", "ON_HOLD"], {
+    message: "Select a status",
+  }),
+  remarks: optionalText(500),
+});
 
 export type PaymentFormValues = z.input<typeof paymentFormSchema>;
 export type PaymentFormOutput = z.output<typeof paymentFormSchema>;

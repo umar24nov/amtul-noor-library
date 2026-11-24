@@ -11,7 +11,7 @@ import {
   seatHasLocker,
 } from "./constants";
 import { layoutForSeatNumber, SEAT_LAYOUTS } from "./seat-layouts";
-import { feeFormSchema, memberFormSchema } from "./validators";
+import { feeFormSchema, memberFormSchema, paymentFormSchema } from "./validators";
 import type { PaymentStatus } from "@/generated/prisma/enums";
 
 function row(status: PaymentStatus) {
@@ -151,6 +151,8 @@ test("a zero fee is allowed and owes nothing", () => {
   assert.equal(feeFormSchema.safeParse({ fee: 0 }).success, true);
   assert.equal(feeFormSchema.safeParse({ fee: -1 }).success, false);
   assert.equal(memberFormSchema.shape.monthlyFee.safeParse(0).success, true);
+  assert.equal(memberFormSchema.shape.payAmount.safeParse(0).success, true);
+  assert.equal(memberFormSchema.shape.payAmount.safeParse(-1).success, false);
 
   const summary = summarizeArrears({
     fee: 0,
@@ -160,5 +162,27 @@ test("a zero fee is allowed and owes nothing", () => {
   });
   assert.deepEqual(summary.months, []);
   assert.equal(summary.totalDue, 0);
+});
+
+test("a zero payment can be recorded with any mode or status", () => {
+  const base = {
+    memberId: 1,
+    amount: 0,
+    paymentMode: "ONLINE" as const,
+    paymentDate: "2026-01-15",
+    status: "PAID" as const,
+  };
+
+  assert.equal(paymentFormSchema.safeParse(base).success, true);
+  assert.equal(
+    paymentFormSchema.safeParse({ ...base, paymentMode: "CASH", status: "WAIVED" }).success,
+    true,
+  );
+  assert.equal(
+    paymentFormSchema.safeParse({ ...base, paymentMode: "OFFER", status: "NOT_APPLICABLE" })
+      .success,
+    true,
+  );
+  assert.equal(paymentFormSchema.safeParse({ ...base, amount: -1 }).success, false);
 });
 
