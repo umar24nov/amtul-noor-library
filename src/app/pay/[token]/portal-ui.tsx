@@ -296,7 +296,7 @@ export function PortalHero({
  */
 export function PayLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-[#f6f7f9] text-foreground antialiased">
+    <div className="min-h-dvh bg-background text-foreground antialiased">
       {children}
     </div>
   );

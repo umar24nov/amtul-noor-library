@@ -245,7 +245,7 @@ export function PortalNav({
     <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] lg:block">{sidebar}</aside>
 
-      <div className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur-xl lg:hidden">
+      <div className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 text-foreground backdrop-blur-xl lg:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" aria-label="Open member navigation">
@@ -277,7 +277,7 @@ export function PortalNav({
           </span>
         </Link>
 
-        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+        <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           {staffAllowed ? "Staff" : memberId}
         </span>
       </div>

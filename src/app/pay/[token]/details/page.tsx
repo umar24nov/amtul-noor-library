@@ -123,7 +123,7 @@ export default async function MemberDetailsPage({
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)] xl:items-start">
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <header className="flex items-start gap-3 border-b border-border bg-gradient-to-br from-white to-muted/40 p-5 sm:p-6">
+          <header className="flex items-start gap-3 border-b border-border bg-gradient-to-br from-card to-muted/40 p-5 sm:p-6">
             <Accent icon={UserRound} tone="indigo" size="lg" />
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
