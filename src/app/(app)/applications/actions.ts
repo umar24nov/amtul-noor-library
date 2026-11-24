@@ -14,6 +14,7 @@ import { nextMemberId, newPayToken } from "@/lib/ids";
 import { monthlyFeeForSeat, seatHasLocker } from "@/lib/constants";
 import { memberFeeKey } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
+import { siteOrigin } from "@/lib/site";
 import { applicationEditSchema, fieldErrors } from "@/lib/validators";
 
 function revalidateAll() {
@@ -122,6 +123,8 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
         applicantName: result.applicantName,
         approved: true,
         seatLabel: result.seatLabel,
+        memberId: result.member.memberId,
+        memberLoginUrl: `${await siteOrigin()}/member`,
       });
       emailStatus = email.ok ? "sent" : "failed";
     }
@@ -294,6 +297,7 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
         rejectionReason: true,
         member: {
           select: {
+            memberId: true,
             seat: { select: { seatNumber: true } },
           },
         },
@@ -316,6 +320,9 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
       applicantName: application.name,
       approved: application.status === "APPROVED",
       seatLabel,
+      memberId: application.member?.memberId,
+      memberLoginUrl:
+        application.status === "APPROVED" ? `${await siteOrigin()}/member` : undefined,
       reason: application.rejectionReason,
     });
 

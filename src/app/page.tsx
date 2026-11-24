@@ -259,6 +259,17 @@ function Hero({
               </a>
             </Button>
           </div>
+
+          <p className="mt-3 text-sm text-muted-foreground">
+            Already a member?{" "}
+            <Link
+              href="/member"
+              className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Sign in to your member page
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </p>
         </div>
 
         <div className="relative flex h-full overflow-hidden rounded-2xl border border-border bg-muted shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">

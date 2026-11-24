@@ -219,6 +219,10 @@ export async function sendApplicationDecisionEmail(input: {
   approved: boolean;
   /** Seat number, when the member was given one. */
   seatLabel?: string | null;
+  /** The ID the member uses at the sign-in screen. */
+  memberId?: string | null;
+  /** Absolute link to the public member sign-in page. */
+  memberLoginUrl?: string | null;
   /** The owner's own words, for a rejection. */
   reason?: string | null;
 }): Promise<ApplicationEmailResult> {
@@ -237,6 +241,12 @@ export async function sendApplicationDecisionEmail(input: {
         seat
           ? `<p>Your seat is reserved: <strong>${seat}</strong>.</p>`
           : `<p>We&apos;ll assign your seat when you visit; please ask at the desk.</p>`,
+        input.memberId
+          ? `<p>You can log in to your member page using your registered email ID and Member ID <strong>${escapeHtml(input.memberId)}</strong>.</p>`
+          : `<p>You can log in to your member page using your registered email ID.</p>`,
+        input.memberLoginUrl
+          ? `<p>Visit <a href="${escapeHtml(input.memberLoginUrl)}">${escapeHtml(input.memberLoginUrl)}</a> and choose <strong>Member login</strong>. We&apos;ll email a one-time code to your registered address.</p>`
+          : `<p>Open the member login page on our website and choose <strong>Member login</strong>. We&apos;ll email a one-time code to your registered address.</p>`,
         `<p>We&apos;re open ${LIBRARY_HOURS}.</p>`,
         `<p>Our address: ${escapeHtml(LIBRARY_ADDRESS)}</p>`,
         `<p>If you have any questions, reply to this email or call ${LIBRARY_PHONE}. We look forward to seeing you.</p>`,

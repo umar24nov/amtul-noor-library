@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { buildReceiptBytes } from "@/lib/receipts";
+import { memberPortalCookieAllowed } from "@/lib/member-portal-access";
 import { getMemberLinkAccess } from "@/lib/member-link-auth";
 import { canAny, getSession } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +31,7 @@ export async function GET(
       id: true,
       status: true,
       memberId: true,
-      member: { select: { payToken: true } },
+      member: { select: { payToken: true, status: true } },
     },
   });
   if (!payment || payment.status !== "PAID") {
@@ -41,12 +42,11 @@ export async function GET(
   const staffAllowed = Boolean(
     session && canAny(session, ["MEMBERS", "PAYMENTS", "PAYMENTS_VIEW"]),
   );
-  const memberAllowed = Boolean(
-    access &&
-      payment.member.payToken &&
-      access.memberId === payment.memberId &&
-      access.payToken === payment.member.payToken,
-  );
+  const memberAllowed = memberPortalCookieAllowed({
+    status: payment.member.status,
+    access,
+    expected: { memberId: payment.memberId, payToken: payment.member.payToken },
+  });
 
   if (!staffAllowed && !memberAllowed) {
     const payToken = payment.member.payToken;

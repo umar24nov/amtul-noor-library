@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  memberCanUsePortal,
+  memberPortalCookieAllowed,
+  memberPortalCredentialsMatch,
+} from "./member-portal-access";
+import {
   memberPortalAccessSchema,
   memberPortalVerifySchema,
   memberSelfEditSchema,
@@ -55,4 +60,42 @@ test("member self-edit never carries staff-managed fields", () => {
     "name",
     "payToken",
   ]);
+});
+
+test("only an active member can sign in with the saved email", () => {
+  const details = {
+    savedEmail: "Arshad@Example.com",
+    enteredEmail: "arshad@example.com",
+    savedPayToken: "ae5ae67d8f4540b297856911466957a9",
+  };
+
+  assert.equal(memberCanUsePortal("ACTIVE"), true);
+  assert.equal(memberCanUsePortal("LEFT"), false);
+  assert.equal(memberCanUsePortal(null), false);
+  assert.equal(memberPortalCredentialsMatch({ status: "ACTIVE", ...details }), true);
+  assert.equal(memberPortalCredentialsMatch({ status: "LEFT", ...details }), false);
+  assert.equal(
+    memberPortalCredentialsMatch({ status: "ACTIVE", ...details, savedPayToken: null }),
+    false,
+  );
+});
+
+test("a left member's existing portal cookie no longer opens their pages", () => {
+  const expected = { memberId: 7, payToken: "ae5ae67d8f4540b297856911466957a9" };
+  const access = { memberId: 7, payToken: expected.payToken };
+
+  assert.equal(memberPortalCookieAllowed({ status: "ACTIVE", access, expected }), true);
+  assert.equal(memberPortalCookieAllowed({ status: "LEFT", access, expected }), false);
+  assert.equal(
+    memberPortalCookieAllowed({
+      status: "ACTIVE",
+      access,
+      expected: { ...expected, payToken: "someone-elses-token" },
+    }),
+    false,
+  );
+  assert.equal(
+    memberPortalCookieAllowed({ status: "ACTIVE", access: null, expected }),
+    false,
+  );
 });

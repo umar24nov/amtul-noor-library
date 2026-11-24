@@ -51,8 +51,8 @@ function MobileLink({
  * The landing page header. The section links, the Join us button and the mobile
  * menu all live here so one component owns the single join CTA on the page.
  *
- * Signing in is owner-only: nothing here links to /login, which is still
- * reachable by typing the address directly.
+ * Member sign-in is linked openly at /member. Staff sign-in stays unlinked:
+ * /login is still reachable only by typing the address directly.
  */
 export function LandingHeader({ items }: { items: LandingNavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -78,6 +78,12 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="hidden sm:block">
+              <Button asChild variant="outline" size="sm" className="h-9 px-4 text-sm">
+                <Link href="/member">Member login</Link>
+              </Button>
+            </div>
+
             <Button asChild size="sm" className="h-8 px-2.5 text-xs sm:h-9 sm:px-4 sm:text-sm">
               <Link href="/join">Book your seat</Link>
             </Button>
@@ -110,6 +116,14 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
                     />
                   ))}
                 </nav>
+                <div className="border-t border-border p-3">
+                  <Button asChild className="h-11 w-full">
+                    <Link href="/member" onClick={() => setOpen(false)}>
+                      Member login
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </div>
               </SheetContent>
             </Sheet>
           </div>

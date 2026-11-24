@@ -8,6 +8,7 @@ import {
 } from "@/lib/application-email";
 import { maskEmail } from "@/lib/email-mask";
 import { getClientIp } from "@/lib/login-rate-limit";
+import { memberPortalCredentialsMatch } from "@/lib/member-portal-access";
 import { createMemberLinkAccess } from "@/lib/member-link-auth";
 import {
   checkMemberLinkOtpLimit,
@@ -53,11 +54,17 @@ export async function requestMemberPortalCodeAction(
 
   const member = await prisma.member.findUnique({
     where: { memberId },
-    select: { id: true, payToken: true, email: true },
+    select: { id: true, payToken: true, email: true, status: true },
   });
-  const savedEmail = member?.email?.toLowerCase() ?? null;
+  const savedEmail = member?.email ?? null;
   const savedPayToken = member?.payToken ?? null;
-  const matched = Boolean(savedEmail && savedPayToken && savedEmail === email);
+  // A member only gets a code while the library still lists them as ACTIVE.
+  const matched = memberPortalCredentialsMatch({
+    status: member?.status,
+    savedEmail,
+    enteredEmail: email,
+    savedPayToken,
+  });
 
   // The synthetic key throttles attempts that do not match anyone. A matched
   // request also goes through the real link limiter, so it shares the same
@@ -112,13 +119,20 @@ export async function verifyMemberPortalCodeAction(
   const email = parsed.data.email.toLowerCase();
   const member = await prisma.member.findUnique({
     where: { memberId },
-    select: { id: true, payToken: true, email: true },
+    select: { id: true, payToken: true, email: true, status: true },
   });
-  const savedEmail = member?.email?.toLowerCase() ?? null;
-  const savedPayToken = member?.payToken ?? null;
-  if (!member || !savedEmail || !savedPayToken || savedEmail !== email) {
+  const matched = memberPortalCredentialsMatch({
+    status: member?.status,
+    savedEmail: member?.email ?? null,
+    enteredEmail: email,
+    savedPayToken: member?.payToken ?? null,
+  });
+  if (!member || !member.email || !member.payToken || !matched) {
     return errorState(CODE_WRONG);
   }
+
+  const savedEmail = member.email;
+  const savedPayToken = member.payToken;
 
   const result = await verifyMemberLinkCode(savedPayToken, savedEmail, parsed.data.code, "ACCESS");
   if (!result.ok) return errorState(result.message);

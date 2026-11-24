@@ -4,7 +4,8 @@
  *
  * The private screens are behind the sign-in, so an anonymous visit is
  * expected to be sent to /login rather than to answer 200. A page that answers
- * 200 without a session would be a hole, so the redirect is checked too.
+ * 200 without a session would be a hole, so the redirect is checked too. The
+ * landing page is also checked for the public member-login link.
  *
  *   node scripts/check-routes.mjs [base-url]
  *
@@ -15,7 +16,7 @@ const base = (process.argv[2] ?? process.env.SITE_URL ?? "https://www.amtulnoorl
   .replace(/\/+$/, "");
 
 const routes = [
-  { path: "/", expect: "ok" },
+  { path: "/", expect: "ok", contains: ["Member login", 'href="/member"'] },
   { path: "/login", expect: "ok" },
   { path: "/join", expect: "ok" },
   { path: "/member", expect: "ok" },
@@ -34,6 +35,7 @@ for (const route of routes) {
   const url = `${base}${route.path}`;
   let status = 0;
   let location = "";
+  let body = "";
   try {
     const response = await fetch(url, {
       redirect: "manual",
@@ -41,6 +43,7 @@ for (const route of routes) {
     });
     status = response.status;
     location = response.headers.get("location") ?? "";
+    if (route.contains?.length) body = await response.text();
   } catch (error) {
     console.log(`FAIL ${route.path} ${error instanceof Error ? error.message : String(error)}`);
     failed += 1;
@@ -48,10 +51,14 @@ for (const route of routes) {
   }
 
   if (route.expect === "ok") {
-    if (status === 200) {
+    const missing = (route.contains ?? []).filter((needle) => !body.includes(needle));
+    if (status === 200 && missing.length === 0) {
       console.log(`ok   ${route.path} 200`);
-    } else {
+    } else if (status !== 200) {
       console.log(`FAIL ${route.path} expected 200, got ${status}`);
+      failed += 1;
+    } else {
+      console.log(`FAIL ${route.path} is missing: ${missing.join(", ")}`);
       failed += 1;
     }
     continue;

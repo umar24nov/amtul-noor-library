@@ -10,6 +10,7 @@ import {
 import { maskEmail } from "@/lib/email-mask";
 import { getClientIp } from "@/lib/login-rate-limit";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
+import { memberCanUsePortal } from "@/lib/member-portal-access";
 import { createMemberLinkAccess } from "@/lib/member-link-auth";
 import {
   checkMemberLinkOtpLimit,
@@ -46,9 +47,12 @@ export async function requestMemberLinkCodeAction(
   const { payToken } = parsed.data;
   const member = await prisma.member.findUnique({
     where: { payToken },
-    select: { email: true },
+    select: { email: true, status: true },
   });
-  if (!member) return errorState("This payment link is not valid.");
+  // Keeping a copy of an old link must not keep a left member's access alive.
+  if (!member || !memberCanUsePortal(member.status)) {
+    return errorState("This payment link is not valid.");
+  }
   if (!member.email) {
     return errorState("We do not have an email for this member yet. Please contact the library.");
   }
@@ -95,9 +99,9 @@ export async function verifyMemberLinkCodeAction(
   const { payToken, code } = parsed.data;
   const member = await prisma.member.findUnique({
     where: { payToken },
-    select: { id: true, email: true },
+    select: { id: true, email: true, status: true },
   });
-  if (!member || !member.email) {
+  if (!member || !member.email || !memberCanUsePortal(member.status)) {
     return errorState("This payment link cannot be verified. Please contact the library.");
   }
 

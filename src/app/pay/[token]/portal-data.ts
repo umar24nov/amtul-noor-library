@@ -2,6 +2,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { currentMonthKey, normalizeSeatNumber, shiftMonthKey } from "@/lib/format";
+import { memberPortalCookieAllowed } from "@/lib/member-portal-access";
 import { getMemberLinkAccess } from "@/lib/member-link-auth";
 import { canAny, getSession } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,7 @@ export type PortalMember = NonNullable<Awaited<ReturnType<typeof loadMemberFull>
  */
 export async function loadPortal(token: string) {
   const member = await loadMemberFull(token);
-  const access = await getPortalAccess(token, member.id);
+  const access = await getPortalAccess(token, { id: member.id, status: member.status });
   return { member, ...access };
 }
 
@@ -58,12 +59,19 @@ export async function loadPortal(token: string) {
  * for this exact link may use the self-service forms. The layout uses this to
  * open the door; the pages use it to decide which controls to show.
  */
-export async function getPortalAccess(token: string, memberId: number) {
+export async function getPortalAccess(
+  token: string,
+  member: { id: number; status: "ACTIVE" | "LEFT" },
+) {
   const [session, access] = await Promise.all([getSession(), getMemberLinkAccess()]);
   const staffAllowed = Boolean(
     session && canAny(session, ["MEMBERS", "PAYMENTS", "PAYMENTS_VIEW"]),
   );
-  const memberAllowed = access?.payToken === token && access.memberId === memberId;
+  const memberAllowed = memberPortalCookieAllowed({
+    status: member.status,
+    access,
+    expected: { memberId: member.id, payToken: token },
+  });
   return { staffAllowed, memberAllowed, allowed: staffAllowed || memberAllowed };
 }
 
@@ -81,6 +89,7 @@ export async function requirePortalMemberAccess(token: string) {
     where: { payToken: token },
     select: {
       id: true,
+      status: true,
       name: true,
       mobile: true,
       email: true,
@@ -88,7 +97,16 @@ export async function requirePortalMemberAccess(token: string) {
       guardianMobile: true,
     },
   });
-  if (!member || access.memberId !== member.id) return null;
+  if (
+    !member ||
+    !memberPortalCookieAllowed({
+      status: member.status,
+      access,
+      expected: { memberId: member.id, payToken: token },
+    })
+  ) {
+    return null;
+  }
   return member;
 }
 
