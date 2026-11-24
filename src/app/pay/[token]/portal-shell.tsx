@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Eye, ShieldCheck } from "lucide-react";
 import { destroyMemberLinkAccess } from "@/lib/member-link-auth";
 import { MemberLinkGate } from "./member-link-gate";
 import { PortalNav } from "./portal-nav";
@@ -11,73 +9,66 @@ import { PayLayout } from "./portal-ui";
 /** Shown while a visitor has not entered the emailed code. No member data is rendered here. */
 export function PortalGate({ payToken, email }: { payToken: string; email: string | null }) {
   return (
-    <section className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-16">
+    <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-14">
       <MemberLinkGate payToken={payToken} email={email} />
     </section>
   );
 }
 
 /**
- * The bar and section navigation shown only after access has been proven.
- * Each page checks access before rendering this shell, so blocked visitors get
- * just the gate above — their content never reaches the response payload.
+ * The private-area frame. Each page checks access before rendering this shell,
+ * so a blocked visitor never receives member content in the RSC payload.
  */
 export function PortalShell({
   token,
   member,
   staffAllowed,
+  hero,
   children,
 }: {
   token: string;
   member: { id: number; memberId: string; name: string };
   staffAllowed: boolean;
+  hero?: ReactNode;
   children: ReactNode;
 }) {
   async function signOutAction() {
     "use server";
     await destroyMemberLinkAccess();
-    redirect(`/pay/${token}`);
+    redirect("/member");
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-16 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-950 text-white">
-            <ShieldCheck className="size-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Member portal · {member.memberId}
-            </p>
-            <p className="font-heading truncate text-sm font-semibold">{member.name}</p>
+    <PayLayout>
+      <PortalNav
+        token={token}
+        memberName={member.name}
+        memberId={member.memberId}
+        staffAllowed={staffAllowed}
+        signOutAction={staffAllowed ? undefined : signOutAction}
+      />
+
+      <div className="min-h-dvh lg:pl-[280px]">
+        {staffAllowed && (
+          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-900 sm:px-6 lg:px-8">
+            <Eye className="size-3.5 shrink-0" aria-hidden="true" />
+            Staff preview — read only. This member&apos;s self-service controls are hidden.
           </div>
-        </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link href="/">
-              <ArrowLeft className="size-3.5" />
-              Library home
-            </Link>
-          </Button>
-          {!staffAllowed && (
-            <form action={signOutAction}>
-              <Button type="submit" variant="outline" size="sm">
-                <LogOut className="size-3.5" />
-                Sign out
-              </Button>
-            </form>
-          )}
-        </div>
+        <main
+          id="main"
+          className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-9"
+        >
+          {hero}
+          <div className={hero ? "mt-6 grid gap-6" : "grid gap-6"}>{children}</div>
+
+          <p className="mt-10 flex items-center justify-center gap-2 text-center text-[11px] text-slate-400">
+            <ShieldCheck className="size-3.5" aria-hidden="true" />
+            Private member area · identity documents are never shown here
+          </p>
+        </main>
       </div>
-
-      <PortalNav token={token} />
-
-      <div className="mt-6">{children}</div>
-    </div>
+    </PayLayout>
   );
 }
-
-/** Re-exported so every member page can use the same outer page frame. */
-export { PayLayout };

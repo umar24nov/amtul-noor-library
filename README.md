@@ -113,13 +113,21 @@ A single Next.js application (App Router) with a PostgreSQL database.
   leaving the email; `/copy-code` remains for older messages that linked to it.
   The WhatsApp confirmation names the member and offers Cash or Online (NEFT), and
   fee reminders point to opening hours or online payment.
-- The verified `/pay/<token>` link opens a member area with a landing page and
-  separate pages for details (`/details`), payments (`/payments`), payment
+- The public **Members** tab opens `/member`, a standalone sign-in screen with no
+  site header or footer. A member enters their member ID and saved email; if they
+  match, a one-time code is sent to the saved address and verifying it opens
+  `/pay/<token>/details`. The reply is generic when they do not match, so the
+  form cannot be used to discover who is a member. Existing `/pay/<token>` links
+  work as before and now open on details too.
+- The verified `/pay/<token>` link opens a private member app with a permanent
+  side navigation (a slide-over on small screens) and no public site navigation
+  or footer. Details is the default page (`/pay/<token>` redirects to
+  `/pay/<token>/details`); the other sections are payments (`/payments`), payment
   history (`/payments/history`), email and sign-in (`/email`), and support
-  (`/support`). The landing page is a calm overview with quick links; each
-  section has its own page. A member may correct their own name, mobile and
-  guardian contacts, but seat, fee, joining date, status and internal remarks
-  stay staff-only, and no Aadhaar data is shown. Changing the email sends a code
+  (`/support`). The details page has the library photograph as a full-bleed hero.
+  A member may correct their own name, mobile and guardian contacts, but seat,
+  fee, joining date, status and internal remarks stay staff-only, and no Aadhaar
+  data is shown. Changing the email sends a code
   to the **new** address and only takes effect once that code is entered, so
   future sign-in codes go to an inbox the member proved they control. Sign-in
   and email-change codes share a table but use different purposes (`ACCESS` /

@@ -36,6 +36,7 @@ export function SiteFooter() {
 
   const supportLinks: { href: string; label: string; external?: boolean }[] = [
     { href: "/join", label: "Apply for a seat" },
+    { href: "/member", label: "Member sign in" },
     { href: "/support", label: "Help & support" },
     { href: LIBRARY_MAPS_URL, label: "Reviews on Google Maps", external: true },
     { href: "/developer", label: "Developer" },

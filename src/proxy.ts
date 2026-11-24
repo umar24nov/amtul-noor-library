@@ -34,7 +34,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn) {
-    // The landing page, the join form, receipt downloads, the per-member /pay
+    // The landing page, the member entry, the join form, receipt downloads, the per-member /pay
     // pages, the code-copy helper and the forgotten-password flow are the public
     // face of the library, so those are the paths a signed out visitor may see.
     // Receipts and pay pages are addressed by unguessable tokens, so they stay
@@ -42,6 +42,7 @@ export async function proxy(request: NextRequest) {
     // one. (/login is handled above because its page checks the session itself.)
     if (
       pathname === "/" ||
+      pathname === "/member" ||
       pathname === "/join" ||
       pathname === "/forgot-password" ||
       pathname === "/copy-code" ||

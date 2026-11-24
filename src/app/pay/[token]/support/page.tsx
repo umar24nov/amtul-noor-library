@@ -48,7 +48,7 @@ export default async function MemberSupportPage({
         description="Something wrong, or just not sure where to look? Talk to the library directly."
         action={
           <Button asChild variant="outline" size="sm">
-            <Link href={`/pay/${token}`}>Back to overview</Link>
+            <Link href={`/pay/${token}/details`}>Back to my details</Link>
           </Button>
         }
       />

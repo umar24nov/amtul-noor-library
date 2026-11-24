@@ -11,4 +11,5 @@ export const SITE_NAV: SiteNavItem[] = [
   { href: "/#amenities", label: "Amenities" },
   { href: "/#plans", label: "Fees" },
   { href: "/#visit", label: "Visit" },
+  { href: "/member", label: "Members" },
 ];

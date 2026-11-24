@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, successState, type ActionState } from "@/lib/action-result";
 import {
@@ -11,7 +10,7 @@ import {
 import { maskEmail } from "@/lib/email-mask";
 import { getClientIp } from "@/lib/login-rate-limit";
 import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
-import { createMemberLinkAccess, getMemberLinkAccess } from "@/lib/member-link-auth";
+import { createMemberLinkAccess } from "@/lib/member-link-auth";
 import {
   checkMemberLinkOtpLimit,
   createMemberLinkOtpRequest,
@@ -20,6 +19,7 @@ import {
 } from "@/lib/member-link-otp";
 import { OTP_TTL_MINUTES } from "@/lib/otp-code";
 import { prisma } from "@/lib/prisma";
+import { requirePortalMemberAccess, revalidatePortal } from "./portal-data";
 import {
   fieldErrors,
   memberEmailChangeRequestSchema,
@@ -112,30 +112,6 @@ export async function verifyMemberLinkCodeAction(
   redirect(`/pay/${payToken}`);
 }
 
-/**
- * Resolves the member behind a pay link only when the visitor holds the
- * short-lived access cookie for that exact link. Staff sessions do not grant
- * member self-service edits; those go through the admin Members screen.
- */
-async function requireMemberAccess(payToken: string) {
-  const access = await getMemberLinkAccess();
-  if (!access || access.payToken !== payToken) return null;
-
-  const member = await prisma.member.findUnique({
-    where: { payToken },
-    select: {
-      id: true,
-      name: true,
-      mobile: true,
-      email: true,
-      guardianName: true,
-      guardianMobile: true,
-    },
-  });
-  if (!member || access.memberId !== member.id) return null;
-  return member;
-}
-
 /** Lets a member correct their own personal details. */
 export async function updateMemberDetailsAction(
   _prev: ActionState,
@@ -153,7 +129,7 @@ export async function updateMemberDetailsAction(
   }
 
   const { payToken, ...details } = parsed.data;
-  const member = await requireMemberAccess(payToken);
+  const member = await requirePortalMemberAccess(payToken);
   if (!member) return errorState("Please verify this link before editing your details.");
 
   const mobile = details.mobile ?? null;
@@ -199,8 +175,7 @@ export async function updateMemberDetailsAction(
     });
   });
 
-  revalidatePath(`/pay/${payToken}`);
-  revalidatePath(`/pay/${payToken}/details`);
+  revalidatePortal(payToken);
   redirect(`/pay/${payToken}/details`);
 }
 
@@ -218,7 +193,7 @@ export async function requestMemberEmailChangeAction(
   }
 
   const { payToken, email } = parsed.data;
-  const member = await requireMemberAccess(payToken);
+  const member = await requirePortalMemberAccess(payToken);
   if (!member) return errorState("Please verify this link before changing your email.");
   if (member.email && member.email.toLowerCase() === email) {
     return errorState("That is already the email on your record.", { email: "Already your email" });
@@ -265,7 +240,7 @@ export async function verifyMemberEmailChangeAction(
   }
 
   const { payToken, email, code } = parsed.data;
-  const member = await requireMemberAccess(payToken);
+  const member = await requirePortalMemberAccess(payToken);
   if (!member) return errorState("Please verify this link before changing your email.");
 
   const result = await verifyMemberLinkCode(payToken, email, code, "EMAIL_CHANGE");
@@ -285,7 +260,6 @@ export async function verifyMemberEmailChangeAction(
     });
   });
 
-  revalidatePath(`/pay/${payToken}`);
-  revalidatePath(`/pay/${payToken}/email`);
+  revalidatePortal(payToken);
   redirect(`/pay/${payToken}/email`);
 }

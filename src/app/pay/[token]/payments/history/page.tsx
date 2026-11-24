@@ -39,7 +39,7 @@ export default async function MemberPaymentHistoryPage({
               {count} {count === 1 ? "entry" : "entries"}
             </span>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/pay/${token}`}>Overview</Link>
+              <Link href={`/pay/${token}/details`}>My details</Link>
             </Button>
           </div>
         }

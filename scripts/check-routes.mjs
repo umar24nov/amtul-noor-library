@@ -18,6 +18,7 @@ const routes = [
   { path: "/", expect: "ok" },
   { path: "/login", expect: "ok" },
   { path: "/join", expect: "ok" },
+  { path: "/member", expect: "ok" },
   { path: "/support", expect: "ok" },
   { path: "/copy-code", expect: "ok" },
   { path: "/opengraph-image", expect: "ok" },

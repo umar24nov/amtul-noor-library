@@ -431,6 +431,26 @@ export const memberEmailChangeVerifySchema = memberEmailChangeRequestSchema.exte
   code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
 });
 
+/**
+ * Public member sign-in. Both steps ask for the same identity so the server can
+ * find the saved email without ever accepting an address a visitor supplies as
+ * the destination for a code. This keeps the Members entry usable without
+ * exposing anyone's pay link or letting the form probe arbitrary inboxes.
+ */
+export const memberPortalAccessSchema = z.object({
+  memberId: z
+    .string()
+    .trim()
+    .min(1, "Member ID is required")
+    .max(24, "Member ID looks too long")
+    .regex(/^[A-Za-z0-9-]+$/, "Enter a valid member ID"),
+  email: signInEmailSchema,
+});
+
+export const memberPortalVerifySchema = memberPortalAccessSchema.extend({
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit code"),
+});
+
 /** Flattens a Zod error into `{ field: message }` for form rendering. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

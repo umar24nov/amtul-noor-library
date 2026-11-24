@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { currentMonthKey, normalizeSeatNumber, shiftMonthKey } from "@/lib/format";
 import { getMemberLinkAccess } from "@/lib/member-link-auth";
@@ -64,6 +65,44 @@ export async function getPortalAccess(token: string, memberId: number) {
   );
   const memberAllowed = access?.payToken === token && access.memberId === memberId;
   return { staffAllowed, memberAllowed, allowed: staffAllowed || memberAllowed };
+}
+
+/**
+ * The only way a member write action gets a record. It requires the signed
+ * member cookie for this exact pay link and re-checks the id against the
+ * database, so a staff session or a cookie from another member is never enough.
+ */
+export async function requirePortalMemberAccess(token: string) {
+  assertPayToken(token);
+  const access = await getMemberLinkAccess();
+  if (!access || access.payToken !== token) return null;
+
+  const member = await prisma.member.findUnique({
+    where: { payToken: token },
+    select: {
+      id: true,
+      name: true,
+      mobile: true,
+      email: true,
+      guardianName: true,
+      guardianMobile: true,
+    },
+  });
+  if (!member || access.memberId !== member.id) return null;
+  return member;
+}
+
+/** Every member page shows the name, so every member page must be refreshed. */
+export function revalidatePortal(token: string): void {
+  const paths = [
+    `/pay/${token}`,
+    `/pay/${token}/details`,
+    `/pay/${token}/payments`,
+    `/pay/${token}/payments/history`,
+    `/pay/${token}/email`,
+    `/pay/${token}/support`,
+  ];
+  for (const path of paths) revalidatePath(path);
 }
 
 /** Fee, due month and counts shared by the home and payment pages. */
