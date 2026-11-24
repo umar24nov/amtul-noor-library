@@ -100,7 +100,7 @@ export function MemberAccessForm() {
             </p>
           )}
 
-          <SubmitButton busy="Checking code" busyLabel="Checking code" label="Open my member area" />
+          <SubmitButton busy="Checking code" busyLabel="Checking code" label="Verify code" />
 
           <button
             type="button"
@@ -134,7 +134,7 @@ export function MemberAccessForm() {
           name="memberId"
           value={memberId}
           onChange={(event) => setMemberId(event.target.value.toUpperCase())}
-          placeholder="ATN003"
+          placeholder="ATN001"
           maxLength={24}
           required
           autoCapitalize="characters"

@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Clock,
   Lock,
+  LogIn,
   MapPin,
   MessageCircle,
   Phone,
@@ -264,10 +265,10 @@ function Hero({
             Already a member?{" "}
             <Link
               href="/member"
-              className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 hover:underline"
             >
-              Sign in to your member page
-              <ArrowRight className="size-3.5" aria-hidden="true" />
+              Login
+              <LogIn className="size-3.5" aria-hidden="true" />
             </Link>
           </p>
         </div>

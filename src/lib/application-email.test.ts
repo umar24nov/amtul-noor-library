@@ -100,7 +100,7 @@ test("the welcome email explains how an approved member signs in", async () => {
       /You can log in to your member page using your registered email ID and Member ID <strong>ATN003<\/strong>\./,
     );
     assert.match(html, /href="https:\/\/www\.amtulnoorlibrary\.in\/member"/);
-    assert.match(html, /choose <strong>Member login<\/strong>/);
+    assert.match(html, /choose <strong>Login<\/strong>/);
     assert.match(html, /one-time code to your registered address/);
 
     html = "";

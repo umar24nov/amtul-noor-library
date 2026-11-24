@@ -5,7 +5,7 @@
  * The private screens are behind the sign-in, so an anonymous visit is
  * expected to be sent to /login rather than to answer 200. A page that answers
  * 200 without a session would be a hole, so the redirect is checked too. The
- * landing page is also checked for the public member-login link.
+ * landing page is also checked for the public Login link.
  *
  *   node scripts/check-routes.mjs [base-url]
  *
@@ -16,10 +16,14 @@ const base = (process.argv[2] ?? process.env.SITE_URL ?? "https://www.amtulnoorl
   .replace(/\/+$/, "");
 
 const routes = [
-  { path: "/", expect: "ok", contains: ["Member login", 'href="/member"'] },
+  { path: "/", expect: "ok", contains: ["Login", 'href="/member"'] },
   { path: "/login", expect: "ok" },
   { path: "/join", expect: "ok" },
-  { path: "/member", expect: "ok" },
+  {
+    path: "/member",
+    expect: "ok",
+    contains: ["Enter your Member ID and registered email address.", "ATN001"],
+  },
   { path: "/support", expect: "ok" },
   { path: "/copy-code", expect: "ok" },
   { path: "/opengraph-image", expect: "ok" },

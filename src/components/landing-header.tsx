@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Menu } from "lucide-react";
+import { ArrowRight, LogIn, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -79,8 +79,16 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden sm:block">
-              <Button asChild variant="outline" size="sm" className="h-9 px-4 text-sm">
-                <Link href="/member">Member login</Link>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 rounded-full border-border bg-card px-4 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:bg-foreground hover:text-background hover:shadow-md"
+              >
+                <Link href="/member">
+                  <LogIn className="size-4" aria-hidden="true" />
+                  Login
+                </Link>
               </Button>
             </div>
 
@@ -117,10 +125,10 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
                   ))}
                 </nav>
                 <div className="border-t border-border p-3">
-                  <Button asChild className="h-11 w-full">
+                  <Button asChild className="h-11 w-full gap-2">
                     <Link href="/member" onClick={() => setOpen(false)}>
-                      Member login
-                      <ArrowRight className="size-4" aria-hidden="true" />
+                      <LogIn className="size-4" aria-hidden="true" />
+                      Login
                     </Link>
                   </Button>
                 </div>

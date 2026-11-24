@@ -245,8 +245,8 @@ export async function sendApplicationDecisionEmail(input: {
           ? `<p>You can log in to your member page using your registered email ID and Member ID <strong>${escapeHtml(input.memberId)}</strong>.</p>`
           : `<p>You can log in to your member page using your registered email ID.</p>`,
         input.memberLoginUrl
-          ? `<p>Visit <a href="${escapeHtml(input.memberLoginUrl)}">${escapeHtml(input.memberLoginUrl)}</a> and choose <strong>Member login</strong>. We&apos;ll email a one-time code to your registered address.</p>`
-          : `<p>Open the member login page on our website and choose <strong>Member login</strong>. We&apos;ll email a one-time code to your registered address.</p>`,
+          ? `<p>Visit <a href="${escapeHtml(input.memberLoginUrl)}">${escapeHtml(input.memberLoginUrl)}</a> and choose <strong>Login</strong>. We&apos;ll email a one-time code to your registered address.</p>`
+          : `<p>On our website, choose <strong>Login</strong>. We&apos;ll email a one-time code to your registered address.</p>`,
         `<p>We&apos;re open ${LIBRARY_HOURS}.</p>`,
         `<p>Our address: ${escapeHtml(LIBRARY_ADDRESS)}</p>`,
         `<p>If you have any questions, reply to this email or call ${LIBRARY_PHONE}. We look forward to seeing you.</p>`,
