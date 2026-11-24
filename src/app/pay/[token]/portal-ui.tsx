@@ -83,9 +83,9 @@ export function PageIntro({
 }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="flex items-start gap-4">
+      <div className="flex min-w-0 items-start gap-4">
         <Accent icon={icon} tone={tone} size="lg" />
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {eyebrow}
           </p>
@@ -118,7 +118,7 @@ export function StatCard({
   href?: string;
 }) {
   const body = (
-    <>
+    <div className="min-w-0">
       <div className="flex items-center justify-between gap-2">
         <Accent icon={icon} tone={tone} />
         {href && <ArrowUpRight className="size-4 text-muted-foreground/60" aria-hidden="true" />}
@@ -126,13 +126,18 @@ export function StatCard({
       <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <p className="font-heading mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+      <p
+        className="font-heading mt-1 truncate text-2xl font-semibold tracking-tight tabular-nums"
+        title={value}
+      >
+        {value}
+      </p>
       <p className="mt-0.5 truncate text-xs text-muted-foreground">{hint}</p>
-    </>
+    </div>
   );
 
   const className =
-    "rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-950/5";
+    "min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-950/5";
 
   return href ? (
     <Link href={href} className={cn(className, "block")}>
@@ -195,7 +200,7 @@ export function Detail({ label, value }: { label: string; value: ReactNode }) {
       <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-1 text-sm font-medium">{value}</dd>
+      <dd className="mt-1 break-words text-sm font-medium">{value}</dd>
     </div>
   );
 }
@@ -254,9 +259,9 @@ export function PortalHero({
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-7">
-          <div className="max-w-2xl">
+          <div className="min-w-0 max-w-2xl">
             <p className="text-sm font-medium text-emerald-300">Welcome back</p>
-            <h1 className="font-heading mt-1 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+            <h1 className="font-heading mt-1 break-words text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
               {name}
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">

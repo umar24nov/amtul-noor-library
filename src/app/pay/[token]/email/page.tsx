@@ -23,7 +23,7 @@ export default async function MemberEmailPage({
 
   return (
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
         icon={Mail}
         tone="rose"
@@ -32,7 +32,7 @@ export default async function MemberEmailPage({
         description="Your one-time codes are sent to this address. To change it, we first send a code to the new inbox and you confirm it here."
       />
 
-      <div className="grid max-w-3xl gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-3xl">
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
           <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3.5">
             <Accent icon={Mail} tone="sky" />

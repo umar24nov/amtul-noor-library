@@ -39,7 +39,7 @@ export default async function MemberSupportPage({
 
   return (
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
         icon={LifeBuoy}
         tone="emerald"
@@ -53,7 +53,7 @@ export default async function MemberSupportPage({
         }
       />
 
-      <div className="grid max-w-4xl gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] lg:items-start">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-4xl lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] lg:items-start">
         <section className="relative overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-card to-card p-5 shadow-sm sm:p-6 dark:border-emerald-500/20 dark:from-emerald-500/10">
           <div className="absolute -bottom-12 -right-12 size-40 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true" />
           <div className="relative">
@@ -62,7 +62,7 @@ export default async function MemberSupportPage({
               WhatsApp is usually the quickest. Your name and member ID are already in the message.
             </p>
 
-            <div className="mt-5 grid gap-2.5">
+            <div className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
               <Button asChild className="h-11 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
                 <a href={supportUrl} target="_blank" rel="noreferrer">
                   <MessageCircle className="size-4" />
@@ -99,7 +99,7 @@ export default async function MemberSupportPage({
           </div>
         </section>
 
-        <div className="grid gap-6">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h2 className="font-heading text-base font-semibold tracking-tight">Your reference</h2>
             <p className="mt-1 text-xs text-muted-foreground">Share this if we ask for it.</p>
@@ -110,7 +110,7 @@ export default async function MemberSupportPage({
               </div>
               <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2">
                 <dt className="text-muted-foreground">Name</dt>
-                <dd className="truncate font-medium" title={member.name}>{member.name}</dd>
+                <dd className="min-w-0 truncate font-medium" title={member.name}>{member.name}</dd>
               </div>
             </dl>
           </section>

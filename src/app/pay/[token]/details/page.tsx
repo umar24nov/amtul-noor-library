@@ -121,7 +121,7 @@ export default async function MemberDetailsPage({
         />
       </dl>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)] xl:items-start">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)] xl:items-start">
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <header className="flex items-start gap-3 border-b border-border bg-gradient-to-br from-white to-muted/40 p-5 sm:p-6">
             <Accent icon={UserRound} tone="indigo" size="lg" />
@@ -139,7 +139,7 @@ export default async function MemberDetailsPage({
             </div>
           </header>
 
-          <div className="grid gap-6 p-5 sm:p-6">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:p-6">
             <div>
               <div className="mb-3 flex items-center gap-2">
                 <LockKeyhole className="size-3.5 text-muted-foreground" aria-hidden="true" />
@@ -147,7 +147,7 @@ export default async function MemberDetailsPage({
                   Managed by the library
                 </p>
               </div>
-              <dl className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
+              <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
                 <Detail label="Member ID" value={member.memberId} />
                 <Detail label="Seat" value={getSeatLabel(member)} />
                 <Detail
@@ -170,7 +170,7 @@ export default async function MemberDetailsPage({
                   Yours to update
                 </p>
               </div>
-              <dl className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
+              <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
                 <Detail label="Full name" value={member.name} />
                 <Detail label="Mobile" value={member.mobile ?? "—"} />
                 <Detail label="Guardian" value={member.guardianName ?? "—"} />
@@ -200,8 +200,8 @@ export default async function MemberDetailsPage({
           </div>
         </section>
 
-        <aside className="grid gap-6">
-          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
+          <section className="min-w-0 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Continue
             </p>
@@ -211,7 +211,7 @@ export default async function MemberDetailsPage({
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Everything else lives in its own page, so there is less to scroll.
             </p>
-            <div className="mt-4 grid gap-2.5">
+            <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
               <QuickLink
                 href={`/pay/${token}/payments`}
                 icon={CreditCard}

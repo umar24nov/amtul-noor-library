@@ -42,13 +42,12 @@ export function PortalShell({
     <PayLayout>
       <PortalNav
         token={token}
-        memberName={member.name}
         memberId={member.memberId}
         staffAllowed={staffAllowed}
         signOutAction={staffAllowed ? undefined : signOutAction}
       />
 
-      <div className="min-h-dvh lg:pl-[280px]">
+      <div className="min-h-dvh min-w-0 overflow-x-hidden lg:pl-[280px]">
         {staffAllowed && (
           <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-900 sm:px-6 lg:px-8">
             <Eye className="size-3.5 shrink-0" aria-hidden="true" />
@@ -58,10 +57,14 @@ export function PortalShell({
 
         <main
           id="main"
-          className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-9"
+          className="mx-auto w-full min-w-0 max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-9"
         >
           {hero}
-          <div className={hero ? "mt-6 grid gap-6" : "grid gap-6"}>{children}</div>
+          <div
+            className={hero ? "mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6" : "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6"}
+          >
+            {children}
+          </div>
 
           <p className="mt-10 flex items-center justify-center gap-2 text-center text-[11px] text-slate-400">
             <ShieldCheck className="size-3.5" aria-hidden="true" />

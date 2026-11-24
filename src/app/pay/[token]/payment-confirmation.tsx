@@ -46,8 +46,8 @@ export function PaymentConfirmation({
           here once the library records the payment.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-wrap items-end gap-3">
-        <div className="grid min-w-40 gap-1.5">
+      <CardContent className="grid gap-3">
+        <div className="grid min-w-0 gap-1.5">
           <Label htmlFor="payment-mode">Paid by</Label>
           <Select value={mode} onValueChange={(value) => setMode(value as PaymentConfirmationInfo["mode"])}>
             <SelectTrigger id="payment-mode" className="w-full">
@@ -62,7 +62,7 @@ export function PaymentConfirmation({
         <Button
           asChild
           size="lg"
-          className="h-10 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+          className="h-auto min-h-10 w-full whitespace-normal py-2 text-center leading-snug bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 sm:w-auto"
         >
           <a href={url} target="_blank" rel="noreferrer">
             <MessageCircle className="size-4" />

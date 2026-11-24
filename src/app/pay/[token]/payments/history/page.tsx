@@ -26,7 +26,7 @@ export default async function MemberPaymentHistoryPage({
 
   return (
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
         icon={Receipt}
         tone="emerald"
@@ -34,7 +34,7 @@ export default async function MemberPaymentHistoryPage({
         title="Payment history"
         description="Every month on your record. Paid months have a receipt you can download at any time."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
               {count} {count === 1 ? "entry" : "entries"}
             </span>
@@ -55,7 +55,7 @@ export default async function MemberPaymentHistoryPage({
             </p>
           </div>
         ) : (
-          <ul className="grid gap-2.5">
+          <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
             {member.payments.map((payment) => (
               <li
                 key={payment.id}

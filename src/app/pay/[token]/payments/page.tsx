@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatINR, formatMonth } from "@/lib/format";
+import { PayFeesButton } from "../pay-fees-button";
 import { PaymentConfirmation } from "../payment-confirmation";
 import { getFeeSummary, loadPortal } from "../portal-data";
 import { PortalGate, PortalShell } from "../portal-shell";
@@ -37,22 +38,31 @@ export default async function MemberPaymentsPage({
 
   return (
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
-        icon={CreditCard}
-        tone="sky"
-        eyebrow="Fees"
-        title="Payments"
-        description="See what is due and how to transfer it. Every confirmed month appears in your payment history."
-        action={
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/pay/${token}/payments/history`}>
-              <Receipt className="size-3.5" />
-              View history
-            </Link>
-          </Button>
-        }
-      />
+          icon={CreditCard}
+          tone="sky"
+          eyebrow="Fees"
+          title="Payments"
+          description="See what is due and how to transfer it. Every confirmed month appears in your payment history."
+          action={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            {!summary.feeIsZero && summary.bankConfigured && (
+              <PayFeesButton
+                amount={formatINR(summary.dueAmount)}
+                month={formatMonth(summary.dueMonth)}
+                bank={summary.bank}
+              />
+            )}
+            <Button asChild variant="outline" size="sm" className="h-9 w-full sm:w-auto">
+              <Link href={`/pay/${token}/payments/history`}>
+                <Receipt className="size-3.5" />
+                View history
+              </Link>
+            </Button>
+            </div>
+          }
+        />
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <StatCard
@@ -85,7 +95,7 @@ export default async function MemberPaymentsPage({
         />
       </dl>
 
-      <div className="grid max-w-4xl gap-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-4xl">
         {summary.feeIsZero ? (
           <section className="relative overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-card to-card p-6 shadow-sm dark:border-emerald-500/20 dark:from-emerald-500/10">
             <div className="absolute -right-12 -top-12 size-40 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true" />

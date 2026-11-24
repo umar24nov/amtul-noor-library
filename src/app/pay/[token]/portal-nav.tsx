@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,7 +27,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { LIBRARY_NAME } from "@/lib/constants";
-import { HERO_PHOTO } from "@/lib/photos";
 
 type NavItem = {
   suffix: string;
@@ -154,38 +152,6 @@ function NavLinks({
   );
 }
 
-function SidebarIdentity({
-  memberName,
-  memberId,
-  staffAllowed,
-}: {
-  memberName: string;
-  memberId: string;
-  staffAllowed: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-      <span className="relative size-11 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/20">
-        <Image
-          src={`/images/${HERO_PHOTO.src}`}
-          alt=""
-          fill
-          sizes="44px"
-          className="object-cover"
-        />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-white" title={memberName}>
-          {memberName}
-        </p>
-        <p className="mt-0.5 text-[11px] text-slate-400">
-          {staffAllowed ? "Staff preview" : memberId}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function SignOut({
   signOutAction,
   compact = false,
@@ -214,7 +180,7 @@ function SignOut({
         )}
       >
         <LogOut className="size-4" aria-hidden="true" />
-        Sign out of member area
+        Sign Out
       </Button>
     </form>
   );
@@ -227,13 +193,11 @@ function SignOut({
  */
 export function PortalNav({
   token,
-  memberName,
   memberId,
   staffAllowed,
   signOutAction,
 }: {
   token: string;
-  memberName: string;
   memberId: string;
   staffAllowed: boolean;
   signOutAction?: () => Promise<void>;
@@ -271,19 +235,7 @@ export function PortalNav({
         <NavLinks base={base} onNavigate={() => setOpen(false)} />
       </div>
 
-      <div className="grid gap-3 border-t border-white/10 p-4">
-        <SidebarIdentity
-          memberName={memberName}
-          memberId={memberId}
-          staffAllowed={staffAllowed}
-        />
-        <Link
-          href="/"
-          onClick={() => setOpen(false)}
-          className="rounded-lg px-2 py-1.5 text-center text-xs text-slate-400 transition-colors hover:text-white"
-        >
-          Library website
-        </Link>
+      <div className="border-t border-white/10 p-4">
         <SignOut signOutAction={signOutAction} />
       </div>
     </div>
@@ -311,7 +263,7 @@ export function PortalNav({
           </SheetContent>
         </Sheet>
 
-        <Link href={homeHref} className="flex min-w-0 items-center gap-2.5">
+        <Link href={homeHref} className="flex min-w-0 flex-1 items-center gap-2.5">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-500 text-white">
             <BookOpen className="size-4" aria-hidden="true" />
           </span>
@@ -325,7 +277,7 @@ export function PortalNav({
           </span>
         </Link>
 
-        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
           {staffAllowed ? "Staff" : memberId}
         </span>
       </div>
