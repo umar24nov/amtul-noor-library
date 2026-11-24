@@ -12,6 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export type LandingNavItem = { href: string; label: string };
 
@@ -78,7 +79,8 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <div className="hidden sm:block">
+            <div className="hidden items-center gap-2 sm:flex">
+              <ThemeToggle />
               <Button
                 asChild
                 variant="outline"
@@ -124,6 +126,10 @@ export function LandingHeader({ items }: { items: LandingNavItem[] }) {
                     />
                   ))}
                 </nav>
+                <div className="flex items-center justify-between gap-3 border-t border-border p-3">
+                  <span className="text-sm font-medium text-muted-foreground">Appearance</span>
+                  <ThemeToggle />
+                </div>
                 <div className="border-t border-border p-3">
                   <Button asChild className="h-11 w-full gap-2">
                     <Link href="/member" onClick={() => setOpen(false)}>

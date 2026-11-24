@@ -5,6 +5,7 @@ import { DatabaseUnavailable } from "@/components/database-unavailable";
 import { DesktopNav } from "@/components/app-nav";
 import { MobileMenu } from "@/components/mobile-menu";
 import { ProfileMenu } from "@/components/profile-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getSession } from "@/lib/auth";
 import { isDatabaseReachable } from "@/lib/db-status";
 import { effectivePermissions } from "@/lib/permission-defs";
@@ -55,13 +56,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           >
             <Brand compact />
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <ProfileMenu name={user?.name ?? null} email={session.email} roleLabel={roleLabel} />
           </div>
         </header>
 
         <header className="sticky top-0 z-20 hidden h-14 items-center justify-end border-b border-border bg-background/95 px-5 backdrop-blur lg:flex">
-          <ProfileMenu name={user?.name ?? null} email={session.email} roleLabel={roleLabel} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <ProfileMenu name={user?.name ?? null} email={session.email} roleLabel={roleLabel} />
+          </div>
         </header>
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">

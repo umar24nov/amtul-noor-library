@@ -294,7 +294,7 @@ function Hero({
           <dl className="grid w-full max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm transition-shadow duration-300 hover:shadow-md sm:grid-cols-3">
             <Metric label="Seats" value={formatNumber(totals.seats)} />
             <Metric label="Free right now" value={formatNumber(totals.open)} />
-            <Metric label="Open daily" value={LIBRARY_HOURS} />
+            <Metric label="Open daily" value={LIBRARY_HOURS} className="col-span-2 sm:col-span-1" />
           </dl>
         </div>
       )}
@@ -302,9 +302,17 @@ function Hero({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div className="bg-background px-4 py-3">
+    <div className={`bg-background px-4 py-3 ${className}`}>
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="font-heading mt-0.5 text-lg font-semibold">{value}</dd>
     </div>

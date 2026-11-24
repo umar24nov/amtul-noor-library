@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getSession } from "@/lib/auth";
 import { LIBRARY_TAGLINE } from "@/lib/constants";
 import { LoginForm } from "./login-form";
@@ -18,7 +19,10 @@ export default async function LoginPage({
   const { next } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         {/* compact, because the motto is already shown in full underneath */}
         <Brand compact className="mb-6 justify-center" />
