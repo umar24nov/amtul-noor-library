@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { AlertCircle, Upload } from "lucide-react";
 import { cn } from "cn";
@@ -11,7 +18,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { SeatMap } from "@/components/seat-map";
 import { submitApplicationAction } from "@/app/join/actions";
-import { IDLE_STATE } from "@/lib/action-result";
+import { IDLE_STATE, type ActionState } from "@/lib/action-result";
+import {
+  APPLICATION_DRAFT_KEY,
+  EMPTY_APPLICATION_DRAFT,
+  readApplicationDraft,
+  serializeApplicationDraft,
+  type ApplicationDraft,
+} from "@/lib/application-draft";
 import { AADHAAR_MAX_BYTES, AADHAAR_MAX_MB, LIBRARY_FEES, LIBRARY_RULES } from "@/lib/constants";
 import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 
@@ -80,10 +94,24 @@ export function ApplicationForm({
   /** Pre-filled when the applicant arrived by tapping a seat on the landing map. */
   defaultSeatNumber?: number | null;
 }) {
-  const [state, formAction] = useActionState(submitApplicationAction, IDLE_STATE);
+  const [formRevision, setFormRevision] = useState(0);
+  // React settles the action by resetting the form. Bumping a revision when it
+  // finishes lets controlled controls mount again with the saved draft values,
+  // instead of relying on an effect to push state into the DOM.
+  const submitAction = useCallback(async (previous: ActionState, formData: FormData) => {
+    const result = await submitApplicationAction(previous, formData);
+    setFormRevision((revision) => revision + 1);
+    return result;
+  }, []);
+  const [state, formAction] = useActionState(submitAction, IDLE_STATE);
   const id = useId();
+  const [draft, setDraft] = useState<ApplicationDraft>({ ...EMPTY_APPLICATION_DRAFT });
+  const [draftRestored, setDraftRestored] = useState(false);
+  const restoredRef = useRef(false);
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [aadhaarFileName, setAadhaarFileName] = useState("");
   const [aadhaarFileError, setAadhaarFileError] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const initialSeat =
     defaultSeatNumber != null
@@ -92,9 +120,7 @@ export function ApplicationForm({
         )
       : undefined;
 
-  const [seatId, setSeatId] = useState(initialSeat ? String(initialSeat.id) : "");
-  const [seatType, setSeatType] = useState<SeatType>("all");
-  const selectedSeat = seats.find((seat) => String(seat.id) === seatId);
+  const selectedSeat = seats.find((seat) => String(seat.id) === draft.seatId);
 
   // True when the applicant reached the form by tapping a seat on the landing
   // page, so the seat section can acknowledge the choice already carried over.
@@ -108,31 +134,98 @@ export function ApplicationForm({
   );
   const seatError = Boolean(state.fieldErrors?.seatId);
 
+  function updateDraft<K extends keyof ApplicationDraft>(
+    field: K,
+    value: ApplicationDraft[K],
+  ) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
   function chooseSeat(seat: SeatOption) {
     if (!seat.available || !matchesType(seat)) return;
     const seatKey = String(seat.id);
-    if (seatId === seatKey) {
-      setSeatId("");
+    if (draft.seatId === seatKey) {
+      updateDraft("seatId", "");
       return;
     }
-    setSeatId(seatKey);
+    updateDraft("seatId", seatKey);
   }
 
   // Tick the same box again to clear it and show both groups.
   function chooseSeatType(next: Exclude<SeatType, "all">) {
-    const chosen: SeatType = seatType === next ? "all" : next;
-    setSeatType(chosen);
-    if (selectedSeat && !seatMatchesType(selectedSeat, chosen)) setSeatId("");
+    const chosen: SeatType = draft.seatType === next ? "all" : next;
+    updateDraft("seatType", chosen);
+    if (selectedSeat && !seatMatchesType(selectedSeat, chosen)) updateDraft("seatId", "");
   }
 
   function matchesType(seat: SeatOption) {
-    return seatMatchesType(seat, seatType);
+    return seatMatchesType(seat, draft.seatType);
+  }
+
+  function handleSubmit() {
+    setSubmitAttempted(true);
+    // React resets the file input when the action finishes. Do not leave the
+    // old file name on screen as if it were still attached.
+    setAadhaarFileName("");
   }
 
   useEffect(() => {
-    if (state.status === "success" && state.message) toast.success(state.message);
+    if (state.status === "success") {
+      try {
+        localStorage.removeItem(APPLICATION_DRAFT_KEY);
+      } catch {
+        // Storage can be disabled; the application itself still succeeded.
+      }
+      if (state.message) toast.success(state.message);
+    }
     if (state.status === "error" && state.message) toast.error(state.message);
   }, [state]);
+
+  // Restore once after mount. A saved seat is checked against the live seat list
+  // so a draft cannot carry someone into an error on a seat that is now taken.
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    let saved = { ...EMPTY_APPLICATION_DRAFT };
+    try {
+      saved = readApplicationDraft(localStorage.getItem(APPLICATION_DRAFT_KEY));
+    } catch {
+      // Storage can be unavailable; an empty draft is still safe.
+    }
+
+    const linkedSeat =
+      defaultSeatNumber != null
+        ? seats.find(
+            (seat) => Number(seat.seatNumber) === defaultSeatNumber && seat.available,
+          )
+        : undefined;
+    // A seat tapped on the landing page is a deliberate choice, so it wins over
+    // an older saved seat.
+    if (linkedSeat) saved = { ...saved, seatId: String(linkedSeat.id), seatType: "all" };
+
+    if (
+      saved.seatId &&
+      !seats.some((seat) => String(seat.id) === saved.seatId && seat.available)
+    ) {
+      saved = { ...saved, seatId: "" };
+      toast.error("Your previously selected seat is no longer free. Please choose another.");
+    }
+
+    setDraft(saved);
+    setDraftRestored(true);
+  }, [defaultSeatNumber, seats]);
+
+  // Save non-sensitive fields as the applicant types. Aadhaar details are kept
+  // only in memory and are never written to browser storage.
+  useEffect(() => {
+    if (!draftRestored || state.status === "success") return;
+    try {
+      localStorage.setItem(APPLICATION_DRAFT_KEY, serializeApplicationDraft(draft));
+    } catch {
+      // A full or blocked storage must not stop the application.
+    }
+  }, [draft, draftRestored, state.status]);
 
   // A failed submit should not leave the applicant hunting for the problem: pull
   // the first offending control into view and focus it. Fields with no real
@@ -164,7 +257,12 @@ export function ApplicationForm({
   }
 
   return (
-    <form action={formAction} className={cn("grid gap-6", className)} noValidate>
+    <form
+      action={formAction}
+      onSubmit={handleSubmit}
+      className={cn("grid gap-6", className)}
+      noValidate
+    >
       {/* Honeypot: hidden from people and browsers, filled only by bots. */}
       <input
         type="text"
@@ -233,6 +331,8 @@ export function ApplicationForm({
             <Input
               id={`${id}-name`}
               name="name"
+              value={draft.name}
+              onChange={(event) => updateDraft("name", event.target.value)}
               autoComplete="name"
               required
               aria-invalid={Boolean(state.fieldErrors?.name)}
@@ -253,6 +353,8 @@ export function ApplicationForm({
                 id={`${id}-mobile`}
                 name="mobile"
                 type="tel"
+                value={draft.mobile}
+                onChange={(event) => updateDraft("mobile", event.target.value)}
                 inputMode="numeric"
                 placeholder="10-digit number"
                 autoComplete="tel"
@@ -274,6 +376,8 @@ export function ApplicationForm({
               id={`${id}-email`}
               name="email"
               type="email"
+              value={draft.email}
+              onChange={(event) => updateDraft("email", event.target.value)}
               autoComplete="email"
               required
               placeholder="name@example.com"
@@ -291,6 +395,8 @@ export function ApplicationForm({
               id={`${id}-address`}
               name="address"
               rows={2}
+              value={draft.address}
+              onChange={(event) => updateDraft("address", event.target.value)}
               required
               placeholder="Street, area, city"
               autoComplete="street-address"
@@ -313,6 +419,8 @@ export function ApplicationForm({
             <Input
               id={`${id}-guardianName`}
               name="guardianName"
+              value={draft.guardianName}
+              onChange={(event) => updateDraft("guardianName", event.target.value)}
               autoComplete="family-name"
               required
               aria-invalid={Boolean(state.fieldErrors?.guardianName)}
@@ -331,6 +439,8 @@ export function ApplicationForm({
                 id={`${id}-guardianMobile`}
                 name="guardianMobile"
                 type="tel"
+                value={draft.guardianMobile}
+                onChange={(event) => updateDraft("guardianMobile", event.target.value)}
                 inputMode="numeric"
                 placeholder="10-digit number"
                 maxLength={10}
@@ -356,6 +466,8 @@ export function ApplicationForm({
             <Input
               id={`${id}-preparingFor`}
               name="preparingFor"
+              value={draft.preparingFor}
+              onChange={(event) => updateDraft("preparingFor", event.target.value)}
               required
               aria-invalid={Boolean(state.fieldErrors?.preparingFor)}
               className={inputClass}
@@ -371,6 +483,8 @@ export function ApplicationForm({
               id={`${id}-joiningDate`}
               name="joiningDate"
               type="date"
+              value={draft.joiningDate}
+              onChange={(event) => updateDraft("joiningDate", event.target.value)}
               required
               aria-invalid={Boolean(state.fieldErrors?.joiningDate)}
               className={inputClass}
@@ -405,7 +519,7 @@ export function ApplicationForm({
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={seatType === "non-locker"}
+                      checked={draft.seatType === "non-locker"}
                       onChange={() => chooseSeatType("non-locker")}
                       className="size-4 rounded border-input accent-primary"
                     />
@@ -414,7 +528,7 @@ export function ApplicationForm({
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={seatType === "locker"}
+                      checked={draft.seatType === "locker"}
                       onChange={() => chooseSeatType("locker")}
                       className="size-4 rounded border-input accent-primary"
                     />
@@ -431,11 +545,11 @@ export function ApplicationForm({
               </p>
             ) : (
               <>
-                <input type="hidden" name="seatId" value={seatId} />
+                <input type="hidden" name="seatId" value={draft.seatId} />
                 <input
                   type="hidden"
                   name="seatType"
-                  value={seatType === "all" ? "" : seatType}
+                  value={draft.seatType === "all" ? "" : draft.seatType}
                 />
 
                 <div className="flex w-full items-center justify-center">
@@ -453,7 +567,7 @@ export function ApplicationForm({
 
                 <div className="grid gap-6 xl:grid-cols-2">
                   {SEAT_GROUPS.filter(
-                    (group) => seatType === "all" || seatType === group.type,
+                    (group) => draft.seatType === "all" || draft.seatType === group.type,
                   ).map((group) => {
                     const layout = SEAT_LAYOUTS[group.key];
                     const groupSeats = seats.filter(
@@ -531,6 +645,8 @@ export function ApplicationForm({
             <Input
               id={`${id}-aadhaarNumber`}
               name="aadhaarNumber"
+              value={aadhaarNumber}
+              onChange={(event) => setAadhaarNumber(event.target.value)}
               inputMode="numeric"
               placeholder="12 digit Aadhaar number"
               maxLength={14}
@@ -538,6 +654,9 @@ export function ApplicationForm({
               className={inputClass}
             />
             <FieldError message={state.fieldErrors?.aadhaarNumber} />
+            <p className="text-xs text-muted-foreground">
+              For privacy, this number is not saved in your browser.
+            </p>
           </div>
 
           <div className="grid gap-1.5">
@@ -597,6 +716,12 @@ export function ApplicationForm({
               JPG, PNG or PDF, up to {AADHAAR_MAX_MB} MB. One attachment is enough; your
               scan is only seen by the owner.
             </p>
+            {submitAttempted && state.status === "error" && !aadhaarFileName && (
+              <p className="text-xs text-muted-foreground">
+                Your other details are saved. Browsers clear the file after a failed
+                attempt, so please choose the Aadhaar scan again.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -618,10 +743,13 @@ export function ApplicationForm({
 
           <label className="flex items-start gap-3 text-sm" htmlFor={`${id}-agreed`}>
             <input
+              key={`agreed-${formRevision}`}
               id={`${id}-agreed`}
               type="checkbox"
               name="agreed"
               value="1"
+              checked={draft.agreed}
+              onChange={(event) => updateDraft("agreed", event.target.checked)}
               className="mt-0.5 size-4 shrink-0 accent-foreground"
               aria-invalid={Boolean(state.fieldErrors?.agreed)}
             />
