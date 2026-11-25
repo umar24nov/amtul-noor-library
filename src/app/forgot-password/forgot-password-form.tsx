@@ -19,7 +19,7 @@ function RequestButton() {
           Sending code
         </>
       ) : (
-        "Email me a code"
+        "Send me a code"
       )}
     </Button>
   );
@@ -55,7 +55,7 @@ export function ForgotPasswordForm({ next }: { next?: string }) {
       <div className="grid gap-4">
         <p className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
           <Mail className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>{requestState.message ?? `We emailed a code to ${email}.`}</span>
+          <span>{requestState.message ?? `We sent a code to ${email}.`}</span>
         </p>
 
         <form action={verifyAction} className="grid gap-4">
@@ -160,7 +160,7 @@ export function ForgotPasswordForm({ next }: { next?: string }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        We will email a one-time code to your registered address. Use it to choose a new password
+        We will send a one-time code to your registered address. Use it to choose a new password
         and sign in.
       </p>
 

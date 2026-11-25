@@ -25,7 +25,7 @@ import {
 } from "@/lib/validators";
 
 const CODE_SENT = (email: string) =>
-  `If those details match our records, we emailed a 6 digit code to ${maskEmail(email)}. It expires in ${OTP_TTL_MINUTES} minutes.`;
+  `If those details match our records, we sent a 6 digit code to ${maskEmail(email)}. It expires in ${OTP_TTL_MINUTES} minutes.`;
 
 const CODE_WRONG =
   "That code is not correct or has expired. Check your details, request a new code and try again.";

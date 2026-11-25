@@ -22,7 +22,7 @@ function RequestButton() {
           Sending code
         </>
       ) : (
-        "Email me a code"
+        "Send me a code"
       )}
     </Button>
   );
@@ -58,23 +58,23 @@ export function MemberLinkGate({
 
   return (
     <div className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-slate-950/10">
-      <div className="relative h-40 overflow-hidden bg-slate-950">
+      <div className="relative h-40 overflow-hidden bg-card">
         <Image
           src={`/images/${HERO_PHOTO.src}`}
           alt=""
           fill
           priority
           sizes="(min-width: 768px) 448px, 100vw"
-          className="object-cover opacity-50"
+          className="object-cover opacity-60 dark:opacity-50"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/10" />
-        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-5 text-white">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-card/10 dark:from-background dark:via-background/70 dark:to-background/10" />
+        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-5 text-foreground">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-background/70 ring-1 ring-border backdrop-blur-md">
             <ShieldCheck className="size-5" aria-hidden="true" />
           </span>
           <div>
             <h1 className="font-heading text-lg font-semibold tracking-tight">Verify this link</h1>
-            <p className="text-xs text-white/75">For your privacy, one code is needed.</p>
+            <p className="text-xs text-foreground/70">For your privacy, one code is needed.</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function MemberLinkGate({
             <input type="hidden" name="payToken" value={payToken} />
 
             <p className="text-sm leading-relaxed text-muted-foreground">
-              We&apos;ll email a one-time code to{" "}
+              We&apos;ll send a one-time code to{" "}
               <strong className="text-foreground">{maskEmail(email)}</strong>. Use it to open your
               member page.
             </p>

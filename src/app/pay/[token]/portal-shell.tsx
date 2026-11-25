@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { Eye, ShieldCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { destroyMemberLinkAccess } from "@/lib/member-link-auth";
 import { MemberLinkGate } from "./member-link-gate";
 import { PortalNav } from "./portal-nav";
@@ -10,6 +11,9 @@ import { PayLayout } from "./portal-ui";
 export function PortalGate({ payToken, email }: { payToken: string; email: string | null }) {
   return (
     <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-14">
+      <div className="mx-auto mb-3 flex w-full max-w-md justify-end">
+        <ThemeToggle />
+      </div>
       <MemberLinkGate payToken={payToken} email={email} />
     </section>
   );
@@ -49,7 +53,7 @@ export function PortalShell({
 
       <div className="min-h-dvh min-w-0 overflow-x-hidden lg:pl-[280px]">
         {staffAllowed && (
-          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-900 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-900 dark:text-amber-100 sm:px-6 lg:px-8">
             <Eye className="size-3.5 shrink-0" aria-hidden="true" />
             Staff preview — read only. This member&apos;s self-service controls are hidden.
           </div>
@@ -66,7 +70,7 @@ export function PortalShell({
             {children}
           </div>
 
-          <p className="mt-10 flex items-center justify-center gap-2 text-center text-[11px] text-slate-400">
+          <p className="mt-10 flex items-center justify-center gap-2 text-center text-[11px] text-muted-foreground">
             <ShieldCheck className="size-3.5" aria-hidden="true" />
             Private member area · identity documents are never shown here
           </p>

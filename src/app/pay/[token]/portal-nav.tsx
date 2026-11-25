@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sheet,
   SheetContent,
@@ -111,16 +112,16 @@ function NavLinks({
             className={cn(
               "group relative flex min-h-14 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               active
-                ? "bg-white text-slate-950 shadow-sm ring-1 ring-white/10"
-                : "text-slate-300 hover:bg-white/10 hover:text-white",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
             )}
           >
             <span
               className={cn(
                 "grid size-9 shrink-0 place-items-center rounded-lg ring-1 transition-colors",
                 active
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                  : "bg-white/5 text-slate-300 ring-white/10 group-hover:text-white",
+                  ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300"
+                  : "bg-sidebar-accent/50 text-sidebar-foreground/70 ring-sidebar-border group-hover:text-sidebar-foreground",
               )}
             >
               <Icon className="size-4" aria-hidden="true" />
@@ -130,7 +131,7 @@ function NavLinks({
               <span
                 className={cn(
                   "block truncate text-[11px] font-normal",
-                  active ? "text-slate-500" : "text-slate-400",
+                  active ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50",
                 )}
               >
                 {description}
@@ -140,8 +141,8 @@ function NavLinks({
               className={cn(
                 "size-3.5 shrink-0 transition-transform",
                 active
-                  ? "text-slate-400"
-                  : "text-slate-500 group-hover:translate-x-0.5 group-hover:text-white",
+                  ? "text-sidebar-foreground/50"
+                  : "text-sidebar-foreground/40 group-hover:translate-x-0.5 group-hover:text-sidebar-foreground",
               )}
               aria-hidden="true"
             />
@@ -161,7 +162,7 @@ function SignOut({
 }) {
   if (!signOutAction) {
     return (
-      <p className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-[11px] leading-relaxed text-slate-400">
+      <p className="flex items-start gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 text-[11px] leading-relaxed text-sidebar-foreground/70">
         <LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
         Read-only staff preview. Member controls stay hidden.
       </p>
@@ -175,7 +176,7 @@ function SignOut({
         variant="outline"
         size={compact ? "default" : "sm"}
         className={cn(
-          "w-full border-white/15 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white",
+          "w-full border-sidebar-border bg-sidebar-accent/40 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
           compact && "h-11",
         )}
       >
@@ -207,12 +208,12 @@ export function PortalNav({
   const homeHref = `${base}/details`;
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-[#111827] text-white">
-      <div className="border-b border-white/10 px-5 py-5">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      <div className="flex items-center justify-between gap-2 border-b border-sidebar-border px-5 py-5">
         <Link
           href={homeHref}
           onClick={() => setOpen(false)}
-          className="flex items-center gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-emerald-400/60"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-sidebar-ring/60"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
             <BookOpen className="size-5" aria-hidden="true" />
@@ -221,21 +222,22 @@ export function PortalNav({
             <span className="font-heading block truncate text-[15px] font-semibold tracking-tight">
               {LIBRARY_NAME}
             </span>
-            <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-emerald-300">
+            <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
               Member portal
             </span>
           </span>
         </Link>
+        <ThemeToggle className="size-9 shrink-0" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-5">
-        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
           Your space
         </p>
         <NavLinks base={base} onNavigate={() => setOpen(false)} />
       </div>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-sidebar-border p-4">
         <SignOut signOutAction={signOutAction} />
       </div>
     </div>
@@ -252,7 +254,11 @@ export function PortalNav({
               <Menu className="size-5" aria-hidden="true" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" showCloseButton={false} className="w-[300px] border-0 bg-[#111827] p-0">
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="w-[300px] border-0 bg-sidebar p-0 text-sidebar-foreground"
+          >
             <SheetHeader className="sr-only">
               <SheetTitle>Member navigation</SheetTitle>
               <SheetDescription>
@@ -276,6 +282,8 @@ export function PortalNav({
             </span>
           </span>
         </Link>
+
+        <ThemeToggle className="size-9 shrink-0" />
 
         <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           {staffAllowed ? "Staff" : memberId}

@@ -141,17 +141,17 @@ export default async function MemberPaymentsPage({
                 </span>
               </div>
 
-              <dl className="mt-4 grid gap-4 rounded-xl bg-slate-950 p-5 text-sm text-white sm:grid-cols-3">
+              <dl className="mt-4 grid gap-4 rounded-xl border border-border bg-muted/50 p-5 text-sm text-foreground sm:grid-cols-3">
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Account holder</dt>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Account holder</dt>
                   <dd className="mt-1 font-medium break-words">{summary.bank.accountHolder}</dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Account number</dt>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Account number</dt>
                   <dd className="mt-1 font-mono font-medium break-all">{summary.bank.accountNumber}</dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">IFSC code</dt>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">IFSC code</dt>
                   <dd className="mt-1 font-mono font-medium break-all">{summary.bank.ifsc}</dd>
                 </div>
               </dl>

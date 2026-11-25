@@ -49,21 +49,21 @@ export function PayFeesButton({
           </DialogDescription>
         </DialogHeader>
 
-        <dl className="grid gap-3 rounded-xl bg-slate-950 p-4 text-sm text-white">
+        <dl className="grid gap-3 rounded-xl border border-border bg-muted/50 p-4 text-sm text-foreground">
           <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Account holder
             </dt>
             <dd className="mt-1 break-words font-medium">{bank.accountHolder}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Account number
             </dt>
             <dd className="mt-1 break-all font-mono font-medium">{bank.accountNumber}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               IFSC code
             </dt>
             <dd className="mt-1 break-all font-mono font-medium">{bank.ifsc}</dd>

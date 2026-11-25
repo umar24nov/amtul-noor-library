@@ -79,7 +79,7 @@ export async function requestMemberLinkCodeAction(
   }
 
   return successState(
-    `We emailed a code to ${maskEmail(member.email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+    `We sent a code to ${maskEmail(member.email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
   );
 }
 
@@ -225,7 +225,7 @@ export async function requestMemberEmailChangeAction(
   }
 
   return successState(
-    `We emailed a code to ${maskEmail(email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+    `We sent a code to ${maskEmail(email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
   );
 }
 

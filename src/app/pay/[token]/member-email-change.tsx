@@ -19,7 +19,7 @@ function RequestButton() {
           Sending code
         </>
       ) : (
-        "Email me a code"
+        "Send me a code"
       )}
     </Button>
   );
@@ -115,7 +115,7 @@ export function MemberEmailChange({ payToken }: { payToken: string }) {
       <input type="hidden" name="payToken" value={payToken} />
 
       <p className="text-xs text-muted-foreground">
-        Future sign-in codes will be sent to the new address. We&apos;ll email a code there first
+        Future sign-in codes will be sent to the new address. We&apos;ll send a code there first
         to confirm it belongs to you.
       </p>
 

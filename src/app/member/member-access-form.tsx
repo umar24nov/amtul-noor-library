@@ -175,7 +175,7 @@ export function MemberAccessForm() {
       )}
 
       <div className="sm:col-span-2">
-        <SubmitButton busy="Sending code" busyLabel="Sending code" label="Email me a code" />
+        <SubmitButton busy="Sending code" busyLabel="Sending code" label="Login" />
       </div>
     </form>
   );

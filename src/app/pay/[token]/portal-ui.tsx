@@ -225,34 +225,34 @@ export function PortalHero({
   staffAllowed: boolean;
 }) {
   return (
-    <section className="relative isolate overflow-hidden rounded-3xl border border-slate-900/10 bg-slate-950 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.7)]">
+    <section className="relative isolate overflow-hidden rounded-3xl border border-border bg-card shadow-[0_24px_70px_-30px_rgba(15,23,42,0.25)] dark:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.7)]">
       <Image
         src={`/images/${HERO_PHOTO.src}`}
         alt={HERO_PHOTO.alt}
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="object-cover object-[center_42%] opacity-80"
+        className="object-cover object-[center_42%] opacity-60 dark:opacity-50"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/25" />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-card via-card/90 to-card/10 dark:from-background dark:via-background/90 dark:to-background/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent dark:from-background/80" />
       <div
         className="absolute -right-24 -top-24 size-80 rounded-full bg-emerald-500/20 blur-3xl"
         aria-hidden="true"
       />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
 
-      <div className="relative flex min-h-[19rem] flex-col justify-between gap-8 p-6 text-white sm:min-h-[21rem] sm:p-9 lg:p-11">
+      <div className="relative flex min-h-[19rem] flex-col justify-between gap-8 p-6 text-foreground sm:min-h-[21rem] sm:p-9 lg:p-11">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-white/90 backdrop-blur-md">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-foreground/80 backdrop-blur-md">
             <span className="relative flex size-2" aria-hidden="true">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
             MEMBERS ONLY · {memberId}
           </span>
           {staffAllowed && (
-            <span className="rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 backdrop-blur-md">
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-200 backdrop-blur-md">
               Staff preview
             </span>
           )}
@@ -260,26 +260,26 @@ export function PortalHero({
 
         <div className="flex flex-wrap items-end justify-between gap-7">
           <div className="min-w-0 max-w-2xl">
-            <p className="text-sm font-medium text-emerald-300">Welcome back</p>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Welcome back</p>
             <h1 className="font-heading mt-1 break-words text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
               {name}
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/70 sm:text-base">
               Your seat, your payments, your details — neatly organised. Choose a section below to
               see the full story.
             </p>
-            <p className="mt-5 inline-flex items-center gap-2 text-xs text-white/60">
+            <p className="mt-5 inline-flex items-center gap-2 text-xs text-foreground/60">
               <MapPin className="size-3.5" aria-hidden="true" />
               {LIBRARY_NAME} · Roorkee
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2.5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs text-white/90 backdrop-blur-md">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/75 px-3.5 py-2 text-xs text-foreground/80 backdrop-blur-md">
               <ShieldCheck className="size-3.5" />
               Seat {seatLabel}
             </span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs text-white/90 backdrop-blur-md">
+            <span className="rounded-full border border-border bg-background/75 px-3.5 py-2 text-xs text-foreground/80 backdrop-blur-md">
               Since {joined}
             </span>
           </div>

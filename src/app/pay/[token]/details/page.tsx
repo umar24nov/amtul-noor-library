@@ -46,7 +46,7 @@ function QuickLink({
   return (
     <a
       href={href}
-      className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-md"
     >
       <Accent icon={icon} tone={tone} />
       <span className="min-w-0 flex-1">
@@ -243,16 +243,16 @@ export default async function MemberDetailsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-900/10 bg-slate-950 p-5 text-white shadow-lg shadow-slate-950/10 sm:p-6">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
               <ShieldCheck className="size-5" aria-hidden="true" />
             </span>
             <h2 className="font-heading mt-4 text-base font-semibold tracking-tight">
               Private by design
             </h2>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">
-              This area opens only after a code is emailed to you. Seat, fee, joining date, status
-              and remarks are staff-managed, and identity documents are never shown here.
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              This area opens only after we send you a code. Seat, fee, joining date, status and
+              remarks are staff-managed, and identity documents are never shown here.
             </p>
           </section>
         </aside>
