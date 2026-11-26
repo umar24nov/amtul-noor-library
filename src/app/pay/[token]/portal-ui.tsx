@@ -232,10 +232,10 @@ export function PortalHero({
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="object-cover object-[center_42%] opacity-60 dark:opacity-50"
+        className="object-cover object-[center_42%] opacity-90 dark:opacity-80"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-card via-card/90 to-card/10 dark:from-background dark:via-background/90 dark:to-background/10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent dark:from-background/80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-card/55 via-card/20 to-card/5 dark:from-background/60 dark:via-background/25 dark:to-background/5" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-card/70 to-transparent dark:from-background/70" />
       <div
         className="absolute -right-24 -top-24 size-80 rounded-full bg-emerald-500/20 blur-3xl"
         aria-hidden="true"
@@ -259,7 +259,7 @@ export function PortalHero({
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-7">
-          <div className="min-w-0 max-w-2xl">
+          <div className="min-w-0 max-w-2xl rounded-2xl border border-border/60 bg-card/75 p-5 shadow-sm backdrop-blur-md dark:bg-background/75 sm:p-6">
             <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Welcome back</p>
             <h1 className="font-heading mt-1 break-words text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
               {name}

@@ -35,10 +35,10 @@ function VerifyButton() {
       {pending ? (
         <>
           <Loader2 className="size-4 animate-spin" />
-          Checking code
+          Signing in
         </>
       ) : (
-        "Open my member area"
+        "Sign In"
       )}
     </Button>
   );
@@ -65,14 +65,14 @@ export function MemberLinkGate({
           fill
           priority
           sizes="(min-width: 768px) 448px, 100vw"
-          className="object-cover opacity-60 dark:opacity-50"
+          className="object-cover opacity-90 dark:opacity-80"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-card/10 dark:from-background dark:via-background/70 dark:to-background/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-card/70 via-card/25 to-card/10 dark:from-background/75 dark:via-background/30 dark:to-background/10" />
         <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-5 text-foreground">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-background/70 ring-1 ring-border backdrop-blur-md">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-background/80 ring-1 ring-border backdrop-blur-md">
             <ShieldCheck className="size-5" aria-hidden="true" />
           </span>
-          <div>
+          <div className="rounded-xl border border-border/60 bg-card/75 px-3 py-2 backdrop-blur-md dark:bg-background/75">
             <h1 className="font-heading text-lg font-semibold tracking-tight">Verify this link</h1>
             <p className="text-xs text-foreground/70">For your privacy, one code is needed.</p>
           </div>

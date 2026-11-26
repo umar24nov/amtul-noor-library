@@ -61,8 +61,8 @@ export default function MemberEntryPage() {
               </div>
             </section>
 
-            <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">
-              Don&apos;t have the saved email?{" "}
+            <p className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-center text-xs leading-relaxed text-muted-foreground">
+              <span>Don&apos;t have the saved email?</span>
               <a
                 href={LIBRARY_WHATSAPP_URL}
                 target="_blank"
