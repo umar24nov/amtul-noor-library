@@ -29,7 +29,7 @@ export default async function MemberEmailPage({
         tone="rose"
         eyebrow="Account access"
         title="Email & sign-in"
-      />
+        />
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-3xl">
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">

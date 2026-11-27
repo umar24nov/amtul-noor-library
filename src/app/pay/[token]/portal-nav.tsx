@@ -57,12 +57,6 @@ const ITEMS: NavItem[] = [
     exact: true,
   },
   {
-    suffix: "/email",
-    label: "Email & sign-in",
-    icon: Mail,
-    exact: true,
-  },
-  {
     suffix: "/support",
     label: "Help & support",
     icon: LifeBuoy,
@@ -261,7 +255,7 @@ export function PortalNav({
             <SheetHeader className="sr-only">
               <SheetTitle>Member navigation</SheetTitle>
               <SheetDescription>
-                Move between your details, payments, history, email, support and settings.
+                Move between your details, payments, history, support and settings.
               </SheetDescription>
             </SheetHeader>
             {sidebar}

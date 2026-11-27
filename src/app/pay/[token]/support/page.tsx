@@ -83,47 +83,23 @@ export default async function MemberSupportPage({
                   </a>
                 </Button>
               </div>
-              <Button asChild variant="ghost" className="mt-1 justify-start text-muted-foreground">
-                <Link href="/support">
-                  Visit help &amp; support
-                  <ChevronRight className="size-4" />
-                </Link>
-              </Button>
             </div>
-
-            <p className="mt-4 flex items-center gap-2 border-t border-emerald-500/15 pt-4 text-xs text-muted-foreground">
-              <Clock className="size-3.5 shrink-0" />
-              {LIBRARY_HOURS_DAYS} · {LIBRARY_HOURS}
-            </p>
           </div>
         </section>
 
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="font-heading text-base font-semibold tracking-tight">Your reference</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Share this if we ask for it.</p>
-            <dl className="mt-4 grid gap-3 text-sm">
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2">
-                <dt className="text-muted-foreground">Member ID</dt>
-                <dd className="font-medium">{member.memberId}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2">
-                <dt className="text-muted-foreground">Name</dt>
-                <dd className="min-w-0 truncate font-medium" title={member.name}>{member.name}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className="flex items-start gap-3 rounded-2xl border border-border bg-muted/30 p-4">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">Keep your link private.</span> Anyone with
-              this page&apos;s link still needs a code sent to your email to open it. We never show
-              identity documents here.
-            </p>
-          </section>
-        </div>
-      </div>
+        <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
+          <Link
+            href={`/pay/${token}/details`}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
+              <Mail className="size-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">Back to my details</span>
+            </span>
+          </Link>
+        </section>
       </div>
     </PortalShell>
   );
