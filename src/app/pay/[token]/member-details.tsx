@@ -59,7 +59,7 @@ export function MemberDetailsEditor({
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Pencil className="size-3.5" />
-        Change your details
+        Change details
       </Button>
     );
   }

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: "Help & support",
 };
 
-/** One place for a member to reach the library, with their details prefilled. */
+/** Reach the library for help. */
 export default async function MemberSupportPage({
   params,
 }: {
@@ -45,7 +45,6 @@ export default async function MemberSupportPage({
         tone="emerald"
         eyebrow="We are here"
         title="Help & support"
-        description="Something wrong, or just not sure where to look? Talk to the library directly."
         action={
           <Button asChild variant="outline" size="sm">
             <Link href={`/pay/${token}/details`}>Back to my details</Link>

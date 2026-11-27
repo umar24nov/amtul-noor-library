@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Email & sign-in",
 };
 
-/** Where sign-in codes go, and the verified way to move them to a new inbox. */
+/** Sign-in codes and email management. */
 export default async function MemberEmailPage({
   params,
 }: {
@@ -29,7 +29,6 @@ export default async function MemberEmailPage({
         tone="rose"
         eyebrow="Account access"
         title="Email & sign-in"
-        description="Your one-time codes are sent to this address. To change it, we first send a code to the new inbox and you confirm it here."
       />
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-3xl">

@@ -261,9 +261,6 @@ export default async function MemberDetailsPage({
             <h2 className="font-heading mt-1 text-lg font-semibold tracking-tight">
               Manage your membership
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Everything else lives in its own page, so there is less to scroll.
-            </p>
             <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
               <QuickLink
                 href={`/pay/${token}/settings`}
@@ -308,12 +305,8 @@ export default async function MemberDetailsPage({
               <ShieldCheck className="size-5" aria-hidden="true" />
             </span>
             <h2 className="font-heading mt-4 text-base font-semibold tracking-tight">
-              Private by design
+              Private
             </h2>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              This area opens only after we send you a code. Seat, fee, joining date, status and
-              remarks are staff-managed, and identity documents are never shown here.
-            </p>
           </section>
         </aside>
       </div>

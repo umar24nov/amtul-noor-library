@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: "Payments",
 };
 
-/** The fees page: what is due, how to pay by NEFT, and a WhatsApp confirmation. */
+/** The fees page: what is due, how to pay by NEFT. */
 export default async function MemberPaymentsPage({
   params,
 }: {
@@ -44,7 +44,6 @@ export default async function MemberPaymentsPage({
           tone="sky"
           eyebrow="Fees"
           title="Payments"
-          description="See what is due and how to transfer it. Every confirmed month appears in your payment history."
           action={
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {!summary.feeIsZero && summary.bankConfigured && (

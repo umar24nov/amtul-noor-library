@@ -33,7 +33,6 @@ import { LIBRARY_NAME } from "@/lib/constants";
 type NavItem = {
   suffix: string;
   label: string;
-  description: string;
   icon: LucideIcon;
   /** Exact routes do not claim nested children. */
   exact?: boolean;
@@ -43,43 +42,36 @@ const ITEMS: NavItem[] = [
   {
     suffix: "/details",
     label: "My details",
-    description: "Name, contact and guardian",
     icon: UserRound,
   },
   {
     suffix: "/payments",
     label: "Payments",
-    description: "Fees and NEFT details",
     icon: CreditCard,
     exact: true,
   },
   {
     suffix: "/payments/history",
     label: "History",
-    description: "Month-by-month receipts",
     icon: Receipt,
     exact: true,
   },
   {
     suffix: "/email",
     label: "Email & sign-in",
-    description: "Where your codes go",
     icon: Mail,
     exact: true,
   },
   {
     suffix: "/support",
     label: "Help & support",
-    description: "Talk to the library",
     icon: LifeBuoy,
     exact: true,
   },
   {
     suffix: "/settings",
     label: "Settings",
-    description: "Change your details",
     icon: Settings,
-    exact: true,
   },
 ];
 
