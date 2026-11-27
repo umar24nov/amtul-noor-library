@@ -205,10 +205,10 @@ export function Detail({ label, value }: { label: string; value: ReactNode }) {
 }
 
 /**
- * The member-area hero. The library photograph is a full-bleed background with
- * two gradients: one keeps the copy readable, the other gives the lower edge a
- * natural fade into the page. The result feels like a private club poster rather
- * than another admin card.
+ * The member-area welcome hero. A quiet, text-free library photograph stays
+ * behind a warm ivory wash in light mode and a navy wash in dark mode. Every
+ * word sits on a solid card, so the picture sets the mood without competing
+ * with the member's details.
  */
 export function PortalHero({
   name,
@@ -224,70 +224,74 @@ export function PortalHero({
   staffAllowed: boolean;
 }) {
   return (
-    <section className="relative isolate overflow-hidden rounded-3xl border border-border bg-card shadow-[0_24px_70px_-30px_rgba(15,23,42,0.25)] dark:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.7)]">
+    <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-[#E6DCC8] bg-[#F6F1E7] shadow-[0_20px_60px_-32px_rgba(16,43,70,0.45)] dark:border-[#17324D] dark:bg-[#06182B] dark:shadow-[0_24px_65px_-30px_rgba(0,0,0,0.85)]">
       <Image
-        src="/images/member-details-light.png"
+        src="/images/hero.jpg"
         alt=""
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="object-cover object-center dark:hidden"
+        className="scale-105 object-cover object-[center_45%] opacity-75 blur-[1px] dark:opacity-70 dark:brightness-[0.7]"
       />
-      <Image
-        src="/images/member-details-dark.png"
-        alt=""
-        fill
-        priority
-        sizes="(min-width: 1024px) 1120px, 100vw"
-        className="hidden object-cover object-center dark:block"
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-card/90 via-card/45 to-card/15 dark:from-background/85 dark:via-background/55 dark:to-background/25" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-card/85 to-transparent dark:from-background/85" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#F8F4EA]/95 via-[#F8F4EA]/78 to-[#F8F4EA]/42 dark:from-[#06182B]/96 dark:via-[#06182B]/86 dark:to-[#06182B]/62" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F6F1E7] to-transparent dark:from-[#06182B]" />
       <div
-        className="absolute -right-24 -top-24 size-80 rounded-full bg-emerald-500/20 blur-3xl"
+        className="absolute right-8 top-8 hidden size-24 rounded-full border border-[#C79A4A]/30 sm:block"
         aria-hidden="true"
       />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
+      <div
+        className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#C79A4A]/50 to-transparent"
+        aria-hidden="true"
+      />
 
-      <div className="relative flex min-h-[19rem] flex-col justify-between gap-8 p-6 text-foreground sm:min-h-[21rem] sm:p-9 lg:p-11">
+      <div className="relative flex min-h-[20rem] flex-col justify-between gap-8 p-5 sm:min-h-[22rem] sm:p-8 lg:p-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-foreground/80 backdrop-blur-md">
-            <span className="relative flex size-2" aria-hidden="true">
+          <span className="inline-flex min-w-0 items-center gap-2 rounded-full border border-[#DCE6DE] bg-white/95 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-[#102B46] shadow-sm dark:border-[#24445F] dark:bg-[#0B233A]/95 dark:text-[#E2E8F0]">
+            <span className="relative flex size-2 shrink-0" aria-hidden="true">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
-            MEMBERS ONLY · {memberId}
+            <span className="break-words">MEMBERS ONLY · {memberId}</span>
           </span>
           {staffAllowed && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-200 backdrop-blur-md">
+            <span className="rounded-full border border-[#D8B46A]/60 bg-[#FBF4E3]/95 px-3 py-1.5 text-[11px] font-semibold text-[#7A5716] dark:border-[#C79A4A]/50 dark:bg-[#0B233A]/95 dark:text-[#E7C87D]">
               Staff preview
             </span>
           )}
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-7">
-          <div className="min-w-0 max-w-2xl rounded-2xl border border-border/70 bg-card/90 p-5 shadow-lg shadow-slate-950/5 backdrop-blur-md dark:bg-background/90 dark:shadow-black/20 sm:p-6">
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Welcome back</p>
-            <h1 className="font-heading mt-1 break-words text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
+          <div className="relative min-w-0 max-w-2xl overflow-hidden rounded-3xl border border-[#E6DCC8] bg-white p-5 shadow-[0_18px_50px_-28px_rgba(16,43,70,0.55)] dark:border-[#24445F] dark:bg-[#102B46] dark:shadow-[0_20px_55px_-25px_rgba(0,0,0,0.85)] sm:p-6 lg:p-7">
+            <span
+              className="absolute left-0 top-7 h-10 w-1 rounded-r-full bg-[#C79A4A]/85"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+              Welcome back
+            </p>
+            <h1 className="font-heading mt-1 break-words text-[clamp(2rem,6vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[#102B46] dark:text-[#F8FAFC]">
               {name}
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/80 sm:text-base">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#475569] dark:text-[#CBD5E1] sm:text-base">
               Your seat, your payments, your details — neatly organised. Choose a section below to
               see the full story.
             </p>
-            <p className="mt-5 inline-flex items-center gap-2 text-xs text-foreground/60">
-              <MapPin className="size-3.5" aria-hidden="true" />
-              {LIBRARY_NAME} · Roorkee
+            <p className="mt-5 inline-flex max-w-full items-start gap-2 text-xs text-[#64748B] dark:text-[#CBD5E1]">
+              <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+              <span className="break-words">{LIBRARY_NAME} · Roorkee</span>
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/75 px-3.5 py-2 text-xs text-foreground/80 backdrop-blur-md">
-              <ShieldCheck className="size-3.5" />
-              Seat {seatLabel}
+          <div className="flex w-full flex-wrap gap-2.5 lg:w-auto lg:justify-end">
+            <span className="inline-flex min-w-0 items-center gap-2 rounded-full border border-[#E2E8F0] bg-white/95 px-3.5 py-2 text-xs font-medium text-[#102B46] shadow-sm dark:border-[#24445F] dark:bg-[#0B233A]/95 dark:text-[#E2E8F0]">
+              <ShieldCheck
+                className="size-3.5 shrink-0 text-[#B98B33] dark:text-[#E7C87D]"
+                aria-hidden="true"
+              />
+              <span className="break-words">Seat {seatLabel}</span>
             </span>
-            <span className="rounded-full border border-border bg-background/75 px-3.5 py-2 text-xs text-foreground/80 backdrop-blur-md">
-              Since {joined}
+            <span className="inline-flex min-w-0 items-center rounded-full border border-[#E2E8F0] bg-white/95 px-3.5 py-2 text-xs font-medium text-[#102B46] shadow-sm dark:border-[#24445F] dark:bg-[#0B233A]/95 dark:text-[#E2E8F0]">
+              <span className="break-words">Since {joined}</span>
             </span>
           </div>
         </div>
