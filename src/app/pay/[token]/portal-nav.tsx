@@ -100,9 +100,9 @@ function NavLinks({
 
   return (
     <nav aria-label="Member portal sections" className="flex flex-col gap-1">
-      {ITEMS.map(({ suffix, label, description, icon: Icon, exact }) => {
+      {ITEMS.map(({ suffix, label, icon: Icon, exact }) => {
         const href = `${base}${suffix}`;
-        const active = isActive({ suffix, label, description, icon: Icon, exact });
+        const active = isActive({ suffix, label, icon: Icon, exact });
         return (
           <Link
             key={href}
