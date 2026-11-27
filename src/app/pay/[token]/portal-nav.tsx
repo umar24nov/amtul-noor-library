@@ -134,7 +134,6 @@ function NavLinks({
                   active ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50",
                 )}
               >
-                {description}
               </span>
             </span>
             <ChevronRight
