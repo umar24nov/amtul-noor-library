@@ -231,10 +231,10 @@ export function PortalHero({
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="scale-105 object-cover object-[center_45%] opacity-75 blur-[1px] dark:opacity-70 dark:brightness-[0.7]"
+        className="scale-105 object-cover object-[center_45%] opacity-75 blur-[1px] dark:opacity-65 dark:brightness-[0.65] contrast-[1.05]"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#F8F4EA]/95 via-[#F8F4EA]/78 to-[#F8F4EA]/42 dark:from-[#06182B]/96 dark:via-[#06182B]/86 dark:to-[#06182B]/62" />
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F6F1E7] to-transparent dark:from-[#06182B]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#F8F4EA]/93 via-[#F0E6C3]/80 to-[#EBE6DD]/38 dark:from-[#06182B]/94 dark:via-[#0E1D2E]/82 dark:to-[#06182B]/58" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F6F1E7] to-transparent dark:from-[#06182B]/90" />
       <div
         className="absolute right-8 top-8 hidden size-24 rounded-full border border-[#C79A4A]/30 sm:block"
         aria-hidden="true"
