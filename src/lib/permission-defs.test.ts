@@ -38,3 +38,16 @@ test("a full admin may look at and change the payments", () => {
 test("a full admin is given every permission, the new one included", () => {
   assert.deepEqual(effectivePermissions("ADMIN", []), [...PERMISSION_KEYS]);
 });
+
+test("member activity has its own permission, separate from Users", () => {
+  assert.ok(PERMISSION_KEYS.includes("MEMBER_ACTIVITY"));
+  const administration = PERMISSION_GROUPS.find((group) => group.title === "Administration");
+  assert.ok(administration);
+  assert.ok(administration.options.some((option) => option.key === "MEMBER_ACTIVITY"));
+});
+
+test("the member activity sidebar link uses its own permission", async () => {
+  const { NAV_ITEMS } = await import("./constants");
+  const item = NAV_ITEMS.find((entry) => entry.href === "/member-activity");
+  assert.deepEqual(item?.permissions, ["MEMBER_ACTIVITY"]);
+});

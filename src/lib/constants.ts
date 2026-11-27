@@ -294,7 +294,7 @@ export const NAV_ITEMS: { href: string; label: string; permissions: PermissionKe
   { href: "/seats", label: "Seats", permissions: ["SEATS"] },
   { href: "/expenses", label: "Expenses", permissions: ["EXPENSES"] },
   { href: "/users", label: "Users", permissions: ["USERS"] },
-  { href: "/member-activity", label: "Member Activity", permissions: ["USERS"] },
+  { href: "/member-activity", label: "Member Activity", permissions: ["MEMBER_ACTIVITY"] },
 ];
 
 /**

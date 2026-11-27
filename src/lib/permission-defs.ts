@@ -20,6 +20,7 @@ export const PERMISSION_KEYS = [
   "SETTINGS",
   "USERS",
   "EXPENSES",
+  "MEMBER_ACTIVITY",
 ] as const satisfies readonly Permission[];
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -63,6 +64,11 @@ export const PERMISSION_GROUPS: {
       { key: "SETTINGS", label: "Settings", hint: "The monthly fee and pending rows" },
       { key: "USERS", label: "Users", hint: "Manage accounts and roles" },
       { key: "EXPENSES", label: "Expenses", hint: "View and manage library expenses" },
+      {
+        key: "MEMBER_ACTIVITY",
+        label: "Member activity",
+        hint: "View the member event log and changes",
+      },
     ],
   },
 ];

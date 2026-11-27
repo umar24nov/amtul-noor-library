@@ -11,7 +11,7 @@ import {
   isMemberActivityAction,
   MEMBER_ACTIVITY_ACTION_OPTIONS,
 } from "@/lib/member-activity";
-import { requirePermission } from "@/lib/permissions";
+import { can, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { listMemberActivity, MEMBER_ACTIVITY_PAGE_SIZE } from "@/lib/queries";
 
@@ -39,10 +39,11 @@ const DAY_OPTIONS = [
 /**
  * A read-only view of every member event: sign-ins, sign-outs, code requests,
  * failed codes, self-edits, email changes, receipts and staff changes.
- * The Users permission gates both this page and the sidebar link.
+ * Its own permission gates both this page and the sidebar link, so access can
+ * be granted without also granting the Users screen.
  */
 export default async function MemberActivityPage({ searchParams }: { searchParams: SearchParams }) {
-  await requirePermission("USERS");
+  const session = await requirePermission("MEMBER_ACTIVITY");
   const params = await searchParams;
 
   const q = first(params.q).trim();
@@ -76,12 +77,14 @@ export default async function MemberActivityPage({ searchParams }: { searchParam
         title="Member Activity"
         description="Every member sign-in, sign-out, code request, detail change and receipt event, newest first. Entries are kept for 12 months."
         actions={
-          <Button asChild variant="outline" size="lg" className="h-11">
-            <Link href="/users">
-              <History className="size-4" />
-              Staff activity
-            </Link>
-          </Button>
+          can(session, "USERS") ? (
+            <Button asChild variant="outline" size="lg" className="h-11">
+              <Link href="/users">
+                <History className="size-4" />
+                Staff activity
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 

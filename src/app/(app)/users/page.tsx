@@ -10,7 +10,7 @@ import { listRecentActivity } from "@/lib/activity";
 import { formatDateTime } from "@/lib/format";
 import { effectivePermissions, PERMISSION_KEYS } from "@/lib/permission-defs";
 import { canRevealPassword } from "@/lib/password-reveal";
-import { requirePermission } from "@/lib/permissions";
+import { can, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -88,12 +88,14 @@ export default async function UsersPage() {
         title="Users"
         description="Everyone who can sign in to the app, the roles they use, and who has been signing in."
         actions={
-          <Button asChild variant="outline" size="lg" className="h-11">
-            <Link href="/member-activity">
-              <History className="size-4" />
-              Member activity
-            </Link>
-          </Button>
+          can(session, "MEMBER_ACTIVITY") ? (
+            <Button asChild variant="outline" size="lg" className="h-11">
+              <Link href="/member-activity">
+                <History className="size-4" />
+                Member activity
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <UsersPanel

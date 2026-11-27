@@ -69,6 +69,7 @@ enum Permission {
   USERS
   PAYMENTS_VIEW
   EXPENSES
+  MEMBER_ACTIVITY
 }
 
 /// What someone did and when, for the owner's peace of mind. Sign-ins, sign-outs
