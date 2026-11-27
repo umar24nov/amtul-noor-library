@@ -29,6 +29,7 @@ const routes = [
   { path: "/opengraph-image", expect: "ok" },
   { path: "/dashboard", expect: "login" },
   { path: "/users", expect: "login" },
+  { path: "/member-activity", expect: "login" },
   { path: "/members", expect: "login" },
   { path: "/payments", expect: "login" },
 ];

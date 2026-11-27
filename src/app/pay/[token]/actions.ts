@@ -9,7 +9,11 @@ import {
 } from "@/lib/application-email";
 import { maskEmail } from "@/lib/email-mask";
 import { getClientIp } from "@/lib/login-rate-limit";
-import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
+import {
+  logMemberActivity,
+  logMemberChange,
+  MEMBER_AUDIT_ACTIONS,
+} from "@/lib/member-audit";
 import { memberCanUsePortal } from "@/lib/member-portal-access";
 import { createMemberLinkAccess } from "@/lib/member-link-auth";
 import {
@@ -47,7 +51,7 @@ export async function requestMemberLinkCodeAction(
   const { payToken } = parsed.data;
   const member = await prisma.member.findUnique({
     where: { payToken },
-    select: { email: true, status: true },
+    select: { id: true, email: true, status: true },
   });
   // Keeping a copy of an old link must not keep a left member's access alive.
   if (!member || !memberCanUsePortal(member.status)) {
@@ -75,8 +79,25 @@ export async function requestMemberLinkCodeAction(
   const sent = await sendMemberLinkCodeEmail({ to: member.email, code: request.code });
   if (!sent.ok) {
     await discardMemberLinkOtpRequest(request.id);
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+      metadata: {
+        channel: "Pay link",
+        purpose: "ACCESS",
+        maskedEmail: maskEmail(member.email),
+        reason: "delivery-failed",
+      },
+    });
     return errorState("Could not send the code. Please try again.");
   }
+
+  await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+    metadata: {
+      channel: "Pay link",
+      purpose: "ACCESS",
+      maskedEmail: maskEmail(member.email),
+      reason: "sent",
+    },
+  });
 
   return successState(
     `We sent a code to ${maskEmail(member.email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
@@ -102,17 +123,34 @@ export async function verifyMemberLinkCodeAction(
     select: { id: true, email: true, status: true },
   });
   if (!member || !member.email || !memberCanUsePortal(member.status)) {
+    if (member) {
+      await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_OTP_FAILED, {
+        metadata: { channel: "Pay link", purpose: "ACCESS", reason: "link-not-available" },
+      });
+    }
     return errorState("This payment link cannot be verified. Please contact the library.");
   }
 
   const result = await verifyMemberLinkCode(payToken, member.email, code);
-  if (!result.ok) return errorState(result.message);
+  if (!result.ok) {
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_OTP_FAILED, {
+      metadata: { channel: "Pay link", purpose: "ACCESS", reason: "invalid-or-expired-code" },
+    });
+    return errorState(result.message);
+  }
 
   // The row is already claimed; removing it keeps a spent code from being tried
   // again if the consumedAt check is ever changed by mistake.
   await prisma.memberLinkOtp.delete({ where: { id: result.id } }).catch(() => {});
 
   await createMemberLinkAccess({ memberId: member.id, payToken });
+  await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_SIGNED_IN, {
+    metadata: {
+      channel: "Pay link",
+      purpose: "ACCESS",
+      maskedEmail: maskEmail(member.email),
+    },
+  });
   redirect(`/pay/${payToken}`);
 }
 
@@ -170,6 +208,7 @@ export async function updateMemberDetailsAction(
       action: MEMBER_AUDIT_ACTIONS.MEMBER_SELF_UPDATED,
       actorName: "Member",
       summary: "Member updated their personal details",
+      metadata: { channel: "Pay link", purpose: "SELF_EDIT" },
       changes: [
         { field: "name", label: "Name", old: member.name, new: details.name },
         { field: "mobile", label: "Mobile", old: member.mobile, new: mobile },
@@ -221,8 +260,25 @@ export async function requestMemberEmailChangeAction(
   const sent = await sendMemberEmailChangeCodeEmail({ to: email, code: request.code });
   if (!sent.ok) {
     await discardMemberLinkOtpRequest(request.id);
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+      metadata: {
+        channel: "Pay link",
+        purpose: "EMAIL_CHANGE",
+        maskedEmail: maskEmail(email),
+        reason: "delivery-failed",
+      },
+    });
     return errorState("Could not send the code. Please try again.");
   }
+
+  await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+    metadata: {
+      channel: "Pay link",
+      purpose: "EMAIL_CHANGE",
+      maskedEmail: maskEmail(email),
+      reason: "sent",
+    },
+  });
 
   return successState(
     `We sent a code to ${maskEmail(email)}. It expires in ${OTP_TTL_MINUTES} minutes.`,
@@ -248,7 +304,17 @@ export async function verifyMemberEmailChangeAction(
   if (!member) return errorState("Please verify this link before changing your email.");
 
   const result = await verifyMemberLinkCode(payToken, email, code, "EMAIL_CHANGE");
-  if (!result.ok) return errorState(result.message);
+  if (!result.ok) {
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_OTP_FAILED, {
+      metadata: {
+        channel: "Pay link",
+        purpose: "EMAIL_CHANGE",
+        maskedEmail: maskEmail(email),
+        reason: "invalid-or-expired-code",
+      },
+    });
+    return errorState(result.message);
+  }
 
   await prisma.memberLinkOtp.delete({ where: { id: result.id } }).catch(() => {});
 
@@ -260,6 +326,11 @@ export async function verifyMemberEmailChangeAction(
       action: MEMBER_AUDIT_ACTIONS.EMAIL_CHANGED,
       actorName: "Member",
       summary: "Member confirmed a new email address",
+      metadata: {
+        channel: "Pay link",
+        purpose: "EMAIL_CHANGE",
+        maskedEmail: maskEmail(email),
+      },
       changes: [{ field: "email", label: "Email", old: member.email, new: email }],
     });
   });

@@ -8,6 +8,7 @@ import {
 } from "@/lib/application-email";
 import { maskEmail } from "@/lib/email-mask";
 import { getClientIp } from "@/lib/login-rate-limit";
+import { logMemberActivity, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { memberPortalCredentialsMatch } from "@/lib/member-portal-access";
 import { createMemberLinkAccess } from "@/lib/member-link-auth";
 import {
@@ -86,14 +87,33 @@ export async function requestMemberPortalCodeAction(
     return errorState("Email is not set up yet. Please contact the library.");
   }
 
-  if (!matched || !savedPayToken || !savedEmail) return successState(CODE_SENT(email));
+  if (!matched || !member || !savedPayToken || !savedEmail) {
+    return successState(CODE_SENT(email));
+  }
 
   const request = await createMemberLinkOtpRequest(savedPayToken, savedEmail, ip, "ACCESS");
   const sent = await sendMemberLinkCodeEmail({ to: savedEmail, code: request.code });
   if (!sent.ok) {
     await discardMemberLinkOtpRequest(request.id);
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+      metadata: {
+        channel: "Portal",
+        purpose: "ACCESS",
+        maskedEmail: maskEmail(savedEmail),
+        reason: "delivery-failed",
+      },
+    });
     return errorState("Could not send the code. Please try again or contact the library.");
   }
+
+  await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_CODE_REQUESTED, {
+    metadata: {
+      channel: "Portal",
+      purpose: "ACCESS",
+      maskedEmail: maskEmail(savedEmail),
+      reason: "sent",
+    },
+  });
 
   return successState(CODE_SENT(email));
 }
@@ -128,6 +148,11 @@ export async function verifyMemberPortalCodeAction(
     savedPayToken: member?.payToken ?? null,
   });
   if (!member || !member.email || !member.payToken || !matched) {
+    if (member) {
+      await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_OTP_FAILED, {
+        metadata: { channel: "Portal", purpose: "ACCESS", reason: "details-did-not-match" },
+      });
+    }
     return errorState(CODE_WRONG);
   }
 
@@ -135,10 +160,22 @@ export async function verifyMemberPortalCodeAction(
   const savedPayToken = member.payToken;
 
   const result = await verifyMemberLinkCode(savedPayToken, savedEmail, parsed.data.code, "ACCESS");
-  if (!result.ok) return errorState(result.message);
+  if (!result.ok) {
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_OTP_FAILED, {
+      metadata: { channel: "Portal", purpose: "ACCESS", reason: "invalid-or-expired-code" },
+    });
+    return errorState(result.message);
+  }
 
   await prisma.memberLinkOtp.delete({ where: { id: result.id } }).catch(() => {});
   await createMemberLinkAccess({ memberId: member.id, payToken: savedPayToken });
+  await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_SIGNED_IN, {
+    metadata: {
+      channel: "Portal",
+      purpose: "ACCESS",
+      maskedEmail: maskEmail(savedEmail),
+    },
+  });
 
   redirect(`/pay/${savedPayToken}/details`);
 }

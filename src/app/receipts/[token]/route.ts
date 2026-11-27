@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { buildReceiptBytes } from "@/lib/receipts";
 import { memberPortalCookieAllowed } from "@/lib/member-portal-access";
+import { logMemberActivity, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { getMemberLinkAccess } from "@/lib/member-link-auth";
 import { canAny, getSession } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -29,6 +30,7 @@ export async function GET(
     where: { receiptToken: token },
     select: {
       id: true,
+      month: true,
       status: true,
       memberId: true,
       member: { select: { payToken: true, status: true } },
@@ -60,6 +62,15 @@ export async function GET(
   if (!receipt) {
     return new Response("Receipt not found.", { status: 404 });
   }
+
+  await logMemberActivity(payment.memberId, MEMBER_AUDIT_ACTIONS.RECEIPT_DOWNLOADED, {
+    actorName: staffAllowed ? null : "Member",
+    metadata: {
+      channel: staffAllowed ? "Staff link" : "Member link",
+      month: payment.month,
+      paymentId: payment.id,
+    },
+  });
 
   return new Response(Buffer.from(receipt.bytes), {
     headers: {

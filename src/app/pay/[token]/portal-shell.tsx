@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { Eye, ShieldCheck } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { logMemberActivity, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { destroyMemberLinkAccess } from "@/lib/member-link-auth";
 import { MemberLinkGate } from "./member-link-gate";
 import { PortalNav } from "./portal-nav";
@@ -38,6 +39,9 @@ export function PortalShell({
 }) {
   async function signOutAction() {
     "use server";
+    await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_SIGNED_OUT, {
+      metadata: { channel: "Member portal" },
+    });
     await destroyMemberLinkAccess();
     redirect("/member");
   }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
+import { maskEmail } from "@/lib/email-mask";
 import { actionPermission, canViewPayments } from "@/lib/permissions";
 import { parseInputDate, monthKeyFromInputDate } from "@/lib/format";
 import { nextPaymentId, newReceiptToken, bumpPaymentId } from "@/lib/ids";
@@ -22,7 +23,12 @@ import {
   sendReceiptEmail,
 } from "@/lib/receipts";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
-import { logMemberChange, MEMBER_AUDIT_ACTIONS, type MemberAuditChange } from "@/lib/member-audit";
+import {
+  logMemberActivity,
+  logMemberChange,
+  MEMBER_AUDIT_ACTIONS,
+  type MemberAuditChange,
+} from "@/lib/member-audit";
 
 function revalidateAll() {
   revalidatePath("/dashboard");
@@ -402,6 +408,16 @@ export async function sendReceiptEmailAction(paymentPk: number): Promise<ActionS
 
   const result = await sendReceiptEmail(context.email, context.info);
   if (!result.ok) return errorState(result.error);
+
+  await logMemberActivity(context.memberPk, MEMBER_AUDIT_ACTIONS.RECEIPT_EMAILED, {
+    actorName: null,
+    metadata: {
+      channel: "Staff email",
+      month: context.info.month,
+      paymentId: paymentPk,
+      maskedEmail: maskEmail(context.email),
+    },
+  });
 
   return successState(`Receipt sent to ${context.email}.`);
 }

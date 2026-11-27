@@ -11,6 +11,10 @@ import {
   shiftMonthKey,
 } from "@/lib/format";
 import { toNumber } from "@/lib/ids";
+import {
+  isMemberActivityAction,
+  memberActivityCutoff,
+} from "@/lib/member-activity";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyFee, memberFeesByMemberId } from "@/lib/settings";
 import {
@@ -22,6 +26,7 @@ import {
 import { SEAT_LAYOUTS, type SeatLayoutKey } from "@/lib/seat-layouts";
 import { deriveMonthStatus, summarizeArrears, type MonthStatus } from "@/lib/fees";
 import { pendingDueDate } from "@/lib/payments";
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   Member,
   Payment,
@@ -335,6 +340,7 @@ export const getMemberDetail = cache(async (id: number) => {
       include: {
         ...baseInclude,
         auditLogs: {
+          where: { createdAt: { gte: memberActivityCutoff() } },
           orderBy: { createdAt: "desc" as const },
           take: 100,
         },
@@ -349,6 +355,98 @@ export const getMemberDetail = cache(async (id: number) => {
     return member ? { ...member, auditLogs: [] as Array<{ id: number; memberId: number; actorId: number | null; actorName: string; action: string; summary: string; changes: unknown; metadata: unknown; ip: string; createdAt: Date }> } : member;
   }
 });
+
+export const MEMBER_ACTIVITY_PAGE_SIZE = 20;
+
+export type MemberActivityFilters = {
+  q?: string;
+  /** Internal member row id. */
+  memberId?: number;
+  action?: string;
+  /** Optional short window; always capped by the 12-month retention rule. */
+  days?: number;
+  page?: number;
+};
+
+export type MemberActivityRow = {
+  id: number;
+  action: string;
+  summary: string;
+  changes: Prisma.JsonValue | null;
+  metadata: Prisma.JsonValue | null;
+  ip: string;
+  actorName: string;
+  createdAt: Date;
+  member: { id: number; memberId: string; name: string; status: Member["status"] };
+};
+
+export type MemberActivityResult = {
+  rows: MemberActivityRow[];
+  total: number;
+  page: number;
+  cutoff: Date;
+};
+
+/**
+ * The monitor's single reader. The cutoff is applied here as well as by the
+ * writer, so entries older than a year never surface even before cleanup runs.
+ */
+export async function listMemberActivity({
+  q,
+  memberId,
+  action,
+  days,
+  page = 1,
+}: MemberActivityFilters = {}): Promise<MemberActivityResult> {
+  const now = new Date();
+  const retentionCutoff = memberActivityCutoff(now);
+  const windowCutoff =
+    Number.isFinite(days) && days! > 0
+      ? new Date(now.getTime() - Math.trunc(days!) * 24 * 60 * 60 * 1000)
+      : retentionCutoff;
+  const cutoff = windowCutoff > retentionCutoff ? windowCutoff : retentionCutoff;
+
+  const term = q?.trim();
+  const where = {
+    createdAt: { gte: cutoff },
+    ...(Number.isInteger(memberId) && memberId! > 0 ? { memberId: memberId! } : {}),
+    ...(action && isMemberActivityAction(action) ? { action } : {}),
+    ...(term
+      ? {
+          OR: [
+            { member: { name: { contains: term, mode: "insensitive" as const } } },
+            { member: { memberId: { contains: term.toUpperCase() } } },
+            { actorName: { contains: term, mode: "insensitive" as const } },
+            { summary: { contains: term, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const offset = (Math.max(1, Math.trunc(page)) - 1) * MEMBER_ACTIVITY_PAGE_SIZE;
+  const [total, rows] = await Promise.all([
+    prisma.memberAuditLog.count({ where }),
+    prisma.memberAuditLog.findMany({
+      where,
+      select: {
+        id: true,
+        action: true,
+        summary: true,
+        changes: true,
+        metadata: true,
+        ip: true,
+        actorName: true,
+        createdAt: true,
+        member: { select: { id: true, memberId: true, name: true, status: true } },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: offset,
+      take: MEMBER_ACTIVITY_PAGE_SIZE,
+    }),
+  ]);
+
+  return { rows, total, page: Math.max(1, Math.trunc(page)), cutoff };
+}
 
 export type PaymentFilters = {
   month?: string;

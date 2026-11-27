@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { History } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ActivityPanel } from "@/components/activity-panel";
+import { Button } from "@/components/ui/button";
 import { RolesPanel, type PanelRole } from "@/components/roles-panel";
 import { UsersPanel, type PanelUser } from "@/components/users-panel";
 import { listRecentActivity } from "@/lib/activity";
@@ -84,6 +87,14 @@ export default async function UsersPage() {
       <PageHeader
         title="Users"
         description="Everyone who can sign in to the app, the roles they use, and who has been signing in."
+        actions={
+          <Button asChild variant="outline" size="lg" className="h-11">
+            <Link href="/member-activity">
+              <History className="size-4" />
+              Member activity
+            </Link>
+          </Button>
+        }
       />
       <UsersPanel
         users={users}

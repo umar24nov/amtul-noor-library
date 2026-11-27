@@ -12,6 +12,8 @@ import { buildReceiptPdf, receiptFilename, type ReceiptPdfInfo } from "@/lib/rec
 
 export type ReceiptContext = {
   info: ReceiptPdfInfo;
+  /** Internal member row id, used only for the activity log. */
+  memberPk: number;
   /** Where the receipt can be emailed, when the member has an address. */
   email: string | null;
   mobile: string | null;
@@ -40,7 +42,7 @@ export async function getReceiptContext(paymentPk: number): Promise<ReceiptConte
     remarks: payment.remarks,
   };
 
-  return { info, email: member.email, mobile: member.mobile };
+  return { info, memberPk: member.id, email: member.email, mobile: member.mobile };
 }
 
 export async function buildReceiptBytes(paymentPk: number): Promise<
