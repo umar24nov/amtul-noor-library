@@ -62,3 +62,15 @@ test("a visitor without a cookie is sent to /login", async () => {
   assert.equal(location.pathname, "/login");
   assert.equal(location.searchParams.get("next"), "/dashboard");
 });
+
+test("the redirect keeps the page's query string for after sign-in", async () => {
+  const request = new NextRequest(
+    "https://www.amtulnoorlibrary.in/dashboard?month=2026-11&status=PENDING",
+  );
+
+  const response = await proxy(request);
+
+  assert.equal(response.status, 307);
+  const location = new URL(response.headers.get("location")!);
+  assert.equal(location.searchParams.get("next"), "/dashboard?month=2026-11&status=PENDING");
+});

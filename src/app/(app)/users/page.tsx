@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RolesPanel, type PanelRole } from "@/components/roles-panel";
 import { UsersPanel, type PanelUser } from "@/components/users-panel";
 import { listRecentActivity } from "@/lib/activity";
-import { formatDate } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { effectivePermissions, PERMISSION_KEYS } from "@/lib/permission-defs";
 import { canRevealPassword } from "@/lib/password-reveal";
 import { requirePermission } from "@/lib/permissions";
@@ -73,7 +73,7 @@ export default async function UsersPage() {
     roleName: row.role.name,
     level: row.role.level,
     active: row.active,
-    lastLoginAt: row.lastLoginAt ? formatDate(row.lastLoginAt) : null,
+    lastLoginAt: row.lastLoginAt ? formatDateTime(row.lastLoginAt) : null,
     hasStoredPassword: row.passwordCiphertext !== null,
   }));
 

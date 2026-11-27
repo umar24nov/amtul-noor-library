@@ -30,8 +30,9 @@ function revalidateAll() {
 /**
  * Approves a pending application and, in the same transaction, creates the
  * member it points at. The member inherits the applicant's details so nothing
- * is re-typed, and the application record keeps its link to the member. A
- * welcome email goes out afterwards; a mail failure never undoes the approval.
+ * is re-typed, and the application record keeps its link to the member. The
+ * one-time welcome email is claimed in the same transaction and sent afterwards;
+ * a mail failure never undoes the approval, and the claim prevents a resend.
  */
 export async function approveApplicationAction(formData: FormData): Promise<ActionState> {
   const gate = await actionPermission("APPLICATIONS");
@@ -53,6 +54,17 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
       const applicationData = await tx.application.findUniqueOrThrow({
         where: { id },
       });
+
+      // Claim the decision before doing any work. The status condition makes the
+      // claim atomic: two overlapping approvals cannot both win, and a losing
+      // request creates no member and sends no email. A later failure rolls the
+      // whole claim back with the transaction.
+      const welcomeEmailSentAt = applicationData.email ? new Date() : null;
+      const claim = await tx.application.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "APPROVED", decidedAt: new Date(), welcomeEmailSentAt },
+      });
+      if (claim.count !== 1) return { alreadyDecided: true as const };
 
       // Honour the seat the applicant asked for, but only if it is still free;
       // otherwise the member is created without one and the owner assigns it.
@@ -113,19 +125,25 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
 
       await tx.application.update({
         where: { id },
-        data: { status: "APPROVED", memberId: member.id, decidedAt: new Date() },
+        data: { memberId: member.id },
       });
 
       return {
+        alreadyDecided: false as const,
         member,
         email: applicationData.email,
         applicantName: applicationData.name,
         seatLabel,
+        welcomeClaimed: welcomeEmailSentAt !== null,
       };
     });
 
+    if (result.alreadyDecided) {
+      return errorState("This application has already been decided or is no longer available.");
+    }
+
     let emailStatus = "none";
-    if (result.email) {
+    if (result.email && result.welcomeClaimed) {
       const email = await sendApplicationDecisionEmail({
         to: result.email,
         applicantName: result.applicantName,
@@ -280,12 +298,12 @@ export async function updateApplicationAction(
 }
 
 /**
- * Sends (or re-sends) the decision email by hand.
+ * Sends a decision email by hand when the automatic send was not configured.
  *
- * Auto-sending on approve/reject is best-effort and can quietly fail (no key,
- * an unverified sending domain, or a bounce). This lets the owner push the same
- * email again on demand and, unlike the automatic path, it reports exactly what
- * went wrong so the problem is visible instead of silent.
+ * The approved welcome is a one-time message: its claim is taken here (or
+ * during approval) and never released, even if delivery fails, so it cannot be
+ * sent twice. A rejection email is not a welcome and may be sent again; unlike
+ * the automatic path, this reports exactly what went wrong.
  */
 export async function sendApplicationEmailAction(applicationId: number): Promise<ActionState> {
   const gate = await actionPermission("APPLICATIONS");
@@ -302,6 +320,7 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
         status: true,
         email: true,
         name: true,
+        welcomeEmailSentAt: true,
         rejectionReason: true,
         member: {
           select: {
@@ -317,6 +336,18 @@ export async function sendApplicationEmailAction(applicationId: number): Promise
     }
     if (!application.email) {
       return errorState("This application has no email address on file.");
+    }
+
+    if (application.status === "APPROVED") {
+      // The claim is the guard: updateMany is atomic, so two clicks cannot both
+      // win. Legacy approvals were backfilled as already sent by the migration.
+      const claim = await prisma.application.updateMany({
+        where: { id: applicationId, status: "APPROVED", welcomeEmailSentAt: null },
+        data: { welcomeEmailSentAt: new Date() },
+      });
+      if (claim.count === 0) {
+        return errorState("The welcome email has already been sent and is not sent again.");
+      }
     }
 
     const seatLabel = application.member?.seat

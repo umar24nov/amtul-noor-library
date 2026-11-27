@@ -6,6 +6,7 @@ import { errorState, prismaErrorMessage, successState, type ActionState } from "
 import { prisma } from "@/lib/prisma";
 import { nextMoneyKeptId } from "@/lib/ids";
 import { actionPermission } from "@/lib/permissions";
+import { parseFlexibleDate } from "@/lib/flexible-date";
 
 const moneyKeptSchema = z.object({
   date: z.string().trim().min(1, "Enter a date"),
@@ -15,72 +16,6 @@ const moneyKeptSchema = z.object({
 
 function revalidateAll() {
   revalidatePath("/expenses");
-}
-
-function parseFlexibleDate(input: string): Date {
-  const s = input.trim();
-  if (!s) {
-    return new Date();
-  }
-  try {
-    const mmyyyy = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
-    if (mmyyyy) {
-      const month = parseInt(mmyyyy[1], 10);
-      const year = parseInt(mmyyyy[2], 10);
-      if (month >= 1 && month <= 12) {
-        return new Date(year, month - 1, 1);
-      }
-    }
-    const ddmmyyyy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (ddmmyyyy) {
-      const day = parseInt(ddmmyyyy[1], 10);
-      const month = parseInt(ddmmyyyy[2], 10);
-      const year = parseInt(ddmmyyyy[3], 10);
-      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-        return new Date(year, month - 1, day);
-      }
-    }
-    const yymm = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
-    if (yymm) {
-      const year = parseInt(yymm[1], 10);
-      const month = parseInt(yymm[2], 10);
-      if (month >= 1 && month <= 12) {
-        return new Date(year, month - 1, 1);
-      }
-    }
-    const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
-    if (dMonY) {
-      const day = parseInt(dMonY[1], 10);
-      const monthName = dMonY[2].toLowerCase();
-      const year = parseInt(dMonY[3], 10);
-      const months: Record<string, number> = {
-        jan: 0, january: 0,
-        feb: 1, february: 1,
-        mar: 2, march: 2,
-        apr: 3, april: 3,
-        may: 4,
-        jun: 5, june: 5,
-        jul: 6, july: 6,
-        aug: 7, august: 7,
-        sep: 8, sept: 8, september: 8,
-        oct: 9, october: 9,
-        nov: 10, november: 10,
-        dec: 11, december: 11,
-      };
-      const m = months[monthName.slice(0,3)];
-      if (m !== undefined && day >= 1 && day <= 31) {
-        return new Date(year, m, day);
-      }
-    }
-    // Try native parse as last resort
-    const parsed = new Date(s);
-    if (!isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  } catch {
-    // ignore
-  }
-  return new Date();
 }
 
 export async function createMoneyKeptAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -102,11 +37,16 @@ export async function createMoneyKeptAction(_prev: ActionState, formData: FormDa
     return errorState("Please check the highlighted fields.", fieldErrors);
   }
 
+  const date = parseFlexibleDate(parsed.data.date);
+  if (!date) {
+    return errorState("Enter a valid date.", { date: "Enter a valid date" });
+  }
+
   try {
     await prisma.moneyKept.create({
       data: {
         moneyKeptId: await nextMoneyKeptId(),
-        date: parseFlexibleDate(parsed.data.date),
+        date,
         dateLabel: parsed.data.date,
         amount: parsed.data.amount,
         person: parsed.data.person,
@@ -145,11 +85,16 @@ export async function updateMoneyKeptAction(_prev: ActionState, formData: FormDa
     return errorState("Please check the highlighted fields.", fieldErrors);
   }
 
+  const date = parseFlexibleDate(parsed.data.date);
+  if (!date) {
+    return errorState("Enter a valid date.", { date: "Enter a valid date" });
+  }
+
   try {
     await prisma.moneyKept.update({
       where: { id: moneyKeptPk },
       data: {
-        date: parseFlexibleDate(parsed.data.date),
+        date,
         dateLabel: parsed.data.date,
         amount: parsed.data.amount,
         person: parsed.data.person,

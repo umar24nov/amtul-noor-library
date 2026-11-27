@@ -1,5 +1,7 @@
 import {
+  INPUT_DATE_PATTERN,
   MAX_MONTH_WINDOW,
+  MONTH_KEY_PATTERN,
   MONTH_NAMES,
   MONTH_PAD_BACK,
   MONTH_PAD_FORWARD,
@@ -89,7 +91,15 @@ export function todayInputValue(): string {
 
 /** Parses a `YYYY-MM-DD` input value into a UTC midnight Date. */
 export function parseInputDate(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
+  if (!INPUT_DATE_PATTERN.test(value)) throw new Error("Invalid date");
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  // Never let an impossible date quietly become the following month. Form
+  // actions validate first; this keeps hand-edited requests and old callers
+  // from writing a date nobody entered.
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error("Invalid date");
+  }
+  return parsed;
 }
 
 /** Formats a Date as `YYYY-MM-DD` for an <input type="date">. */
@@ -179,9 +189,6 @@ export function gapMonthsBetween(afterMonth: string, beforeMonth: string): strin
   }
   return months;
 }
-
-/** Matches a `YYYY-MM` month key with a real month number. */
-const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Orders `YYYY-MM` keys oldest first. Ignores anything that is not a month key. */
 function sortMonthKeys(keys: string[]): string[] {

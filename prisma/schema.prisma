@@ -93,6 +93,9 @@ enum ActivityAction {
 model Seat {
   id         Int        @id @default(autoincrement())
   seatNumber String     @unique
+  /// Numeric form of seatNumber, so a database page can sort "2" before "10".
+  /// Derived on every seat write; the migration backfills existing rows.
+  seatOrder  Int        @default(0)
   status     SeatStatus @default(AVAILABLE)
   /// Derived from the seat number: true for 23-44. A locker seat costs
   /// LIBRARY_FEES.seatWithLocker instead of the plain seat fee.
@@ -219,6 +222,10 @@ model Application {
   memberId           Int?
   member             Member?           @relation(fields: [memberId], references: [id], onDelete: SetNull)
   decidedAt          DateTime?
+  /// The final welcome email is sent once. Set atomically before the send, and
+  /// backfilled for applications approved before this guard existed, so it can
+  /// never be sent a second time.
+  welcomeEmailSentAt DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 

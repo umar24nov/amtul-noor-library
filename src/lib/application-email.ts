@@ -6,6 +6,7 @@ import {
   LIBRARY_NAME,
   LIBRARY_PHONE,
 } from "@/lib/constants";
+import { escapeHtml } from "@/lib/html";
 import { OTP_TTL_MINUTES } from "@/lib/otp-code";
 
 /**
@@ -17,15 +18,6 @@ import { OTP_TTL_MINUTES } from "@/lib/otp-code";
  */
 
 export type ApplicationEmailResult = { ok: true } | { ok: false; error: string };
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 export function applicationEmailIsConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);

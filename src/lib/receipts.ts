@@ -1,6 +1,7 @@
 import "server-only";
 import { LIBRARY_EMAIL, LIBRARY_NAME, paymentModeLabels } from "@/lib/constants";
 import { formatMonth, normalizeSeatNumber } from "@/lib/format";
+import { escapeHtml } from "@/lib/html";
 import { toNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { buildReceiptPdf, receiptFilename, type ReceiptPdfInfo } from "@/lib/receipt-pdf";
@@ -79,6 +80,9 @@ export async function sendReceiptEmail(to: string, info: ReceiptPdfInfo): Promis
 
   const from = process.env.RESEND_FROM ?? `${LIBRARY_NAME} <onboarding@resend.dev>`;
   const bytes = await buildReceiptPdf(info);
+  const monthLabel = escapeHtml(formatMonth(info.month));
+  const memberName = escapeHtml(info.memberName);
+  const paymentId = escapeHtml(info.paymentId);
 
   let response: Response;
   try {
@@ -94,9 +98,9 @@ export async function sendReceiptEmail(to: string, info: ReceiptPdfInfo): Promis
         reply_to: LIBRARY_EMAIL,
         subject: `${LIBRARY_NAME} receipt for ${formatMonth(info.month)}`,
         html: [
-          `<p>Dear ${info.memberName},</p>`,
-          `<p>Please find attached your fee receipt for <strong>${formatMonth(info.month)}</strong>.</p>`,
-          `<p>Receipt number: ${info.paymentId}</p>`,
+          `<p>Dear ${memberName},</p>`,
+          `<p>Please find attached your fee receipt for <strong>${monthLabel}</strong>.</p>`,
+          `<p>Receipt number: ${paymentId}</p>`,
           `<p>Thank you for your membership.</p>`,
           `<p>— ${LIBRARY_NAME}</p>`,
         ].join("\n"),

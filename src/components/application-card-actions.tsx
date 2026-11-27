@@ -53,6 +53,8 @@ export type EditableApplication = {
   memberId: number | null;
   /** "Seat 3" while the linked member still holds a seat, else null. */
   memberSeatLabel: string | null;
+  /** The final welcome is one-time; rejected decision emails are not. */
+  welcomeEmailSent: boolean;
 };
 
 const inputClass = "h-11 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
@@ -441,8 +443,14 @@ export function ApplicationActions({
           <RejectApplicationDialog application={application} />
         </>
       )}
-      {application.status !== "PENDING" && (
-        <SendEmailDialog application={application} />
+      {(application.status === "REJECTED" ||
+        (application.status === "APPROVED" &&
+          !application.welcomeEmailSent &&
+          Boolean(application.email))) && <SendEmailDialog application={application} />}
+      {application.status === "APPROVED" && application.welcomeEmailSent && (
+        <span className="inline-flex h-10 items-center rounded-lg border border-border px-3 text-xs text-muted-foreground">
+          Welcome email sent
+        </span>
       )}
       {application.memberSeatLabel && (
         <ReleaseSeatDialog application={application} />
@@ -533,7 +541,7 @@ function SendEmailDialog({ application }: { application: EditableApplication }) 
           </AlertDialogTitle>
           <AlertDialogDescription>
             {approved
-              ? `This emails ${application.name} a welcome message with their seat and library details. They may have received one when you approved — sending it again is safe.`
+              ? `This emails ${application.name} a welcome message with their seat and library details. The welcome is sent only once, so check the address before continuing.`
               : `This emails ${application.name} the message explaining that their application was not accepted. Sending it again is safe.`}
           </AlertDialogDescription>
         </AlertDialogHeader>

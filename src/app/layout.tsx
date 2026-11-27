@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { Toaster } from "@/components/ui/sonner";
+import { configuredSiteOrigin } from "@/lib/site-url";
 import { themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -15,11 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-  (process.env.NODE_ENV === "production"
-    ? "https://www.amtulnoorlibrary.in"
-    : "http://localhost:3000");
+const SITE_URL = configuredSiteOrigin();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

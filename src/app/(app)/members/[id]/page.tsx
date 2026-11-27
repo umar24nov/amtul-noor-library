@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   currentMonthKey,
   formatDate,
+  formatDateTime,
   formatINR,
   formatMonth,
   normalizeSeatNumber,
@@ -234,8 +235,8 @@ export default async function MemberDetailPage({
 
       {joined && email === "failed" && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-          The welcome email could not be sent. Open the application and use{" "}
-          <span className="font-medium">Send welcome email</span> to try again.
+          The welcome email could not be sent. Contact support if it has not arrived; the final
+          welcome is sent only once.
         </p>
       )}
 
@@ -369,7 +370,7 @@ export default async function MemberDetailPage({
             <Detail label="Remarks" value={member.remarks || "—"} />
             <Detail
               label="Record created"
-              value={formatDate(member.createdAt)}
+              value={formatDateTime(member.createdAt)}
             />
           </dl>
         </CardContent>
@@ -524,8 +525,6 @@ export default async function MemberDetailPage({
                         )}
                         <p className="mt-1 text-xs text-muted-foreground">
                           {log.actorName ? `${log.actorName}` : "System"}
-                          {log.actorName ? " • " : ""}
-                          {formatDate(log.createdAt)}
                         </p>
                         {changes.length > 0 && (
                           <ul className="mt-2 space-y-1">
@@ -538,7 +537,7 @@ export default async function MemberDetailPage({
                           </ul>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground">{formatDate(log.createdAt).split(",")[0]}</span>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</span>
                     </div>
                   </li>
                 );

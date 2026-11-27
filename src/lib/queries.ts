@@ -258,36 +258,29 @@ export type MemberListFilters = {
 };
 
 /**
- * Sorts the member list in memory. Seat numbers are plain strings, so a
- * database string sort would put "10" before "2". Every option ends with a
- * unique tiebreaker so pagination cannot repeat or skip a member.
+ * Database ordering for the member list. `Seat.seatOrder` is the numeric copy
+ * of the seat number, so "2" still comes before "10". Every option ends with
+ * the unique id, which keeps a page boundary from repeating or skipping a row.
  */
-function compareMembers(a: MemberWithSeat, b: MemberWithSeat, sort: MemberSort): number {
-  const byId = a.id - b.id;
-  const byName = a.name.localeCompare(b.name);
-
+function memberOrderBy(sort: MemberSort): Prisma.MemberOrderByWithRelationInput[] {
   switch (sort) {
     case "name-asc":
-      return byName || byId;
+      return [{ name: "asc" }, { id: "asc" }];
     case "name-desc":
-      return -byName || byId;
+      return [{ name: "desc" }, { id: "desc" }];
     case "seat":
-      return (
-        compareSeatNumbers(a.seat?.seatNumber ?? null, b.seat?.seatNumber ?? null) ||
-        byName ||
-        byId
-      );
+      return [{ seat: { seatOrder: "asc" } }, { name: "asc" }, { id: "asc" }];
     case "newest":
-      return b.joiningDate.getTime() - a.joiningDate.getTime() || byId;
+      return [{ joiningDate: "desc" }, { id: "desc" }];
     case "oldest":
-      return a.joiningDate.getTime() - b.joiningDate.getTime() || byId;
+      return [{ joiningDate: "asc" }, { id: "asc" }];
     case "member-id":
-      return a.memberId.localeCompare(b.memberId) || byId;
+      return [{ memberId: "asc" }, { id: "asc" }];
     case "recently-updated":
-      return b.updatedAt.getTime() - a.updatedAt.getTime() || byId;
+      return [{ updatedAt: "desc" }, { id: "desc" }];
     case "status-name":
     default:
-      return a.status.localeCompare(b.status) || byName || byId;
+      return [{ status: "asc" }, { name: "asc" }, { id: "asc" }];
   }
 }
 
@@ -322,38 +315,39 @@ export async function listMembers({
       : {}),
   };
 
-  const members = await prisma.member.findMany({ where, include: { seat: true } });
-  members.sort((a, b) => compareMembers(a, b, sort));
-  const start = (page - 1) * PAGE_SIZE;
+  const total = await prisma.member.count({ where });
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const requestedPage = Number.isFinite(page) && page > 0 ? Math.max(1, Math.trunc(page)) : 1;
+  // A stale batch request past the end lands on the last real page instead of
+  // returning nothing while the footer still says more are available.
+  const resolvedPage = Math.min(requestedPage, lastPage);
 
-  return { members: members.slice(start, start + PAGE_SIZE), total: members.length, page };
+  // Sorting and slicing happen in the database: a long member list no longer
+  // has to be fetched in full just to show one batch of it.
+  const members = await prisma.member.findMany({
+    where,
+    include: { seat: true },
+    orderBy: memberOrderBy(sort),
+    skip: (resolvedPage - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+  });
+
+  return { members, total, page: resolvedPage };
 }
 
 export const getMemberDetail = cache(async (id: number) => {
-  const baseInclude = {
-    seat: true,
-    payments: { orderBy: [{ month: "desc" as const }, { createdAt: "desc" as const }] },
-  };
-  try {
-    return await prisma.member.findUnique({
-      where: { id },
-      include: {
-        ...baseInclude,
-        auditLogs: {
-          where: { createdAt: { gte: memberActivityCutoff() } },
-          orderBy: { createdAt: "desc" as const },
-          take: 100,
-        },
+  return prisma.member.findUnique({
+    where: { id },
+    include: {
+      seat: true,
+      payments: { orderBy: [{ month: "desc" as const }, { createdAt: "desc" as const }] },
+      auditLogs: {
+        where: { createdAt: { gte: memberActivityCutoff() } },
+        orderBy: { createdAt: "desc" as const },
+        take: 100,
       },
-    });
-  } catch {
-    // If the audit log table/migration isn't available yet, keep the page working.
-    const member = await prisma.member.findUnique({
-      where: { id },
-      include: baseInclude,
-    });
-    return member ? { ...member, auditLogs: [] as Array<{ id: number; memberId: number; actorId: number | null; actorName: string; action: string; summary: string; changes: unknown; metadata: unknown; ip: string; createdAt: Date }> } : member;
-  }
+    },
+  });
 });
 
 export const MEMBER_ACTIVITY_PAGE_SIZE = 20;
@@ -844,20 +838,16 @@ export async function listPaymentReminders(month: string): Promise<PaymentRemind
   );
 
   // How many reminders have already gone out this month, per member. Keyed by
-  // month, so a new month simply has no rows and the count starts at zero.
-  // Tolerated as empty if the table is not there yet, so the page still opens.
-  let sentByMember = new Map<number, number>();
-  try {
-    const sentRows = owed.length
-      ? await prisma.reminderSent.findMany({
-          where: { month, memberId: { in: owed.map((row) => row.memberPk) } },
-          select: { memberId: true, count: true },
-        })
-      : [];
-    sentByMember = new Map(sentRows.map((row) => [row.memberId, row.count]));
-  } catch {
-    sentByMember = new Map();
-  }
+  // month, so a new month simply has no rows and the count starts at zero. The
+  // query is allowed to fail loudly: a false zero could send a member three
+  // reminders when they have already had two.
+  const sentRows = owed.length
+    ? await prisma.reminderSent.findMany({
+        where: { month, memberId: { in: owed.map((row) => row.memberPk) } },
+        select: { memberId: true, count: true },
+      })
+    : [];
+  const sentByMember = new Map(sentRows.map((row) => [row.memberId, row.count]));
 
   const rows = owed.map((row) => ({
     memberPk: row.memberPk,

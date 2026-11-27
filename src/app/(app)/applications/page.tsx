@@ -4,6 +4,7 @@ import { Inbox } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FilterField } from "@/components/filters";
 import { FilterSelect } from "@/components/filter-select";
 import {
@@ -14,13 +15,14 @@ import { AadhaarPreview } from "@/components/aadhaar-preview";
 import { aadhaarScanSrc } from "@/lib/aadhaar-storage";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { formatDate, normalizeSeatNumber } from "@/lib/format";
+import { formatDate, formatDateTime, normalizeSeatNumber } from "@/lib/format";
+import { PAGE_SIZE } from "@/lib/constants";
 import { cn } from "cn";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Applications" };
 
-type SearchParams = Promise<{ status?: string; error?: string }>;
+type SearchParams = Promise<{ status?: string; error?: string; page?: string }>;
 
 const APPROVE_ERRORS: Record<string, string> = {
   invalid: "That application request was invalid.",
@@ -98,6 +100,7 @@ function toEditableApplication(application: {
   otherPreparation: string | null;
   desiredJoiningDate: Date;
   notes: string | null;
+  welcomeEmailSentAt: Date | null;
   member: {
     id: number;
     seat: { seatNumber: string } | null;
@@ -117,6 +120,7 @@ function toEditableApplication(application: {
     otherPreparation: application.otherPreparation,
     desiredJoiningDate: application.desiredJoiningDate.toISOString().slice(0, 10),
     notes: application.notes,
+    welcomeEmailSent: Boolean(application.welcomeEmailSentAt),
     memberId: application.member?.id ?? null,
     memberSeatLabel: application.member?.seat
       ? `Seat ${normalizeSeatNumber(application.member.seat.seatNumber)}`
@@ -137,9 +141,21 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
     // "All" (or any other value) — don't filter by status
   }
 
+  // A long list of applications must not be loaded in one query: each card can
+  // carry Aadhaar links, so the page is bounded and grows one batch at a time.
+  const total = await prisma.application.count({ where });
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const requestedPage = Number(params.page);
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0
+      ? Math.min(Math.trunc(requestedPage), lastPage)
+      : 1;
+
   const applications = await prisma.application.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: {
       member: {
         select: {
@@ -153,6 +169,11 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
       },
     },
   });
+
+  const moreParams = new URLSearchParams();
+  if (where.status) moreParams.set("status", where.status);
+  moreParams.set("page", String(page + 1));
+  const moreHref = `/applications?${moreParams.toString()}`;
 
   return (
     <div className="grid gap-5">
@@ -210,7 +231,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <span className="font-normal text-muted-foreground"> · {application.mobile}</span>
                   </CardTitle>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Submitted {formatDate(application.createdAt)} · Desired joining{" "}
+                    Submitted {formatDateTime(application.createdAt)} · Desired joining{" "}
                     {formatDate(application.desiredJoiningDate)}
                   </p>
                 </div>
@@ -291,7 +312,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
                 {application.status === "APPROVED" && (
                   <p className="text-sm text-muted-foreground">
-                    Approved {formatDate(application.decidedAt)}.
+                    Approved {formatDateTime(application.decidedAt)}.
                     {application.member && (
                       <>
                         {" "}
@@ -318,7 +339,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
                 {application.status === "REJECTED" && (
                   <div className="grid gap-1 text-sm text-muted-foreground">
-                    <p>Rejected {formatDate(application.decidedAt)}.</p>
+                    <p>Rejected {formatDateTime(application.decidedAt)}.</p>
                     {application.rejectionReason && (
                       <p>
                         <span className="font-medium text-foreground">Reason:</span>{" "}
@@ -330,6 +351,17 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {page < lastPage && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Showing {applications.length} of {total} applications · page {page} of {lastPage}
+          </p>
+          <Button asChild variant="outline" className="h-10">
+            <Link href={moreHref}>Load more applications</Link>
+          </Button>
         </div>
       )}
     </div>

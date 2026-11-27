@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { optionalText } from "@/lib/validators";
+import { dateInputSchema, optionalText } from "@/lib/validators";
 
 export const expenseFormSchema = z.object({
-  date: z.string().trim().min(1, "Select a date"),
+  date: dateInputSchema,
   amount: z.coerce
     .number({ message: "Amount is required" })
     .positive("Amount must be greater than 0")

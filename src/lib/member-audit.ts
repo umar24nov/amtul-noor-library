@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { getClientIp } from "@/lib/login-rate-limit";
 import {
   describeUserAgent,
+  isMemberActivityAction,
   memberActivityCutoff,
   sanitizeActivityChanges,
   sanitizeActivityMetadata,
@@ -32,7 +33,7 @@ export type MemberAuditChange = {
 
 export type LogMemberChangeInput = {
   memberId: number;
-  action: string | MemberAuditAction;
+  action: MemberAuditAction;
   summary?: string;
   changes?: MemberAuditChange[];
   metadata?: Record<string, unknown>;
@@ -69,6 +70,10 @@ export async function logMemberChange(
   tx: Prisma.TransactionClient | typeof prisma,
   input: LogMemberChangeInput,
 ) {
+  // The type keeps callers in the known vocabulary; this also protects against
+  // a plain JavaScript caller writing an arbitrary action name to the monitor.
+  if (!isMemberActivityAction(input.action)) return;
+
   try {
     const [session, ip, headerAgent, member] = await Promise.all([
       getSession().catch(() => null),

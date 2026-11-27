@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { formatDate, formatINR, formatMonth } from "@/lib/format";
+import { formatDate, formatDateTime, formatINR, formatMonth } from "@/lib/format";
 import { paymentModeLabels, paymentStatusLabels } from "@/lib/constants";
 import type { ExportResult } from "@/lib/export";
 import type { MemberExportRow, SeatExportRow } from "@/lib/export";
@@ -72,7 +72,7 @@ function paymentSheets(data: ExportResult, scopeLabel: string): Sheet[] {
     widths: [30, 16, 18],
     rows: [
       { Item: "Scope", Detail: scopeLabel, Amount: "" },
-      { Item: "Generated", Detail: formatDate(new Date()), Amount: "" },
+      { Item: "Generated", Detail: formatDateTime(new Date()), Amount: "" },
       { Item: "", Detail: "", Amount: "" },
       { Item: "Records", Detail: "", Amount: data.totals.records },
       { Item: "Total amount", Detail: "", Amount: data.totals.amount },
@@ -132,7 +132,7 @@ export async function buildMembersWorkbook(rows: MemberExportRow[]): Promise<Buf
     name: "Summary",
     widths: [30, 16],
     rows: [
-      { Item: "Generated", Detail: formatDate(new Date()) },
+      { Item: "Generated", Detail: formatDateTime(new Date()) },
       { Item: "Members", Detail: rows.length },
       { Item: "Active", Detail: rows.filter((row) => row.status === "ACTIVE").length },
       { Item: "Left", Detail: rows.filter((row) => row.status === "LEFT").length },
@@ -166,7 +166,7 @@ export async function buildSeatsWorkbook(rows: SeatExportRow[]): Promise<Buffer>
     name: "Summary",
     widths: [30, 16],
     rows: [
-      { Item: "Generated", Detail: formatDate(new Date()) },
+      { Item: "Generated", Detail: formatDateTime(new Date()) },
       { Item: "Seats", Detail: rows.length },
       { Item: "Occupied", Detail: occupied },
       { Item: "Free", Detail: rows.length - occupied },
@@ -195,7 +195,7 @@ export async function buildExpensesWorkbook(rows: Expense[]): Promise<Buffer> {
     name: "Summary",
     widths: [30, 16, 16],
     rows: [
-      { Item: "Generated", Detail: formatDate(new Date()), Amount: "" },
+      { Item: "Generated", Detail: formatDateTime(new Date()), Amount: "" },
       { Item: "", Detail: "", Amount: "" },
       { Item: "Entries", Detail: rows.length, Amount: "" },
       { Item: "Total", Detail: "", Amount: rows.reduce((sum, row) => sum + Number(row.amount), 0) },

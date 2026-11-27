@@ -176,6 +176,7 @@ export async function addSeatAction(
     await prisma.seat.create({
       data: {
         seatNumber,
+        seatOrder: Number(seatNumber),
         status: "AVAILABLE",
         hasLocker: seatHasLocker(seatNumber),
       },
@@ -219,6 +220,7 @@ export async function addSeatRangeAction(
       .filter((seatNumber) => !taken.has(seatNumber))
       .map((seatNumber) => ({
         seatNumber,
+        seatOrder: Number(seatNumber),
         hasLocker: seatHasLocker(seatNumber),
       }));
 

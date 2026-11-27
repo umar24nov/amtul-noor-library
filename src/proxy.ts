@@ -10,7 +10,7 @@ function getSecretKey(): Uint8Array | null {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const secret = getSecretKey();
 
@@ -57,7 +57,10 @@ export async function proxy(request: NextRequest) {
     }
 
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    // Keep filters, months and any other state the visitor arrived with. A
+    // bare pathname would silently drop a query string and strand them on an
+    // unfiltered page after signing in.
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
     const response = NextResponse.redirect(loginUrl);
     if (!token) response.cookies.delete(SESSION_COOKIE);
     return response;

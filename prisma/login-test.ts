@@ -157,7 +157,7 @@ export async function runLoginTest(options: LoginTestOptions = {}): Promise<bool
 
   // The landing page describes the library to search engines in a JSON-LD block.
   if (!landingBody.includes('application/ld+json') || !landingBody.includes('"@type":"Library"')) {
-    console.log("the landing page has no LocalBusiness JSON-LD block");
+    console.log("the landing page has no Library JSON-LD block");
     return false;
   }
   if (!/href="\/login"[^>]*>Login</.test(landingBody)) {

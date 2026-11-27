@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SEAT_COUNT, SUPPORT_TOPICS } from "@/lib/constants";
+import { INPUT_DATE_PATTERN, MONTH_KEY_PATTERN, SEAT_COUNT, SUPPORT_TOPICS } from "@/lib/constants";
 
 const emptyToUndefined = (value: unknown) => {
   if (value === null || value === undefined) return undefined;
@@ -50,17 +50,25 @@ export const optionalEmailSchema = z.preprocess(
     .optional(),
 );
 
+/**
+ * A real calendar date, not just something JavaScript can parse. `Date.parse`
+ * happily rolls 30 February forward to 2 March, so the UTC round trip below is
+ * what actually rejects impossible dates.
+ */
 export const dateInputSchema = z
   .string()
   .trim()
   .min(1, "Date is required")
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date")
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Enter a valid date");
+  .regex(INPUT_DATE_PATTERN, "Enter a valid date")
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Enter a valid date");
 
 export const monthKeySchema = z
   .string()
   .trim()
-  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Enter a valid month");
+  .regex(MONTH_KEY_PATTERN, "Enter a valid month");
 
 export const seatNumberSchema = z
   .string()

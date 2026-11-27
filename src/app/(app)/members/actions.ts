@@ -13,7 +13,7 @@ import {
   recordThreePlusOneOffer,
   syncPendingAmounts,
 } from "@/lib/membership";
-import { memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
+import { dateInputSchema, memberFormSchema, fieldErrors, markLeftSchema } from "@/lib/validators";
 import { prisma } from "@/lib/prisma";
 import {
   effectiveMemberFee,
@@ -27,6 +27,7 @@ import { listMembers } from "@/lib/queries";
 import {
   DEFAULT_MEMBER_SORT,
   isMemberSort,
+  MONTH_KEY_PATTERN,
   monthlyFeeForSeat,
   seatHasLocker as lockerForSeatNumber,
 } from "@/lib/constants";
@@ -603,7 +604,7 @@ export async function applyThreePlusOneOfferAction(formData: FormData): Promise<
   const payDateRaw = String(formData.get("payDate") || "").trim();
 
   if (!Number.isInteger(memberPk) || memberPk <= 0) return errorState("Member not found.");
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) return errorState("Choose a valid start month.", { startMonth: "Choose a valid month" });
+  if (!MONTH_KEY_PATTERN.test(startMonth)) return errorState("Choose a valid start month.", { startMonth: "Choose a valid month" });
   if (requestedMode !== "CASH" && requestedMode !== "ONLINE") {
     return errorState("Pick Cash or Online for the prepaid payment.", { payMode: "Cash or Online" });
   }
@@ -628,7 +629,13 @@ export async function applyThreePlusOneOfferAction(formData: FormData): Promise<
       return errorState(`Start month cannot be before joining month (${joinedMonth}).`, { startMonth: "Before joining month" });
     }
 
-    const payDate = payDateRaw ? parseInputDate(payDateRaw) : new Date();
+    const parsedPayDate = payDateRaw ? dateInputSchema.safeParse(payDateRaw) : null;
+    if (parsedPayDate && !parsedPayDate.success) {
+      return errorState("Enter a valid payment date.", { payDate: "Enter a valid date" });
+    }
+    // A blank date is still allowed here and means today; a filled-in one has
+    // just been checked as a real calendar date before it reaches the database.
+    const payDate = parsedPayDate?.success ? parseInputDate(parsedPayDate.data) : new Date();
     let offerSummary: { months: string[]; prepaidAmount: number } | null = null;
 
     await prisma.$transaction(async (tx) => {

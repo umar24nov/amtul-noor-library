@@ -370,6 +370,12 @@ export const MONTH_PICKER_THROUGH = "2030-12";
 /** Upper bound on the size of a month list, so bad data cannot build a huge one. */
 export const MAX_MONTH_WINDOW = 360;
 
+/** Shape of a form date. The calendar check happens in the validators. */
+export const INPUT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Matches a `YYYY-MM` month key with a real month number. */
+export const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 /** Ways the member list can be ordered. The first entry is the default. */
 export const MEMBER_SORTS = [
   { value: "oldest", label: "Join date, oldest first" },
