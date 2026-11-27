@@ -28,6 +28,7 @@ import {
 import { getMonthlyFee } from "@/lib/settings";
 import { effectivePermissions } from "@/lib/permission-defs";
 import { canEditPayments, requireAnyPermission } from "@/lib/permissions";
+import { safeNext } from "@/lib/safe-next";
 import type { PaymentMode, PaymentStatus } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -41,6 +42,8 @@ type SearchParams = Promise<{
   /** Numeric member id from a member page's "Record payment" button. */
   record?: string;
   tab?: string;
+  /** Where a "Record payment" link came from, e.g. Reminders. */
+  returnTo?: string;
 }>;
 
 const ALL = "ALL";
@@ -67,6 +70,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   // "Record payment" on a member page lands here; the dialog opens with that
   // member already selected so the fee can be collected without searching.
   const recordMemberId = /^\d+$/.test(params.record ?? "") ? Number(params.record) : /^\d+$/.test(params.memberId ?? "") && params.tab === "record" ? Number(params.memberId) : null;
+  // A hidden field from this page is trusted only as far as a same-origin path;
+  // the server action performs the same check before using it again.
+  const returnTo = safeNext(params.returnTo, "");
 
   const [result, stats, fee, members, months] = await Promise.all([
     listPayments({ month, memberId: memberFilter, memberSearch: search, mode, status }),
@@ -97,6 +103,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                 members={members}
                 fee={fee}
                 autoOpenMemberId={recordMemberId}
+                returnTo={returnTo || undefined}
               />
             ) : null}
             {canExport ? (

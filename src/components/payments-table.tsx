@@ -10,12 +10,10 @@ import { PaymentStatusBadge } from "@/components/status-badges";
 import { STICKY_HEADER_CELL, paymentModeLabels } from "@/lib/constants";
 import { formatDate, formatINR, formatMonth } from "@/lib/format";
 import { paymentReceiptUrl } from "@/lib/whatsapp";
-import type { Payment } from "@/generated/prisma/client";
-import type { MemberWithSeat } from "@/lib/queries";
+import type { PaymentRow } from "@/lib/queries";
 import { loadMorePaymentsAction } from "@/app/(app)/payments/actions";
 
-/** A payment row with the member it belongs to and their seat included. */
-export type PaymentRow = Payment & { member: MemberWithSeat };
+export type { PaymentRow } from "@/lib/queries";
 
 export type PaymentMemberOption = {
   id: number;

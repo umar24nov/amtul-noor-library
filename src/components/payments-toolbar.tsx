@@ -28,11 +28,14 @@ export function PaymentsToolbar({
   members,
   fee,
   autoOpenMemberId,
+  returnTo,
 }: {
   members: MemberOption[];
   fee: number;
   /** Member id pulled from the `record` query param; opens the dialog for them. */
   autoOpenMemberId?: number | null;
+  /** Same-origin page to return to after a successful recording. */
+  returnTo?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,11 +48,13 @@ export function PaymentsToolbar({
   const clearRecordParams = useCallback(() => {
     const hasRecord = searchParams.get("record");
     const tab = searchParams.get("tab");
-    if (!hasRecord && tab !== "record") return;
+    const hasReturnTo = searchParams.get("returnTo");
+    if (!hasRecord && tab !== "record" && !hasReturnTo) return;
 
     const next = new URLSearchParams(searchParams.toString());
     next.delete("record");
     next.delete("tab");
+    next.delete("returnTo");
     // When opened via ?memberId=<numeric>&tab=record, that memberId was the
     // record target. A non-numeric memberId (e.g. ATN001) is a list filter and
     // is kept, mirroring how the page parses the params.
@@ -63,11 +68,13 @@ export function PaymentsToolbar({
   // Every close path (overlay click, X, Escape, successful save) clears the
   // preselection and removes record-open URL params, so a refresh won't reopen
   // the dialog after the payment is recorded.
-  const setOpen = (open: boolean) => {
+  const setOpen = (open: boolean, redirecting = false) => {
     setRecordOpen(open);
     if (!open) {
       setPreselectedMemberId(null);
-      clearRecordParams();
+      // A successful return is already navigating away; stripping the URL here
+      // would race it and drop the user back on Payments.
+      if (!redirecting) clearRecordParams();
     }
   };
 
@@ -91,7 +98,8 @@ export function PaymentsToolbar({
           members={members}
           defaultFee={fee}
           defaults={preselectedMemberId != null ? { memberId: preselectedMemberId } : undefined}
-          onSuccess={() => setOpen(false)}
+          returnTo={returnTo}
+          onSuccess={(redirectTo) => setOpen(false, Boolean(redirectTo))}
         />
       </DialogContent>
     </Dialog>

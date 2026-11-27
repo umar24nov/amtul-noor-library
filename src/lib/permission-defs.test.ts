@@ -1,8 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DAY_TO_DAY_DEFAULTS,
   PERMISSION_GROUPS,
   PERMISSION_KEYS,
+  deriveRoleLevel,
+  deriveSavedRoleLevel,
   effectivePermissions,
   roleCanEditPayments,
   roleCanViewPayments,
@@ -50,4 +53,30 @@ test("the member activity sidebar link uses its own permission", async () => {
   const { NAV_ITEMS } = await import("./constants");
   const item = NAV_ITEMS.find((entry) => entry.href === "/member-activity");
   assert.deepEqual(item?.permissions, ["MEMBER_ACTIVITY"]);
+});
+
+test("the role level comes from the selected areas", () => {
+  assert.equal(deriveRoleLevel([]), "DAY_TO_DAY");
+  assert.equal(deriveRoleLevel(DAY_TO_DAY_DEFAULTS), "DAY_TO_DAY");
+  assert.equal(deriveRoleLevel([...PERMISSION_KEYS]), "ADMIN");
+  assert.equal(
+    deriveRoleLevel(PERMISSION_KEYS.filter((key) => key !== "MEMBER_ACTIVITY")),
+    "DAY_TO_DAY",
+  );
+});
+
+test("every permission is offered in the role editor", () => {
+  const offered = PERMISSION_GROUPS.flatMap((group) => group.options.map((option) => option.key));
+  assert.deepEqual([...offered].sort(), [...PERMISSION_KEYS].sort());
+});
+
+test("saving an existing limited role never elevates it accidentally", () => {
+  const all = [...PERMISSION_KEYS];
+  assert.equal(deriveSavedRoleLevel("DAY_TO_DAY", all), "DAY_TO_DAY");
+  assert.equal(deriveSavedRoleLevel("VIEW_ONLY", all), "DAY_TO_DAY");
+  assert.equal(deriveSavedRoleLevel("ADMIN", all), "ADMIN");
+  assert.equal(
+    deriveSavedRoleLevel("ADMIN", PERMISSION_KEYS.filter((key) => key !== "USERS")),
+    "DAY_TO_DAY",
+  );
 });

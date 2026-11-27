@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import { AlertCircle, Check, Search } from "lucide-react";
@@ -161,6 +162,7 @@ export function PaymentForm({
   defaults,
   defaultFee,
   submitLabel = "Record payment",
+  returnTo,
   onSuccess,
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -168,8 +170,11 @@ export function PaymentForm({
   defaults?: PaymentFormDefaults;
   defaultFee: number;
   submitLabel?: string;
-  onSuccess?: () => void;
+  /** Validated same-origin destination used only after a successful save. */
+  returnTo?: string;
+  onSuccess?: (redirectTo?: string) => void;
 }) {
+  const router = useRouter();
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const [memberId, setMemberId] = useState<number | null>(defaults?.memberId ?? null);
   const [status, setStatus] = useState<PaymentStatus>(defaults?.status ?? "PAID");
@@ -179,7 +184,10 @@ export function PaymentForm({
   useEffect(() => {
     if (state.status === "success" && state.message) {
       toast.success(state.message);
-      onSuccess?.();
+      // Replace rather than push: going Back should not reopen the finished
+      // form, and the browser still keeps the original page in history.
+      if (state.redirectTo) router.replace(state.redirectTo);
+      onSuccess?.(state.redirectTo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
@@ -187,6 +195,7 @@ export function PaymentForm({
   return (
     <form action={formAction} className="grid gap-4" noValidate>
       {defaults?.recordId && <input type="hidden" name="recordId" value={defaults.recordId} />}
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
       {state.status === "error" && state.message && (
         <p className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">

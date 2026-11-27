@@ -23,3 +23,13 @@ export function safeNext(value: unknown, fallback = "/dashboard"): string {
     return fallback;
   }
 }
+
+/**
+ * A return destination from a form, accepted only when it stays inside one
+ * known section. This keeps a hidden field from sending somebody to an
+ * unrelated page even when the path itself is same-origin and therefore safe.
+ */
+export function safeSectionPath(value: unknown, section: string): string {
+  const path = safeNext(value, "");
+  return path === section || path.startsWith(`${section}?`) ? path : "";
+}

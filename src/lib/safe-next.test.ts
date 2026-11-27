@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { safeNext } from "./safe-next";
+import { safeNext, safeSectionPath } from "./safe-next";
 
 const FALLBACK = "/dashboard";
 
@@ -46,4 +46,22 @@ test("dot segments are normalised without leaving the site", () => {
 
 test("a caller can choose a different fallback", () => {
   assert.equal(safeNext("//evil.example", "/member"), "/member");
+});
+
+test("a section return keeps only paths inside that section", () => {
+  assert.equal(safeSectionPath("/reminders", "/reminders"), "/reminders");
+  assert.equal(
+    safeSectionPath("/reminders?month=2026-11", "/reminders"),
+    "/reminders?month=2026-11",
+  );
+  for (const value of [
+    "/payments",
+    "/reminders-evil",
+    "/reminders/../payments",
+    "https://evil.example/reminders",
+    "//evil.example/reminders",
+    undefined,
+  ]) {
+    assert.equal(safeSectionPath(value, "/reminders"), "", String(value));
+  }
 });

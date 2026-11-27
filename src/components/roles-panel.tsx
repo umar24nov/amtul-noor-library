@@ -24,13 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SubmitButton } from "@/components/submit-button";
 import { IDLE_STATE, type ActionState } from "@/lib/action-result";
@@ -61,40 +54,45 @@ const LEVEL_LABELS: Record<RoleLevel, string> = {
   VIEW_ONLY: "View only",
 };
 
-const LEVEL_DESCRIPTIONS: Record<RoleLevel, string> = {
-  ADMIN: "Everything, always — the areas below are all included",
-  DAY_TO_DAY: "Only the areas selected below",
-  VIEW_ONLY: "See only the areas selected below, with no changes allowed",
-};
-
 const TOTAL_AREAS = PERMISSION_GROUPS.reduce((n, g) => n + g.options.length, 0);
 
 /**
- * The name, level and permission selector shared by the add and edit dialogs.
+ * The name and permission selector shared by the add and edit dialogs.
  *
- * A full-access role is shown with every area selected and the boxes locked: the
- * level alone grants everything, so the ticks are a picture of that rather than a
- * choice. On a standard role the boxes are the choice, grouped by job, and each
- * group has an "All" box that selects or clears the whole group.
+ * The ticks are the access level: every area selected means Full Access, any
+ * gap means Limited. Areas are grouped by job, and each group has an "All" box
+ * that selects or clears the whole group. Only the built-in owner role is
+ * locked, so it can be renamed without ever losing full access.
  */
 function RoleFields({
   state,
   defaultName = "",
   defaultLevel = "DAY_TO_DAY",
   defaultPermissions = [],
+  allPermissions = [],
   lockLevel = false,
+  preserveLimited = false,
 }: {
   state: ActionState;
   defaultName?: string;
   defaultLevel?: RoleLevel;
   defaultPermissions?: PermissionKey[];
+  /** The complete list, used to show an older Admin role with every area on. */
+  allPermissions?: PermissionKey[];
   lockLevel?: boolean;
+  preserveLimited?: boolean;
 }) {
-  const [level, setLevel] = useState<RoleLevel>(defaultLevel);
-  const [permissions, setPermissions] = useState<PermissionKey[]>(defaultPermissions);
+  // A full-access role is full access by level, even when its stored tick list
+  // predates a newly added area. Show every area so saving cannot downgrade it
+  // by accident; removing a tick is how an ordinary Admin role becomes Limited.
+  const [permissions, setPermissions] = useState<PermissionKey[]>(
+    defaultLevel === "ADMIN" && allPermissions.length > 0
+      ? [...allPermissions]
+      : defaultPermissions,
+  );
 
-  const isAdmin = level === "ADMIN";
-  const effective = isAdmin ? PERMISSION_GROUPS.flatMap((g) => g.options.map((o) => o.key)) : permissions;
+  const effective = permissions;
+  const fullAccess = effective.length === TOTAL_AREAS;
 
   function toggle(key: PermissionKey) {
     setPermissions((current) =>
@@ -112,8 +110,7 @@ function RoleFields({
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-6">
-      {/* Left rail: the role's identity — its name and the access level that
-          decides whether the area list even applies. */}
+      {/* Left rail: the role's identity and the one-line result of its ticks. */}
       <div className="grid content-start gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="role-name">
@@ -131,32 +128,20 @@ function RoleFields({
           )}
         </div>
 
-        <div className="grid gap-1.5">
-          <Label>Access level</Label>
-          <input type="hidden" name="level" value={level} />
-          <Select
-            value={level}
-            onValueChange={(value) => setLevel(value as RoleLevel)}
-            disabled={lockLevel}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DAY_TO_DAY">{LEVEL_LABELS.DAY_TO_DAY}</SelectItem>
-              <SelectItem value="ADMIN">{LEVEL_LABELS.ADMIN}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{LEVEL_DESCRIPTIONS[level]}</p>
-          {lockLevel && (
-            <p className="text-xs text-muted-foreground">
-              The built-in admin role always keeps Full Access. Its name can still be changed.
-            </p>
-          )}
-          {state.fieldErrors?.level && (
-            <p className="text-xs text-destructive">{state.fieldErrors.level}</p>
-          )}
-        </div>
+        <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+          {fullAccess
+            ? lockLevel
+              ? "The built-in admin role always has Full Access."
+              : preserveLimited
+                ? "Every area is selected. This existing Limited role stays Limited when saved."
+                : "Every area is selected — this role will have Full Access."
+            : "Select every area to give this role Full Access."}
+        </p>
+        {lockLevel && (
+          <p className="text-xs text-muted-foreground">
+            The built-in admin role always keeps Full Access. Its name can still be changed.
+          </p>
+        )}
       </div>
 
       {/* Right side: the areas this role can open. */}
@@ -168,10 +153,13 @@ function RoleFields({
           </span>
         </div>
 
-        {isAdmin && (
+        {fullAccess && (
           <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-            A Full Access role can do everything, so every area is on and cannot be turned off.
-            Choose &ldquo;{LEVEL_LABELS.DAY_TO_DAY}&rdquo; to select areas one by one.
+            {lockLevel
+              ? "The built-in admin role keeps every area on."
+              : preserveLimited
+                ? "This role was created as Limited, so saving it keeps Limited access."
+                : "All areas are on. Untick any area to make this a Limited role."}
           </p>
         )}
 
@@ -192,7 +180,7 @@ function RoleFields({
                   <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted">
                     <Checkbox
                       checked={allOn}
-                      disabled={isAdmin}
+                      disabled={lockLevel}
                       onCheckedChange={() => toggleGroup(keys, allOn)}
                     />
                     All
@@ -211,7 +199,7 @@ function RoleFields({
                         {on && <input type="hidden" name="permissions" value={option.key} />}
                         <Checkbox
                           checked={on}
-                          disabled={isAdmin}
+                          disabled={lockLevel}
                           onCheckedChange={() => toggle(option.key)}
                           className="mt-0.5"
                         />
@@ -304,7 +292,9 @@ function EditRoleDialog({
               defaultName={role.name}
               defaultLevel={role.level}
               defaultPermissions={role.permissions}
+              allPermissions={role.allPermissions}
               lockLevel={role.builtIn}
+              preserveLimited={role.level !== "ADMIN"}
             />
             {state.status === "error" && state.message && (
               <p className="text-sm text-destructive">{state.message}</p>
@@ -489,7 +479,7 @@ export function RolesPanel({ roles }: { roles: PanelRole[] }) {
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Users className="size-3.5 shrink-0" aria-hidden="true" />
         A Limited role can only open the areas shown on its card; the rest are hidden from the
-        sidebar and blocked at the address bar. Full Access roles can do everything.
+        sidebar and blocked at the address bar. Ticking every area makes a role Full Access.
       </p>
 
       <EditRoleDialog role={editTarget} onOpenChange={setEditTarget} />

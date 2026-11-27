@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PERMISSION_KEYS, deriveRoleLevel } from "./permission-defs";
 import {
   ASSIGN_ADMIN_MESSAGE,
   canAssignLevel,
@@ -27,4 +28,13 @@ test("a day-to-day manager cannot hand out full access", () => {
 test("both messages say that full access is needed", () => {
   assert.match(MANAGE_ADMIN_MESSAGE, /full-access admin/);
   assert.match(ASSIGN_ADMIN_MESSAGE, /full-access admin/);
+});
+
+test("ticking every area still needs a full admin to save or change", () => {
+  const fullAccess = deriveRoleLevel([...PERMISSION_KEYS]);
+  assert.equal(fullAccess, "ADMIN");
+  assert.equal(canAssignLevel("DAY_TO_DAY", fullAccess), false);
+  assert.equal(canManageLevel("DAY_TO_DAY", fullAccess), false);
+  assert.equal(canAssignLevel("ADMIN", fullAccess), true);
+  assert.equal(canManageLevel("ADMIN", fullAccess), true);
 });

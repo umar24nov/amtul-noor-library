@@ -1,4 +1,4 @@
-import type { Permission } from "@/generated/prisma/enums";
+import type { Permission, RoleLevel } from "@/generated/prisma/enums";
 
 /**
  * The permission keys, labels and groups.
@@ -24,6 +24,26 @@ export const PERMISSION_KEYS = [
 ] as const satisfies readonly Permission[];
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
+
+/** The role editor has no separate level control: ticking every area is what
+ *  makes a role full access. Derived on the server from the submitted ticks. */
+export function deriveRoleLevel(
+  permissions: readonly PermissionKey[],
+): "ADMIN" | "DAY_TO_DAY" {
+  return PERMISSION_KEYS.every((key) => permissions.includes(key)) ? "ADMIN" : "DAY_TO_DAY";
+}
+
+/**
+ * Existing Limited roles keep their level when saved. This avoids turning a
+ * role into a full admin merely because a later permission was backfilled and
+ * every box is now ticked; a new role with all boxes still becomes Full Access.
+ */
+export function deriveSavedRoleLevel(
+  currentLevel: RoleLevel,
+  permissions: readonly PermissionKey[],
+): "ADMIN" | "DAY_TO_DAY" {
+  return currentLevel === "ADMIN" ? deriveRoleLevel(permissions) : "DAY_TO_DAY";
+}
 
 /**
  * The tick lists on the role editor, grouped so the owner reads them by job

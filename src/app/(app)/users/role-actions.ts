@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { errorState, successState, type ActionState } from "@/lib/action-result";
 import { getSession, type SessionPayload } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { isPermissionKey, type PermissionKey } from "@/lib/permission-defs";
+import {
+  deriveRoleLevel,
+  deriveSavedRoleLevel,
+  isPermissionKey,
+  PERMISSION_KEYS,
+  type PermissionKey,
+} from "@/lib/permission-defs";
 import { prisma } from "@/lib/prisma";
 import {
   ASSIGN_ADMIN_MESSAGE,
@@ -74,9 +80,10 @@ export async function createRoleAction(
   if ("denied" in gate) return gate.denied;
   const session = gate.session;
 
+  const permissions = readPermissions(formData);
   const parsed = createRoleSchema.safeParse({
     name: formData.get("name"),
-    level: formData.get("level"),
+    level: deriveRoleLevel(permissions),
   });
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
@@ -86,8 +93,6 @@ export async function createRoleAction(
   if (!canAssignLevel(session.level, parsed.data.level)) {
     return errorState(ASSIGN_ADMIN_MESSAGE);
   }
-
-  const permissions = readPermissions(formData);
 
   try {
     await prisma.role.create({
@@ -113,16 +118,15 @@ export async function updateRoleAction(
   if ("denied" in gate) return gate.denied;
   const session = gate.session;
 
+  const permissions = readPermissions(formData);
   const parsed = updateRoleSchema.safeParse({
     roleId: formData.get("roleId"),
     name: formData.get("name"),
-    level: formData.get("level"),
+    level: deriveRoleLevel(permissions),
   });
   if (!parsed.success) {
     return errorState("Please check the highlighted fields.", fieldErrors(parsed.error));
   }
-
-  const permissions = readPermissions(formData);
 
   try {
     const role = await prisma.role.findUnique({
@@ -131,22 +135,29 @@ export async function updateRoleAction(
     });
     if (!role) return errorState("That role no longer exists.");
 
+    // A role that was created as Limited stays Limited even if every area is
+    // now ticked, so a backfilled permission cannot silently make it an admin.
+    // The built-in owner role is fixed at Full Access and keeps every area,
+    // including any added since its stored tick list was written.
+    const level = role.builtIn ? "ADMIN" : deriveSavedRoleLevel(role.level, permissions);
+    const savedPermissions = role.builtIn ? [...PERMISSION_KEYS] : permissions;
+
     // A full-admin role, and turning anything into one, are both a full
     // admin's business.
     if (!canManageLevel(session.level, role.level)) {
       return errorState(MANAGE_ADMIN_MESSAGE);
     }
-    if (!canAssignLevel(session.level, parsed.data.level)) {
+    if (!canAssignLevel(session.level, level)) {
       return errorState(ASSIGN_ADMIN_MESSAGE);
     }
 
     // The built-in admin role keeps the owner able to manage accounts, so its
     // level is fixed; it may still be renamed.
-    if (role.builtIn && parsed.data.level !== "ADMIN") {
+    if (role.builtIn && level !== "ADMIN") {
       return errorState("The built-in admin role must stay a full admin.");
     }
 
-    if (role.level === "ADMIN" && parsed.data.level !== "ADMIN") {
+    if (role.level === "ADMIN" && level !== "ADMIN") {
       // After this change, every active admin in this role loses admin. There
       // must still be an admin outside it.
       const remaining = await countActiveAdmins(role.id);
@@ -157,7 +168,7 @@ export async function updateRoleAction(
 
     await prisma.role.update({
       where: { id: role.id },
-      data: { name: parsed.data.name, level: parsed.data.level, permissions },
+      data: { name: parsed.data.name, level, permissions: savedPermissions },
     });
 
     revalidateUsers();

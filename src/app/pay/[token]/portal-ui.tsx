@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowUpRight, MapPin, ShieldCheck, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
 import { LIBRARY_NAME } from "@/lib/constants";
-import { HERO_PHOTO } from "@/lib/photos";
 
 /** One colour language across every page of the member area. */
 export const tones = {
@@ -227,15 +226,23 @@ export function PortalHero({
   return (
     <section className="relative isolate overflow-hidden rounded-3xl border border-border bg-card shadow-[0_24px_70px_-30px_rgba(15,23,42,0.25)] dark:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.7)]">
       <Image
-        src={`/images/${HERO_PHOTO.src}`}
-        alt={HERO_PHOTO.alt}
+        src="/images/member-details-light.png"
+        alt=""
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="object-cover object-[center_42%] opacity-90 dark:opacity-80"
+        className="object-cover object-center dark:hidden"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-card/55 via-card/20 to-card/5 dark:from-background/60 dark:via-background/25 dark:to-background/5" />
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-card/70 to-transparent dark:from-background/70" />
+      <Image
+        src="/images/member-details-dark.png"
+        alt=""
+        fill
+        priority
+        sizes="(min-width: 1024px) 1120px, 100vw"
+        className="hidden object-cover object-center dark:block"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-card/90 via-card/45 to-card/15 dark:from-background/85 dark:via-background/55 dark:to-background/25" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-card/85 to-transparent dark:from-background/85" />
       <div
         className="absolute -right-24 -top-24 size-80 rounded-full bg-emerald-500/20 blur-3xl"
         aria-hidden="true"
@@ -259,12 +266,12 @@ export function PortalHero({
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-7">
-          <div className="min-w-0 max-w-2xl rounded-2xl border border-border/60 bg-card/75 p-5 shadow-sm backdrop-blur-md dark:bg-background/75 sm:p-6">
+          <div className="min-w-0 max-w-2xl rounded-2xl border border-border/70 bg-card/90 p-5 shadow-lg shadow-slate-950/5 backdrop-blur-md dark:bg-background/90 dark:shadow-black/20 sm:p-6">
             <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Welcome back</p>
             <h1 className="font-heading mt-1 break-words text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
               {name}
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/70 sm:text-base">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/80 sm:text-base">
               Your seat, your payments, your details — neatly organised. Choose a section below to
               see the full story.
             </p>

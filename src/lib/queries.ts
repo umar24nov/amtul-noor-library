@@ -44,6 +44,20 @@ export type MemberWithSeat = Member & {
 
 export type MemberWithSeatAndPayments = MemberWithSeat & { payments: Payment[] };
 
+/**
+ * A payment row safe to hand to a Client Component. Prisma's `amount` is a
+ * Decimal instance, which cannot cross the Server/Client Component boundary;
+ * the table only needs the number.
+ */
+export type PaymentRow = Omit<Payment, "amount"> & {
+  amount: number;
+  member: MemberWithSeat;
+};
+
+function serializablePayments(rows: (Payment & { member: MemberWithSeat })[]): PaymentRow[] {
+  return rows.map(({ amount, ...row }) => ({ ...row, amount: toNumber(amount) }));
+}
+
 /** Numeric seat order, with unseated rows last. Seat numbers are plain strings,
  *  so database string ordering would put "10" before "2". */
 function compareSeatNumbers(a: string | null, b: string | null): number {
@@ -462,7 +476,7 @@ export type PaymentFilters = {
 };
 
 export type PaymentListResult = {
-  payments: (Payment & { member: MemberWithSeat })[];
+  payments: PaymentRow[];
   total: number;
   page: number;
   /** Sum of every matching payment, not just the ones loaded on screen. */
@@ -536,7 +550,7 @@ export async function listPayments({
       take: PAGE_SIZE,
     });
     return {
-      payments,
+      payments: serializablePayments(payments),
       total,
       page,
       totalAmount: toNumber(amounts._sum.amount),
@@ -577,7 +591,7 @@ export async function listPayments({
   ]);
 
   return {
-    payments: [...top, ...rest],
+    payments: serializablePayments([...top, ...rest]),
     total: topTotal + restTotal,
     page,
     totalAmount: toNumber(amounts._sum.amount),

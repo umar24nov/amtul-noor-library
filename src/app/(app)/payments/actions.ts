@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import { safeSectionPath } from "@/lib/safe-next";
 import { getSession } from "@/lib/auth";
 import { maskEmail } from "@/lib/email-mask";
 import { actionPermission, canViewPayments } from "@/lib/permissions";
@@ -170,7 +171,10 @@ export async function recordPaymentAction(
     }
 
     revalidateAll();
-    return successState(`Payment recorded for ${member.name}.`);
+    // A return hint is allowed only for the Reminders screen and is checked
+    // again here because the hidden field is user-controlled.
+    const redirectTo = safeSectionPath(formData.get("returnTo"), "/reminders");
+    return successState(`Payment recorded for ${member.name}.`, undefined, redirectTo);
   } catch (error) {
     return errorState(prismaErrorMessage(error));
   }
