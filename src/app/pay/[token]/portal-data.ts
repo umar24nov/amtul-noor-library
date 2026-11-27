@@ -119,6 +119,7 @@ export function revalidatePortal(token: string): void {
     `/pay/${token}/payments/history`,
     `/pay/${token}/email`,
     `/pay/${token}/support`,
+    `/pay/${token}/settings`,
   ];
   for (const path of paths) revalidatePath(path);
 }

@@ -13,6 +13,7 @@ import {
   Mail,
   Menu,
   Receipt,
+  Settings,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -71,6 +72,13 @@ const ITEMS: NavItem[] = [
     label: "Help & support",
     description: "Talk to the library",
     icon: LifeBuoy,
+    exact: true,
+  },
+  {
+    suffix: "/settings",
+    label: "Settings",
+    description: "Change your details",
+    icon: Settings,
     exact: true,
   },
 ];
@@ -232,7 +240,7 @@ export function PortalNav({
 
       <div className="flex-1 overflow-y-auto px-3 py-5">
         <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
-          Your space
+          Settings
         </p>
         <NavLinks base={base} onNavigate={() => setOpen(false)} />
       </div>
@@ -262,7 +270,7 @@ export function PortalNav({
             <SheetHeader className="sr-only">
               <SheetTitle>Member navigation</SheetTitle>
               <SheetDescription>
-                Move between your details, payments, history, email and support.
+                Move between your details, payments, history, email, support and settings.
               </SheetDescription>
             </SheetHeader>
             {sidebar}

@@ -1,27 +1,32 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowUpRight,
   CheckCircle2,
   Clock,
   CreditCard,
+  Landmark,
   LifeBuoy,
   LockKeyhole,
   Mail,
   Receipt,
+  Settings,
   ShieldCheck,
   UserRound,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { MemberStatusBadge } from "@/components/status-badges";
-import { formatDate, formatINR } from "@/lib/format";
-import { MemberDetailsEditor } from "../member-details";
+import { formatDate, formatINR, formatMonth } from "@/lib/format";
+import { PayFeesButton } from "../pay-fees-button";
 import { getFeeSummary, getSeatLabel, loadPortal } from "../portal-data";
 import { PortalGate, PortalShell } from "../portal-shell";
 import {
   Accent,
   Detail,
   PortalHero,
+  SectionHeading,
   StatCard,
   type Tone,
 } from "../portal-ui";
@@ -72,8 +77,6 @@ export default async function MemberDetailsPage({
   if (!allowed) return <PortalGate payToken={token} email={member.email} />;
 
   const summary = await getFeeSummary(member);
-  // Remount the editor after a save so the form closes with the fresh values.
-  const recordKey = member.updatedAt.toISOString();
 
   const hero = (
     <PortalHero
@@ -120,6 +123,62 @@ export default async function MemberDetailsPage({
           hint="Allocated by the library"
         />
       </dl>
+
+      {!summary.feeIsZero && summary.bankConfigured && (
+        <section className="overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/80 via-card to-card p-5 shadow-sm sm:p-6 dark:border-indigo-500/20 dark:from-indigo-500/10">
+          <div className="relative">
+            <SectionHeading
+              icon={Landmark}
+              tone="indigo"
+              title="Pay by bank transfer (NEFT)"
+              description={`Amount due · ${formatMonth(summary.dueMonth)} · ${formatINR(summary.dueAmount)}`}
+            />
+
+            <dl className="mt-4 grid gap-4 rounded-xl border border-border bg-muted/50 p-5 text-sm text-foreground sm:grid-cols-3">
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Account holder
+                </dt>
+                <dd className="mt-1 break-words font-medium">{summary.bank.accountHolder}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Account number
+                </dt>
+                <dd className="mt-1 break-all font-mono font-medium">{summary.bank.accountNumber}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  IFSC code
+                </dt>
+                <dd className="mt-1 break-all font-mono font-medium">{summary.bank.ifsc}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <PayFeesButton
+                amount={formatINR(summary.dueAmount)}
+                month={formatMonth(summary.dueMonth)}
+                bank={summary.bank}
+              />
+              <Button asChild variant="outline" size="sm" className="h-9">
+                <Link href={`/pay/${token}/payments`}>Open payments</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {summary.feeIsZero && (
+        <section className="rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-4 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/5 dark:text-emerald-100">
+          <p className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              Nothing to pay right now. NEFT bank details appear here only when a fee is due.
+            </span>
+          </p>
+        </section>
+      )}
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)] xl:items-start">
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
@@ -178,18 +237,12 @@ export default async function MemberDetailsPage({
               </dl>
 
               {memberAllowed ? (
-                <div className="mt-5 rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/5">
-                  <MemberDetailsEditor
-                    key={recordKey}
-                    payToken={token}
-                    details={{
-                      name: member.name,
-                      mobile: member.mobile,
-                      guardianName: member.guardianName,
-                      guardianMobile: member.guardianMobile,
-                    }}
-                  />
-                </div>
+                <Button asChild variant="outline" size="sm" className="mt-5">
+                  <Link href={`/pay/${token}/settings`}>
+                    <Settings className="size-3.5" aria-hidden="true" />
+                    Change your details
+                  </Link>
+                </Button>
               ) : (
                 <p className="mt-5 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-xs leading-relaxed text-muted-foreground">
                   You are viewing this record as staff. Member-only edit controls are hidden here;
@@ -212,6 +265,13 @@ export default async function MemberDetailsPage({
               Everything else lives in its own page, so there is less to scroll.
             </p>
             <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
+              <QuickLink
+                href={`/pay/${token}/settings`}
+                icon={Settings}
+                tone="indigo"
+                title="Settings"
+                description="Change name, contact and guardian"
+              />
               <QuickLink
                 href={`/pay/${token}/payments`}
                 icon={CreditCard}

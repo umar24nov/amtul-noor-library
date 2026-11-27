@@ -219,7 +219,7 @@ export async function updateMemberDetailsAction(
   });
 
   revalidatePortal(payToken);
-  redirect(`/pay/${payToken}/details`);
+  redirect(`/pay/${payToken}/settings`);
 }
 
 /** Sends a confirmation code to the new email a member wants to use. */
