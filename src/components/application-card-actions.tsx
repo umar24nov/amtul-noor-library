@@ -53,7 +53,7 @@ export type EditableApplication = {
   memberId: number | null;
   /** "Seat 3" while the linked member still holds a seat, else null. */
   memberSeatLabel: string | null;
-  /** The final welcome is one-time; rejected decision emails are not. */
+  /** Set only when the one welcome sent at approval was actually delivered. */
   welcomeEmailSent: boolean;
 };
 
@@ -443,15 +443,16 @@ export function ApplicationActions({
           <RejectApplicationDialog application={application} />
         </>
       )}
-      {(application.status === "REJECTED" ||
-        (application.status === "APPROVED" &&
-          !application.welcomeEmailSent &&
-          Boolean(application.email))) && <SendEmailDialog application={application} />}
-      {application.status === "APPROVED" && application.welcomeEmailSent && (
-        <span className="inline-flex h-10 items-center rounded-lg border border-border px-3 text-xs text-muted-foreground">
-          Welcome email sent
-        </span>
+      {application.status === "REJECTED" && Boolean(application.email) && (
+        <SendEmailDialog application={application} />
       )}
+      {application.status === "APPROVED" &&
+        application.welcomeEmailSent &&
+        Boolean(application.email) && (
+          <span className="inline-flex h-10 items-center rounded-lg border border-border px-3 text-xs text-muted-foreground">
+            Welcome email sent at approval
+          </span>
+        )}
       {application.memberSeatLabel && (
         <ReleaseSeatDialog application={application} />
       )}
@@ -511,7 +512,6 @@ function SendEmailDialog({ application }: { application: EditableApplication }) 
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const approved = application.status === "APPROVED";
 
   const send = () => {
     startTransition(async () => {
@@ -531,18 +531,15 @@ function SendEmailDialog({ application }: { application: EditableApplication }) 
       <AlertDialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-10">
           <Mail className="size-4" />
-          {approved ? "Send welcome email" : "Send email"}
+          Send email
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {approved ? "Send the welcome email?" : "Send the decision email?"}
-          </AlertDialogTitle>
+          <AlertDialogTitle>Send the decision email?</AlertDialogTitle>
           <AlertDialogDescription>
-            {approved
-              ? `This emails ${application.name} a welcome message with their seat and library details. The welcome is sent only once, so check the address before continuing.`
-              : `This emails ${application.name} the message explaining that their application was not accepted. Sending it again is safe.`}
+            This emails {application.name} the message explaining that their application was not
+            accepted. Sending it again is safe.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
