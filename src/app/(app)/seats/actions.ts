@@ -126,13 +126,29 @@ export async function releaseSeatAction(
     });
     if (!seat) return errorState("That seat no longer exists.");
 
-    await prisma.$transaction([
-      prisma.member.updateMany({
+    await prisma.$transaction(async (tx) => {
+      await tx.member.updateMany({
         where: { seatId: seat.id, status: "ACTIVE" },
         data: { seatId: null },
-      }),
-      prisma.seat.update({ where: { id: seat.id }, data: { status: "AVAILABLE" } }),
-    ]);
+      });
+      await tx.seat.update({ where: { id: seat.id }, data: { status: "AVAILABLE" } });
+      for (const occupant of seat.occupants) {
+        await logMemberChange(tx, {
+          memberId: occupant.id,
+          action: MEMBER_AUDIT_ACTIONS.SEAT_RELEASED,
+          summary: `Seat ${normalizeSeatNumber(seat.seatNumber)} released`,
+          changes: [
+            {
+              field: "seatId",
+              label: "Seat",
+              old: normalizeSeatNumber(seat.seatNumber),
+              new: null,
+            },
+          ],
+          metadata: { channel: "Seats" },
+        });
+      }
+    });
 
     revalidateSeats();
     return successState(`Seat ${seat.seatNumber} is now available.`);

@@ -108,9 +108,13 @@ export function MemberActivityTable({
                       </td>
                       <td className="px-4 py-3">
                         <div className="min-w-0">
-                          <p className="font-medium">{row.member.name}</p>
+                          <p className="font-medium">
+                            {row.member ? row.member.name : (row.memberLabel || "Deleted member")}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {row.member.memberId} · {row.member.status}
+                            {row.member
+                              ? `${row.member.memberId} · ${row.member.status}`
+                              : "Member removed"}
                           </p>
                         </div>
                       </td>

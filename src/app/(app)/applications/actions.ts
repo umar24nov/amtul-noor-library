@@ -13,6 +13,7 @@ import { normalizeSeatNumber, parseInputDate } from "@/lib/format";
 import { nextMemberId, newPayToken } from "@/lib/ids";
 import { monthlyFeeForSeat, seatHasLocker } from "@/lib/constants";
 import { memberFeeKey } from "@/lib/settings";
+import { logMemberChange, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { prisma } from "@/lib/prisma";
 import { siteOrigin } from "@/lib/site";
 import { applicationEditSchema, fieldErrors } from "@/lib/validators";
@@ -89,6 +90,13 @@ export async function approveApplicationAction(formData: FormData): Promise<Acti
           payToken: newPayToken(),
         },
         select: { id: true, memberId: true },
+      });
+
+      await logMemberChange(tx, {
+        memberId: member.id,
+        action: MEMBER_AUDIT_ACTIONS.MEMBER_CREATED,
+        summary: "Member created from an approved application",
+        metadata: { channel: "Application", memberCode: member.memberId },
       });
 
       if (seatId !== null) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { errorState, prismaErrorMessage, successState, type ActionState } from "@/lib/action-result";
+import { logActivity } from "@/lib/activity";
 import { getSession } from "@/lib/auth";
 import { actionPermission, canAny } from "@/lib/permissions";
 import { monthKeyFromInputDate, parseInputDate } from "@/lib/format";
@@ -547,10 +548,11 @@ export async function deleteMemberAction(memberId: number): Promise<ActionState>
   try {
     const member = await prisma.member.findUnique({
       where: { id: memberId },
-      select: { id: true, seatId: true },
+      select: { id: true, seatId: true, memberId: true, name: true },
     });
     if (!member) return errorState("Member not found.");
 
+    const description = `Member ${member.memberId} (${member.name}) deleted`;
     await prisma.$transaction(async (tx) => {
       if (member.seatId) {
         await tx.seat.update({
@@ -559,8 +561,23 @@ export async function deleteMemberAction(memberId: number): Promise<ActionState>
         });
       }
       await tx.setting.deleteMany({ where: { key: memberFeeKey(member.id) } });
+      // Written before the delete: the row keeps its label and is detached from
+      // the member rather than cascading away with the rest of the history.
+      await logMemberChange(tx, {
+        memberId: member.id,
+        action: MEMBER_AUDIT_ACTIONS.MEMBER_DELETED,
+        summary: description,
+        metadata: { channel: "Admin", memberCode: member.memberId },
+      });
       await tx.member.delete({ where: { id: member.id } });
     });
+
+    const session = await getSession();
+    await logActivity(
+      "DELETED",
+      { id: session?.userId ?? null, email: session?.email ?? "System" },
+      description,
+    );
 
     revalidateAll();
     return successState("Member deleted.");

@@ -106,17 +106,30 @@ function looksSensitive(key: string): boolean {
   return SENSITIVE_KEY_FRAGMENTS.some((fragment) => lower.includes(fragment));
 }
 
+/** A 40-character token is hex with mixed characters, not a run of one letter. */
+function isTokenShaped(value: string): boolean {
+  return TOKEN_SHAPED.test(value) && new Set(value.toLowerCase()).size >= 4;
+}
+
+const EMBEDDED_TOKEN = /[a-f0-9]{20,128}/gi;
+const LABELLED_SECRET =
+  /(?:aadhaar|aadhar|otp(?:\s*code)?|verification\s*code|session\s*(?:cookie|token)|password)[\s:=-]*[a-z0-9]{4,}/gi;
+
 function redactSensitiveValue(value: string): string {
   const trimmed = value.trim();
   if (
-    TOKEN_SHAPED.test(trimmed) ||
+    isTokenShaped(trimmed) ||
     OTP_SHAPED.test(trimmed) ||
     AADHAAR_SHAPED.test(trimmed) ||
     /(?:aadhaar|aadhar)[\s:=-]*\d/i.test(trimmed)
   ) {
     return REDACTED;
   }
-  return value;
+  return value
+    .replace(EMBEDDED_TOKEN, (match) =>
+      new Set(match.toLowerCase()).size >= 4 ? REDACTED : match,
+    )
+    .replace(LABELLED_SECRET, REDACTED);
 }
 
 function sanitizeValue(value: unknown, depth: number): unknown {
@@ -158,6 +171,40 @@ export function sanitizeActivityMetadata(
     return { truncated: true, reason: "context-too-large" };
   }
   return clean as Record<string, unknown>;
+}
+
+/** Free text is capped and cleaned before it is stored or shown. */
+export function sanitizeActivityText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const text = typeof value === "string" ? value : String(value);
+  const safe = redactSensitiveValue(text);
+  return safe.length > MAX_STRING_LENGTH ? `${safe.slice(0, MAX_STRING_LENGTH)}…` : safe;
+}
+
+export type ActivityChangeInput = {
+  field?: unknown;
+  label?: unknown;
+  old?: unknown;
+  new?: unknown;
+};
+
+/** Field diffs get the same redaction and size limits as metadata. */
+export function sanitizeActivityChanges(
+  changes: readonly ActivityChangeInput[] | null | undefined,
+): ActivityChangeInput[] | undefined {
+  if (!Array.isArray(changes) || changes.length === 0) return undefined;
+  const clean = changes.slice(0, 20).flatMap((change) => {
+    if (!change || typeof change !== "object" || Array.isArray(change)) return [];
+    return [
+      {
+        field: sanitizeActivityText(change.field),
+        label: sanitizeActivityText(change.label ?? change.field ?? "Field"),
+        old: sanitizeValue(change.old, 1),
+        new: sanitizeValue(change.new, 1),
+      },
+    ];
+  });
+  return clean.length > 0 ? clean : undefined;
 }
 
 /**
@@ -220,6 +267,7 @@ const METADATA_SUMMARY_FIELDS: Array<[string, string]> = [
   ["maskedEmail", "Sent to"],
   ["reason", "Result"],
   ["device", "Device"],
+  ["memberLabel", "Member"],
 ];
 
 /** A compact plain-language line for the context that is safe to display. */

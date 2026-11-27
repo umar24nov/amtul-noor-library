@@ -29,6 +29,7 @@ import { ApplyOfferDialog } from "@/components/apply-offer-dialog";
 import { can, canEditPayments, requirePermission } from "@/lib/permissions";
 import { getSession } from "@/lib/auth";
 import { getMemberDetail, listOpenSeats } from "@/lib/queries";
+import { formatActivityChanges, sanitizeActivityText } from "@/lib/member-activity";
 
 export async function generateMetadata({
   params,
@@ -505,11 +506,14 @@ export default async function MemberDetailPage({
             <ul className="divide-y divide-border">
               {member.auditLogs.map((log) => {
                 const leavingDate = auditLeavingDate(log.metadata);
+                const changes = formatActivityChanges(log.changes);
                 return (
                   <li key={log.id} className="py-3 first:pt-0 last:pb-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{log.summary || log.action}</p>
+                        <p className="text-sm font-medium">
+                          {sanitizeActivityText(log.summary) || log.action}
+                        </p>
                         {leavingDate && (
                           <p className="mt-1 text-xs text-muted-foreground">
                             Leaving date:{" "}
@@ -523,12 +527,12 @@ export default async function MemberDetailPage({
                           {log.actorName ? " • " : ""}
                           {formatDate(log.createdAt)}
                         </p>
-                        {Array.isArray(log.changes) && log.changes.length > 0 && (
+                        {changes.length > 0 && (
                           <ul className="mt-2 space-y-1">
-                            {(log.changes as Array<{ label?: string; old?: unknown; new?: unknown }>).map((change, idx) => (
+                            {changes.map((change, idx) => (
                               <li key={idx} className="text-xs text-muted-foreground">
-                                <span className="font-medium text-foreground">{String(change.label ?? "Field")}:</span>{" "}
-                                <span className="line-through">{String(change.old ?? "-")}</span> → <span className="text-foreground">{String(change.new ?? "-")}</span>
+                                <span className="font-medium text-foreground">{change.label}:</span>{" "}
+                                <span className="line-through">{change.old}</span> → <span className="text-foreground">{change.new}</span>
                               </li>
                             ))}
                           </ul>

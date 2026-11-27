@@ -74,5 +74,5 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
   }
 }
 
-console.error("prisma migrate deploy failed; continuing build since schema may already be in sync.");
-process.exit(0);
+console.error("prisma migrate deploy failed; stopping the build so code cannot ship ahead of the schema.");
+process.exit(1);

@@ -236,6 +236,20 @@ export async function updatePaymentAction(
       changes,
       metadata: { paymentId: id, oldMemberId: existing.memberId, newMemberId: parsed.data.memberId },
     });
+    // The previous owner loses the record, so their history needs its own event.
+    if (existing.memberId !== parsed.data.memberId) {
+      await logMemberChange(prisma, {
+        memberId: existing.memberId,
+        action: MEMBER_AUDIT_ACTIONS.PAYMENT_EDITED,
+        summary: `Payment moved to another member for ${newMonth}`,
+        changes,
+        metadata: {
+          paymentId: id,
+          movedToMemberId: parsed.data.memberId,
+          month: newMonth,
+        },
+      });
+    }
 
     revalidateAll();
     return successState(`Payment updated for ${existing.member.name}.`);
@@ -272,14 +286,15 @@ export async function deletePaymentAction(recordId: number): Promise<ActionState
     });
     if (!existing) return errorState("Payment not found.");
 
+    await prisma.payment.delete({ where: { id: recordId } });
+    // Only after the delete succeeds, so a failed delete cannot leave a
+    // "deleted" event for a payment that is still on the books.
     await logMemberChange(prisma, {
       memberId: existing.memberId,
       action: MEMBER_AUDIT_ACTIONS.PAYMENT_DELETED,
       summary: `Payment deleted (${existing.paymentId}) for ${existing.month}`,
       metadata: { paymentId: existing.paymentId, month: existing.month, amount: String(existing.amount), paymentMode: existing.paymentMode, status: existing.status },
     });
-
-    await prisma.payment.delete({ where: { id: recordId } });
 
     revalidateAll();
     return successState(
@@ -373,7 +388,29 @@ export async function updateFeeAction(
   if (!parsed.success) {
     return errorState("Please check the fee amount.", fieldErrors(parsed.error));
   }
+  const previousFee = await getMonthlyFee();
   await setMonthlyFee(parsed.data.fee);
+
+  // Members with their own fee are unaffected. Everyone else follows the
+  // standard fee, so each of them gets one event in their own history.
+  const overrides = await memberFeesByMemberId();
+  const affected = await prisma.member.findMany({
+    where: { status: "ACTIVE" },
+    select: { id: true },
+  });
+  for (const member of affected) {
+    if (overrides.has(member.id)) continue;
+    await logMemberChange(prisma, {
+      memberId: member.id,
+      action: MEMBER_AUDIT_ACTIONS.FEE_CHANGED,
+      summary: `Standard monthly fee changed from ₹${previousFee} to ₹${parsed.data.fee}`,
+      changes: [
+        { field: "monthlyFee", label: "Monthly fee", old: previousFee, new: parsed.data.fee },
+      ],
+      metadata: { channel: "Settings", scope: "standard" },
+    });
+  }
+
   revalidateAll();
   return successState("Monthly fee updated.");
 }

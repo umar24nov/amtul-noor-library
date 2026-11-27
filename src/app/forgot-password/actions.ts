@@ -15,17 +15,11 @@ import {
   verifyOtpCode,
 } from "@/lib/otp-store";
 import { prisma } from "@/lib/prisma";
+import { safeNext } from "@/lib/safe-next";
 import { fieldErrors, otpRequestSchema, otpVerifySchema } from "@/lib/validators";
 
 /** Matches the cost used by the Users and Profile password actions. */
 const BCRYPT_COST = 10;
-
-function safeNext(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
-  }
-  return value;
-}
 
 /** Deliberately says the same thing whether or not the address has an account. */
 function sentMessage(): string {

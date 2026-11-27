@@ -6,7 +6,9 @@ import {
   isMemberActivityAction,
   MEMBER_ACTIVITY_RETENTION_DAYS,
   memberActivityCutoff,
+  sanitizeActivityChanges,
   sanitizeActivityMetadata,
+  sanitizeActivityText,
   summarizeActivityMetadata,
 } from "./member-activity";
 
@@ -112,4 +114,69 @@ test("action names are validated against the shared vocabulary", () => {
   assert.equal(isMemberActivityAction("MEMBER_SIGNED_IN"), true);
   assert.equal(isMemberActivityAction("MEMBER_OTP_FAILED"), true);
   assert.equal(isMemberActivityAction("DROP_TABLE"), false);
+});
+
+test("free text summaries remove embedded secrets before storage", () => {
+  assert.equal(
+    sanitizeActivityText("Code bef6f0ec8d7a9e04afc671ac69dc9e9fa975 sent for OTP: 123456"),
+    "Code [redacted] sent for [redacted]",
+  );
+  assert.equal(sanitizeActivityText("Password: hunter2"), "[redacted]");
+  assert.equal(sanitizeActivityText("a".repeat(500)), `${"a".repeat(200)}…`);
+});
+
+test("metadata redacts secrets embedded in innocent-looking text", () => {
+  const clean = sanitizeActivityMetadata({
+    note: "Token bef6f0ec8d7a9e04afc671ac69dc9e9fa975 and verification code 654321",
+    detail: "session cookie abcdefghijklmnop",
+  });
+
+  assert.deepEqual(clean, {
+    note: "Token [redacted] and [redacted]",
+    detail: "[redacted]",
+  });
+});
+
+test("field diffs are sanitised, capped and ignore damaged rows", () => {
+  const changes = [
+    { field: "mobile", label: "Mobile", old: "9876543210", new: "9123456789" },
+    {
+      field: "identity",
+      label: "Identity",
+      old: "123456789012",
+      new: "session token abcdefghijkl",
+    },
+    null,
+    "broken",
+  ] as unknown as Parameters<typeof sanitizeActivityChanges>[0];
+
+  assert.deepEqual(sanitizeActivityChanges(changes), [
+    { field: "mobile", label: "Mobile", old: "9876543210", new: "9123456789" },
+    { field: "identity", label: "Identity", old: "[redacted]", new: "[redacted]" },
+  ]);
+  assert.equal(
+    sanitizeActivityChanges(
+      Array.from({ length: 25 }, (_, index) => ({
+        field: `field${index}`,
+        label: `Field ${index}`,
+        old: "a",
+        new: "b",
+      })),
+    )?.length,
+    20,
+  );
+  assert.equal(sanitizeActivityChanges([]), undefined);
+  assert.equal(sanitizeActivityChanges(null), undefined);
+});
+
+test("stored field diffs are redacted when rendered", () => {
+  const changes = formatActivityChanges([
+    { label: "Mobile", old: "9876543210", new: "123456" },
+    { label: "Reference", old: "bef6f0ec8d7a9e04afc671ac69dc9e9fa975", new: "paid" },
+  ]);
+
+  assert.deepEqual(changes, [
+    { label: "Mobile", old: "9876543210", new: "[redacted]" },
+    { label: "Reference", old: "[redacted]", new: "paid" },
+  ]);
 });

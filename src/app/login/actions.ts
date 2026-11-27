@@ -10,14 +10,8 @@ import {
   getClientIp,
   recordFailedLogin,
 } from "@/lib/login-rate-limit";
+import { safeNext } from "@/lib/safe-next";
 import { fieldErrors, loginSchema } from "@/lib/validators";
-
-function safeNext(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
-  }
-  return value;
-}
 
 export async function loginAction(
   _prev: ActionState,

@@ -412,14 +412,17 @@ model SupportMessage {
 /// Tracks every change made to a member's profile, payments, seat or status
 /// so the owner can see exactly who did what and when.
 model MemberAuditLog {
-  id        Int      @id @default(autoincrement())
-  memberId  Int
-  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  actorId   Int?
-  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  actorName String   @default("")
-  action    String
-  summary   String   @default("")
+  id          Int      @id @default(autoincrement())
+  /// Null once the member is deleted; the label below keeps the row readable.
+  memberId    Int?
+  member      Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  /// "ATN001 · Name", copied when the event is written so it survives deletion.
+  memberLabel String   @default("")
+  actorId     Int?
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorName   String   @default("")
+  action      String
+  summary     String   @default("")
   /// Field-level diffs as JSON: [{ "field": "mobile", "label": "Mobile", "old": "...", "new": "..." }]
   changes   Json?
   /// Extra context e.g. paymentId, month, seat details

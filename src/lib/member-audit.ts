@@ -6,7 +6,9 @@ import { getClientIp } from "@/lib/login-rate-limit";
 import {
   describeUserAgent,
   memberActivityCutoff,
+  sanitizeActivityChanges,
   sanitizeActivityMetadata,
+  sanitizeActivityText,
   MEMBER_ACTIVITY_LABELS,
 } from "@/lib/member-activity";
 import type { MemberAuditAction } from "@/lib/member-activity";
@@ -68,10 +70,16 @@ export async function logMemberChange(
   input: LogMemberChangeInput,
 ) {
   try {
-    const [session, ip, headerAgent] = await Promise.all([
+    const [session, ip, headerAgent, member] = await Promise.all([
       getSession().catch(() => null),
       getClientIp().catch(() => null),
       input.userAgent === undefined ? getCurrentUserAgent() : Promise.resolve(input.userAgent),
+      tx.member
+        .findUnique({
+          where: { id: input.memberId },
+          select: { memberId: true, name: true },
+        })
+        .catch(() => null),
     ]);
 
     // Member self-service rows must not inherit a staff session that happens to
@@ -97,14 +105,14 @@ export async function logMemberChange(
     await tx.memberAuditLog.create({
       data: {
         memberId: input.memberId,
+        // A readable snapshot survives the member being deleted later.
+        memberLabel: member ? `${member.memberId} · ${member.name}` : "",
         actorId: memberActor ? null : (session?.userId ?? null),
         actorName,
         action: input.action,
-        summary: input.summary ?? "",
+        summary: sanitizeActivityText(input.summary),
         changes:
-          input.changes && input.changes.length > 0
-            ? (input.changes as unknown as Prisma.InputJsonValue)
-            : undefined,
+          sanitizeActivityChanges(input.changes) as unknown as Prisma.InputJsonValue | undefined,
         metadata:
           Object.keys(metadataWithDevice).length > 0
             ? (metadataWithDevice as Prisma.InputJsonValue)

@@ -377,7 +377,9 @@ export type MemberActivityRow = {
   ip: string;
   actorName: string;
   createdAt: Date;
-  member: { id: number; memberId: string; name: string; status: Member["status"] };
+  /** Readable snapshot kept even after the member row is deleted. */
+  memberLabel: string;
+  member: { id: number; memberId: string; name: string; status: Member["status"] } | null;
 };
 
 export type MemberActivityResult = {
@@ -416,6 +418,7 @@ export async function listMemberActivity({
           OR: [
             { member: { name: { contains: term, mode: "insensitive" as const } } },
             { member: { memberId: { contains: term.toUpperCase() } } },
+            { memberLabel: { contains: term, mode: "insensitive" as const } },
             { actorName: { contains: term, mode: "insensitive" as const } },
             { summary: { contains: term, mode: "insensitive" as const } },
           ],
@@ -423,29 +426,34 @@ export async function listMemberActivity({
       : {}),
   };
 
-  const offset = (Math.max(1, Math.trunc(page)) - 1) * MEMBER_ACTIVITY_PAGE_SIZE;
-  const [total, rows] = await Promise.all([
-    prisma.memberAuditLog.count({ where }),
-    prisma.memberAuditLog.findMany({
-      where,
-      select: {
-        id: true,
-        action: true,
-        summary: true,
-        changes: true,
-        metadata: true,
-        ip: true,
-        actorName: true,
-        createdAt: true,
-        member: { select: { id: true, memberId: true, name: true, status: true } },
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      skip: offset,
-      take: MEMBER_ACTIVITY_PAGE_SIZE,
-    }),
-  ]);
+  const total = await prisma.memberAuditLog.count({ where });
+  const requestedPage = Number.isFinite(page) && page > 0 ? Math.max(1, Math.trunc(page)) : 1;
+  // A stale bookmark must land on the last real page, not an empty screen with
+  // no pager. Page one is valid even when there are no rows at all.
+  const resolvedPage = Math.min(
+    requestedPage,
+    Math.max(1, Math.ceil(total / MEMBER_ACTIVITY_PAGE_SIZE)),
+  );
+  const rows = await prisma.memberAuditLog.findMany({
+    where,
+    select: {
+      id: true,
+      action: true,
+      summary: true,
+      changes: true,
+      metadata: true,
+      ip: true,
+      actorName: true,
+      createdAt: true,
+      memberLabel: true,
+      member: { select: { id: true, memberId: true, name: true, status: true } },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (resolvedPage - 1) * MEMBER_ACTIVITY_PAGE_SIZE,
+    take: MEMBER_ACTIVITY_PAGE_SIZE,
+  });
 
-  return { rows, total, page: Math.max(1, Math.trunc(page)), cutoff };
+  return { rows, total, page: resolvedPage, cutoff };
 }
 
 export type PaymentFilters = {

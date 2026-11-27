@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { logMemberActivity, MEMBER_AUDIT_ACTIONS } from "@/lib/member-audit";
 import { destroyMemberLinkAccess } from "@/lib/member-link-auth";
 import { MemberLinkGate } from "./member-link-gate";
+import { requirePortalMemberAccess } from "./portal-data";
 import { PortalNav } from "./portal-nav";
 import { PayLayout } from "./portal-ui";
 
@@ -39,6 +40,11 @@ export function PortalShell({
 }) {
   async function signOutAction() {
     "use server";
+    // A Server Function is callable on its own; the page check does not cover
+    // it. Require the member cookie for this exact link before logging or
+    // clearing anything.
+    const signedInMember = await requirePortalMemberAccess(token);
+    if (!signedInMember || signedInMember.id !== member.id) return;
     await logMemberActivity(member.id, MEMBER_AUDIT_ACTIONS.MEMBER_SIGNED_OUT, {
       metadata: { channel: "Member portal" },
     });

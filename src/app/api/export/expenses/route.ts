@@ -5,7 +5,8 @@ import { requireExport } from "@/lib/export-response";
 import { buildExpensesWorkbook } from "@/lib/export-workbook";
 
 export async function GET() {
-  await requireExport("REPORTS");
+  const denied = await requireExport("REPORTS");
+  if (denied) return denied;
   const expenses = await prisma.expense.findMany({
     orderBy: [{ date: "asc" }, { id: "asc" }],
   });
