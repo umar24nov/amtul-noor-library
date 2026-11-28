@@ -1,21 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  ChevronRight,
-  Clock,
-  LifeBuoy,
-  Mail,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-} from "lucide-react";
-import {
-  LIBRARY_EMAIL_URL,
-  LIBRARY_HOURS,
-  LIBRARY_HOURS_DAYS,
-  LIBRARY_PHONE_URL,
-} from "@/lib/constants";
+import { ArrowUpRight, LifeBuoy, Mail, MessageCircle, Phone } from "lucide-react";
+import { LIBRARY_EMAIL_URL, LIBRARY_PHONE_URL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { getSupportUrl, loadPortal } from "../portal-data";
 import { PortalGate, PortalShell } from "../portal-shell";

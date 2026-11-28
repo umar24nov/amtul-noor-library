@@ -10,7 +10,6 @@ import {
   LifeBuoy,
   LockKeyhole,
   LogOut,
-  Mail,
   Menu,
   Receipt,
   Settings,
