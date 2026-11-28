@@ -226,15 +226,21 @@ export function PortalHero({
   return (
     <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-[#E6DCC8] bg-[#F6F1E7] shadow-[0_20px_60px_-32px_rgba(16,43,70,0.45)] dark:border-[#17324D] dark:bg-[#06182B] dark:shadow-[0_24px_65px_-30px_rgba(0,0,0,0.85)]">
       <Image
-        src="/images/hero.jpg"
+        src="/images/member-details-light.png"
         alt=""
         fill
         priority
         sizes="(min-width: 1024px) 1120px, 100vw"
-        className="scale-105 object-cover object-[center_45%] opacity-75 blur-[1px] dark:opacity-65 dark:brightness-[0.65] contrast-[1.05]"
+        className="object-cover object-center dark:hidden"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#F8F4EA]/93 via-[#F0E6C3]/80 to-[#EBE6DD]/38 dark:from-[#06182B]/94 dark:via-[#0E1D2E]/82 dark:to-[#06182B]/58" />
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F6F1E7] to-transparent dark:from-[#06182B]/90" />
+      <Image
+        src="/images/member-details-dark.png"
+        alt=""
+        fill
+        priority
+        sizes="(min-width: 1024px) 1120px, 100vw"
+        className="hidden object-cover dark:block"
+      />
       <div
         className="absolute right-8 top-8 hidden size-24 rounded-full border border-[#C79A4A]/30 sm:block"
         aria-hidden="true"
