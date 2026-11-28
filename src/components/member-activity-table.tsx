@@ -6,13 +6,7 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatDateTime } from "@/lib/format";
 import {
   formatActivityChanges,
@@ -208,13 +202,8 @@ function ActivityDetails({ row }: { row: MemberActivityRow }) {
         </section>
       </div>
 
-      <div className="flex items-center gap-3 border-t border-border bg-muted/30 px-5 py-4 sm:px-6">
-        <p className="mr-auto text-xs text-muted-foreground">Read-only record · Event #{row.id}</p>
-        <DialogClose asChild>
-          <Button variant="outline" size="sm">
-            Close
-          </Button>
-        </DialogClose>
+      <div className="border-t border-border bg-muted/30 px-5 py-4 sm:px-6">
+        <p className="text-xs text-muted-foreground">Read-only record · Event #{row.id}</p>
       </div>
     </DialogContent>
   );
