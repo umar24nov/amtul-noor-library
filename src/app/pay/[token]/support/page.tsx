@@ -41,11 +41,12 @@ export default async function MemberSupportPage({
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
-        icon={LifeBuoy}
-        tone="emerald"
-        eyebrow="We are here"
-        title="Help & support"
-        action={
+          icon={LifeBuoy}
+          tone="emerald"
+          eyebrow="We are here"
+          title="Help & support"
+          description="Reach the library for help."
+          action={
           <Button asChild variant="outline" size="sm">
             <Link href={`/pay/${token}/details`}>Back to my details</Link>
           </Button>
@@ -73,7 +74,6 @@ export default async function MemberSupportPage({
                 <Button asChild variant="outline" className="h-10">
                   <a href={LIBRARY_PHONE_URL}>
                     <Phone className="size-4" />
-        <section className=rounded-2xl
                     Call
                   </a>
                 </Button>
@@ -101,6 +101,7 @@ export default async function MemberSupportPage({
             </span>
           </Link>
         </section>
+      </div>
       </div>
     </PortalShell>
   );

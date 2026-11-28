@@ -44,6 +44,7 @@ export default async function MemberPaymentsPage({
           tone="sky"
           eyebrow="Fees"
           title="Payments"
+          description="Your monthly fee record."
           action={
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {!summary.feeIsZero && summary.bankConfigured && (

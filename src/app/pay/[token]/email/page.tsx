@@ -25,10 +25,11 @@ export default async function MemberEmailPage({
     <PortalShell token={token} member={member} staffAllowed={staffAllowed}>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <PageIntro
-        icon={Mail}
-        tone="rose"
-        eyebrow="Account access"
-        title="Email & sign-in"
+          icon={Mail}
+          tone="rose"
+          eyebrow="Account access"
+          title="Email & sign-in"
+          description="Manage your sign-in email address."
         />
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 max-w-3xl">
