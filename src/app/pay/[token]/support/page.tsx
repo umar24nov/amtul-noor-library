@@ -73,6 +73,7 @@ export default async function MemberSupportPage({
                 <Button asChild variant="outline" className="h-10">
                   <a href={LIBRARY_PHONE_URL}>
                     <Phone className="size-4" />
+        <section className=rounded-2xl
                     Call
                   </a>
                 </Button>
